@@ -3,12 +3,12 @@ import subprocess
 import os
 import io
 from . import webp_transcoder, base_transcoder, avif_transcoder
-import pyimglib_decoders.jpeg
+from .. import decoders
 from PIL import Image
 
 
 def is_arithmetic_jpg(file_path):
-    jpeg_decoder = pyimglib_decoders.jpeg.JPEGDecoder(file_path)
+    jpeg_decoder = decoders.jpeg.JPEGDecoder(file_path)
     return jpeg_decoder.arithmetic_coding()
 
 
@@ -73,7 +73,7 @@ class AVIF_JPEG_Transcoder(JPEGTranscode, avif_transcoder.AVIF_WEBP_output):
     __metaclass__ = abc.ABCMeta
 
     def get_color_profile(self):
-        subsampling = pyimglib_decoders.jpeg.read_frame_data(self._get_source_data())[1]
+        subsampling = decoders.jpeg.read_frame_data(self._get_source_data())[1]
         return self.get_color_profile_by_subsampling(subsampling)
 
     def __init__(self, source, path:str, file_name:str, item_data:dict, pipe):

@@ -70,7 +70,10 @@ class Converter():
 
 class GIFconverter(Converter):
 
-    def __init__(self, gif):
+    def __init__(self, gif, path):
+        # untested superclass __init__ call
+        super().__init__(path)
+        #
         in_io = io.BytesIO()
         img = None
         if type(gif) is str:
@@ -132,6 +135,9 @@ class GIFconverter(Converter):
 
 class APNGconverter(Converter):
     def __init__(self, png_path):
+        # untested superclass __init__ call
+        super().__init__(png_path)
+        #
         self._path = png_path
         subprocess.run(['apngdis', png_path])
         os.chdir(os.path.dirname(png_path))

@@ -12,7 +12,7 @@ from . import jpeg,\
     frames_stream,\
     video,\
     srs,\
-    ACLMMP
+    YUV4MPEG2
 
 
 def open_image(file_path, required_size=None):

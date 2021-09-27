@@ -4,7 +4,7 @@ import subprocess
 import io
 from . import webp_transcoder, config
 from PIL import Image
-import pyimglib_decoders.YUV4MPEG2
+from .. import decoders
 
 
 class AVIF_WEBP_output(webp_transcoder.WEBP_output, metaclass=abc.ABCMeta):
@@ -16,17 +16,17 @@ class AVIF_WEBP_output(webp_transcoder.WEBP_output, metaclass=abc.ABCMeta):
         ]
 
     def get_color_profile_by_subsampling(self, subsampling):
-        if subsampling == pyimglib_decoders.YUV4MPEG2.SUPPORTED_COLOR_SPACES.YUV444:
+        if subsampling == decoders.YUV4MPEG2.SUPPORTED_COLOR_SPACES.YUV444:
             return[
                 '--profile', '1',
                 '--pix-fmt', 'yuv444'
             ]
-        elif subsampling == pyimglib_decoders.YUV4MPEG2.SUPPORTED_COLOR_SPACES.YUV422:
+        elif subsampling == decoders.YUV4MPEG2.SUPPORTED_COLOR_SPACES.YUV422:
             return [
                 '--profile', '2',
                 '--pix-fmt', 'yuv422'
             ]
-        elif subsampling == pyimglib_decoders.YUV4MPEG2.SUPPORTED_COLOR_SPACES.YUV420:
+        elif subsampling == decoders.YUV4MPEG2.SUPPORTED_COLOR_SPACES.YUV420:
             return [
                 '--pix-fmt', 'yuv420'
             ]

@@ -1,6 +1,7 @@
-from . import ACLMMP, ffmpeg_frames_stream
+from . import ffmpeg_frames_stream
 import pathlib
 import PIL.Image
+from .. import ACLMMP
 
 SRS_FILE_HEADER = "{\"ftype\":\"CLSRS\""
 
