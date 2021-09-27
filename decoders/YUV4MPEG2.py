@@ -1,10 +1,14 @@
 import PIL.Image
 import os
 from PIL import Image, ImageFile
+
+
 from . import frames_stream
 import math
 
 from . import CustomDecoder
+from ..config import YUV4MPEG2_LIMITED_RANGE_CORRENTION_MODES as LIMITED_RANGE_CORRENTION_MODES
+from ..config import yuv4mpeg2_limited_range_correction as limited_range_correction
 
 import enum
 
@@ -13,15 +17,6 @@ SIGNATURE_LENGTH = len(FILE_SIGNATURE)
 MAX_HEADER_LINE_SIZE = 2048
 
 LIMITED_COLOR_RANGE = "XCOLORRANGE=LIMITED"
-
-
-class LIMITED_RANGE_CORRENTION_MODES(enum.Enum):
-    NONE = enum.auto()
-    CLIPPING = enum.auto()
-    EXPAND = enum.auto()
-
-
-limited_range_correction = LIMITED_RANGE_CORRENTION_MODES.CLIPPING
 
 
 class SUPPORTED_COLOR_SPACES(enum.Enum):

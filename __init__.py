@@ -1,1 +1,1 @@
-from . import decoders, transcoding, ACLMMP
+from . import decoders, transcoding, ACLMMP, config

@@ -1,7 +1,8 @@
 import abc
 import io
 import math
-from . import webm_transcoder, base_transcoder, noise_detection, config
+from . import webm_transcoder, base_transcoder, noise_detection
+from .. import config
 from PIL import Image
 
 

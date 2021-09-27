@@ -5,7 +5,8 @@ import pathlib
 import os
 import io
 
-from . import jpeg_source_transcode, config, base_transcoder
+from . import jpeg_source_transcode, base_transcoder
+from .. import config
 
 
 class JPEG_XL_Transcoder(jpeg_source_transcode.JPEGTranscode, abc.ABC):

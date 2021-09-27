@@ -2,7 +2,8 @@ import abc
 import tempfile
 import subprocess
 import io
-from . import webp_transcoder, config
+from . import webp_transcoder
+from .. import config
 from PIL import Image
 from .. import decoders
 

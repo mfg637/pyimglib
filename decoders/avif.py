@@ -1,8 +1,7 @@
 import tempfile
 import subprocess
 from . import YUV4MPEG2
-
-workers_count = 1
+from .. import config
 
 
 def is_avif(file):
@@ -25,5 +24,5 @@ def decode(file):
     if not is_avif(file):
         raise Exception
     tmp_file = tempfile.NamedTemporaryFile(mode='rb', delete=True, suffix='.y4m')
-    subprocess.call(['avifdec', '-j', str(workers_count), str(file), tmp_file.name])
+    subprocess.call(['avifdec', '-j', str(config.avifdec_workers_count), str(file), tmp_file.name])
     return YUV4MPEG2.Y4M_FramesStream(tmp_file.name)

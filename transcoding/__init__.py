@@ -3,7 +3,8 @@
 
 import os
 
-from . import config, statistics, gif_source_transcode, png_source_transcode, jpeg_source_transcode, jpeg_xl_transcoder
+from . import statistics, gif_source_transcode, png_source_transcode, jpeg_source_transcode, jpeg_xl_transcoder
+from .. import config
 
 
 # derpibooru-dl only

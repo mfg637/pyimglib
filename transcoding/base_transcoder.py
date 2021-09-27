@@ -1,7 +1,8 @@
 import abc
 import os
 import io
-from . import statistics, config
+from . import statistics
+from .. import config
 from PIL import Image
 
 

@@ -2,8 +2,7 @@ import tempfile
 import subprocess
 import pathlib
 from PIL import Image
-
-PATH_TO_REFERENCE_DECODER = None
+from .. import config
 
 
 def is_JPEG_XL(file_path):
@@ -14,13 +13,14 @@ def is_JPEG_XL(file_path):
 
 
 def decode(file):
-    if PATH_TO_REFERENCE_DECODER is None:
-        raise NotADirectoryError("No path to reference JPEG XL decoder")
+    TOOL_NAME = "djxl"
+    if config.jpeg_xl_tools_path is not None:
+        TOOL_NAME = pathlib.Path(config.jpeg_xl_tools_path).joinpath("djxl")
     if not is_JPEG_XL(file):
         raise Exception
     tmp_file = tempfile.NamedTemporaryFile(mode='rb', delete=True, suffix='.ppm')
     subprocess.call([
-        pathlib.Path(PATH_TO_REFERENCE_DECODER).joinpath("djxl"),
+        TOOL_NAME,
         str(file),
         tmp_file.name
     ])
