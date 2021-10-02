@@ -1,3 +1,4 @@
+import config
 from . import ffmpeg_frames_stream
 from .common import open_image
 import pathlib
@@ -10,8 +11,8 @@ SRS_FILE_HEADER = "{\"ftype\":\"CLSRS\""
 class ClImage:
     def __init__(self, dir: pathlib.Path, content, img_metadata, levels):
         self._dir = dir
-        self._content = content
-        self._img_metadata = img_metadata
+        self.content = content
+        self.img_metadata = img_metadata
         self._levels = levels
         self._levels_sorted = list(self._levels.keys())
         self._levels_sorted.sort(reverse=True)
@@ -44,6 +45,17 @@ def is_ACLMMP_SRS(file_path):
     file.close()
     return header == SRS_FILE_HEADER
 
+def cover_image_parser(dir, content_metadata, stream_metadata, original_filename):
+    content_metadata['original_filename'] = original_filename
+    tags = dict()
+    levels = None
+    for tag in stream_metadata:
+        if tag == "levels":
+            levels = stream_metadata['levels']
+        else:
+            tags['tag'] = stream_metadata[tag]
+    return ClImage(dir, content_metadata, tags, levels)
+
 def decode(file_path: pathlib.Path):
     if type(file_path) is str:
         file_path = pathlib.Path(file_path)
@@ -55,12 +67,12 @@ def decode(file_path: pathlib.Path):
     if content_metadata["media-type"] == ACLMMP.srs_parser.MEDIA_TYPE.IMAGE.value:
         return ClImage(dir, content_metadata, streams_metadata[3].tags, streams_metadata[3].levels)
     elif content_metadata["media-type"] == ACLMMP.srs_parser.MEDIA_TYPE.VIDEO.value:
+        video = streams_metadata[0].get_compatible_files(config.ACLMMP_COMPATIBILITY_LEVEL)[0]
         if 'poster-image' in content_metadata:
-            return PIL.Image.open(dir.joinpath(content_metadata['poster-image']))
+            return cover_image_parser(dir, content_metadata, content_metadata['poster-image'], file_path)
         elif 'cover-image' in content_metadata:
-            return PIL.Image.open(dir.joinpath(content_metadata['cover-image']))
+            return cover_image_parser(dir, content_metadata, content_metadata['cover-image'], file_path)
         else:
-            video = streams_metadata[0].get_compatible_files(0)[0]
             return ffmpeg_frames_stream.FFmpegFramesStream(dir.joinpath(video), original_filename=file_path)
 
 def get_file_paths(file_path):
@@ -72,13 +84,23 @@ def get_file_paths(file_path):
     fp.close()
 
     if content_metadata["media-type"] == ACLMMP.srs_parser.MEDIA_TYPE.IMAGE.value:
-        return ClImage(dir, content_metadata, streams_metadata[3].tags, streams_metadata[3].levels).get_image_file_list()
+        return ClImage(
+            dir, content_metadata, streams_metadata[3].tags, streams_metadata[3].levels
+        ).get_image_file_list()
     elif content_metadata["media-type"] == ACLMMP.srs_parser.MEDIA_TYPE.VIDEO.value:
         file_list = list()
         if 'poster-image' in content_metadata:
-            file_list.append(dir.joinpath(content_metadata['poster-image']))
+            file_list.extend(
+                cover_image_parser(
+                    dir, content_metadata, content_metadata['poster-image'], file_path
+                ).get_image_file_list()
+            )
         elif 'cover-image' in content_metadata:
-            file_list.append(dir.joinpath(content_metadata['cover-image']))
+            file_list.extend(
+                cover_image_parser(
+                    dir, content_metadata, content_metadata['cover-image'], file_path
+                ).get_image_file_list()
+            )
         video = streams_metadata[0].levels
         for level in video:
             file_list.append(video[level])
