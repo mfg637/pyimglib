@@ -14,6 +14,14 @@ preferred_codec = PREFERRED_CODEC.WEBP
 avif_encoding_threads = 1
 avifdec_workers_count = 1
 
+
+class AVIF_DECODING_SPEEDS(enum.Enum):
+    FAST = enum.auto()
+    SLOW = enum.auto()
+
+
+avif_decoding_speed = AVIF_DECODING_SPEEDS.FAST
+
 # Max image size
 # works if image optimisations is enabled
 # if value is None, set maximum possible for webp size
