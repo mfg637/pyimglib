@@ -20,31 +20,37 @@ def check_exists(source, path, filename):
         return os.path.isfile(fname + '.webp') or os.path.isfile(fname+'.webm')
 
 
-def get_file_transcoder(source: str, path: str, filename: str, data: dict, pipe=None):
+def get_file_transcoder(source: str, path: str, filename: str, tags: dict, pipe=None, metadata={}):
     if os.path.splitext(source)[1].lower() == '.png':
-        if config.preferred_codec == config.PREFERRED_CODEC.AVIF:
-            return png_source_transcode.AVIF_PNGFileTranscode(source, path, filename, data, pipe)
+        if config.preferred_codec == config.PREFERRED_CODEC.SRS:
+            return png_source_transcode.SRS_PNGFileTranscode(source, path, filename, tags, pipe, metadata)
+        elif config.preferred_codec == config.PREFERRED_CODEC.AVIF:
+            return png_source_transcode.AVIF_PNGFileTranscode(source, path, filename, tags, pipe)
         elif config.PREFERRED_CODEC.WEBP:
-            return png_source_transcode.PNGFileTranscode(source, path, filename, data, pipe)
+            return png_source_transcode.PNGFileTranscode(source, path, filename, tags, pipe)
         else:
-            return png_source_transcode.PNGFileTranscode(source, path, filename, data, pipe)
+            return png_source_transcode.PNGFileTranscode(source, path, filename, tags, pipe)
     elif os.path.splitext(source)[1].lower() in {'.jpg', '.jpeg'}:
         if config.jpeg_xl_tools_path is not None:
-            if config.preferred_codec == config.PREFERRED_CODEC.AVIF:
-                return jpeg_xl_transcoder.JPEG_XL_FileTranscoder(source, path, filename, data, pipe)
+            if config.preferred_codec == config.PREFERRED_CODEC.SRS:
+                return jpeg_source_transcode.SRS_JPEGFileTranscode(source, path, filename, tags, pipe, metadata)
+            elif config.preferred_codec == config.PREFERRED_CODEC.AVIF:
+                return jpeg_xl_transcoder.JPEG_XL_FileTranscoder(source, path, filename, tags, pipe)
             elif config.PREFERRED_CODEC.WEBP:
-                return jpeg_xl_transcoder.JPEG_XL_FileTranscoder(source, path, filename, data, pipe)
+                return jpeg_xl_transcoder.JPEG_XL_FileTranscoder(source, path, filename, tags, pipe)
             else:
-                return jpeg_xl_transcoder.JPEG_XL_FileTranscoder(source, path, filename, data, pipe)
+                return jpeg_xl_transcoder.JPEG_XL_FileTranscoder(source, path, filename, tags, pipe)
         else:
-            if config.preferred_codec == config.PREFERRED_CODEC.AVIF:
-                return jpeg_source_transcode.JPEGFileTranscode(source, path, filename, data, pipe)
+            if config.preferred_codec == config.PREFERRED_CODEC.SRS:
+                return jpeg_source_transcode.SRS_JPEGFileTranscode(source, path, filename, tags, pipe, metadata)
+            elif config.preferred_codec == config.PREFERRED_CODEC.AVIF:
+                return jpeg_source_transcode.JPEGFileTranscode(source, path, filename, tags, pipe)
             elif config.PREFERRED_CODEC.WEBP:
-                return jpeg_source_transcode.JPEGFileTranscode(source, path, filename, data, pipe)
+                return jpeg_source_transcode.JPEGFileTranscode(source, path, filename, tags, pipe)
             else:
-                return jpeg_source_transcode.JPEGFileTranscode(source, path, filename, data, pipe)
+                return jpeg_source_transcode.JPEGFileTranscode(source, path, filename, tags, pipe)
     elif os.path.splitext(source)[1].lower() == '.gif':
-        return gif_source_transcode.GIFFileTranscode(source, path, filename, data, pipe)
+        return gif_source_transcode.GIFFileTranscode(source, path, filename, tags, pipe)
 
 
 PNG_HEADER = b'\x89PNG'
@@ -64,35 +70,41 @@ def isGIF(data: bytearray) -> bool:
     return bytes(data[:6]) in GIF_HEADERS
 
 
-def get_memory_transcoder(source: bytearray, path: str, filename: str, data: dict, pipe=None):
+def get_memory_transcoder(source: bytearray, path: str, filename: str, tags: dict, pipe=None, metadata={}):
     global sumos
     global sumsize
     global avq
     global items
     if isPNG(source):
-        if config.preferred_codec == config.PREFERRED_CODEC.AVIF:
-            return png_source_transcode.AVIF_PNGInMemoryTranscode(source, path, filename, data, pipe)
+        if config.preferred_codec == config.PREFERRED_CODEC.SRS:
+            return png_source_transcode.SRS_PNGInMemoryTranscode(source, path, filename, tags, pipe, metadata)
+        elif config.preferred_codec == config.PREFERRED_CODEC.AVIF:
+            return png_source_transcode.AVIF_PNGInMemoryTranscode(source, path, filename, tags, pipe)
         elif config.PREFERRED_CODEC.WEBP:
-            return png_source_transcode.PNGInMemoryTranscode(source, path, filename, data, pipe)
+            return png_source_transcode.PNGInMemoryTranscode(source, path, filename, tags, pipe)
         else:
-            return png_source_transcode.PNGInMemoryTranscode(source, path, filename, data, pipe)
+            return png_source_transcode.PNGInMemoryTranscode(source, path, filename, tags, pipe)
     elif isJPEG(source):
         if config.jpeg_xl_tools_path is not None:
-            if config.preferred_codec == config.PREFERRED_CODEC.AVIF:
-                return jpeg_xl_transcoder.AVIF_JPEG_XL_BufferTranscode(source, path, filename, data, pipe)
+            if config.preferred_codec == config.PREFERRED_CODEC.SRS:
+                return jpeg_source_transcode.SRS_JPEGInMemoryTranscode(source, path, filename, tags, pipe, metadata)
+            elif config.preferred_codec == config.PREFERRED_CODEC.AVIF:
+                return jpeg_xl_transcoder.AVIF_JPEG_XL_BufferTranscode(source, path, filename, tags, pipe)
             elif config.PREFERRED_CODEC.WEBP:
-                return jpeg_xl_transcoder.JPEG_XL_BurrefedSourceTranscoder(source, path, filename, data, pipe)
+                return jpeg_xl_transcoder.JPEG_XL_BurrefedSourceTranscoder(source, path, filename, tags, pipe)
             else:
-                return jpeg_xl_transcoder.JPEG_XL_BurrefedSourceTranscoder(source, path, filename, data, pipe)
+                return jpeg_xl_transcoder.JPEG_XL_BurrefedSourceTranscoder(source, path, filename, tags, pipe)
         else:
-            if config.preferred_codec == config.PREFERRED_CODEC.AVIF:
-                return jpeg_source_transcode.AVIF_JPEGInMemoryTranscode(source, path, filename, data, pipe)
+            if config.preferred_codec == config.PREFERRED_CODEC.SRS:
+                return jpeg_source_transcode.SRS_JPEGInMemoryTranscode(source, path, filename, tags, pipe)
+            elif config.preferred_codec == config.PREFERRED_CODEC.AVIF:
+                return jpeg_source_transcode.AVIF_JPEGInMemoryTranscode(source, path, filename, tags, pipe)
             elif config.PREFERRED_CODEC.WEBP:
-                return jpeg_source_transcode.JPEGInMemoryTranscode(source, path, filename, data, pipe)
+                return jpeg_source_transcode.JPEGInMemoryTranscode(source, path, filename, tags, pipe)
             else:
-                return jpeg_source_transcode.JPEGInMemoryTranscode(source, path, filename, data, pipe)
+                return jpeg_source_transcode.JPEGInMemoryTranscode(source, path, filename, tags, pipe)
     elif isGIF(source):
-        return gif_source_transcode.GIFInMemoryTranscode(source, path, filename, data, pipe)
+        return gif_source_transcode.GIFInMemoryTranscode(source, path, filename, tags, pipe)
     else:
         print(source[:16])
         exit()

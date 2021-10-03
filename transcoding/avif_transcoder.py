@@ -12,6 +12,7 @@ class AVIF_WEBP_output(webp_transcoder.WEBP_output, metaclass=abc.ABCMeta):
     def __init__(self, source, path: str, file_name: str, item_data: dict, pipe):
         webp_transcoder.WEBP_output.__init__(self, source, path, file_name, item_data, pipe)
         self._bit_depth = 10
+        self._av1_enable_advanced_options = True
 
     def get_color_profile(self):
         return [
@@ -32,9 +33,9 @@ class AVIF_WEBP_output(webp_transcoder.WEBP_output, metaclass=abc.ABCMeta):
                 '-y', '420'
             ]
 
-    def _webp_encode(self, img):
+    def _core_encoder(self, img):
         self._lossy_encode = self.avif_lossy_encode
-        webp_transcoder.WEBP_output._webp_encode(self, img)
+        webp_transcoder.WEBP_output._core_encoder(self, img)
 
     def avif_lossy_encode(self, img:Image.Image) -> None:
         src_tmp_file = None
@@ -65,20 +66,27 @@ class AVIF_WEBP_output(webp_transcoder.WEBP_output, metaclass=abc.ABCMeta):
             '--min', str(crf - 1),
             '--max', str(crf + 1),
             '-a', 'end-usage=q',
-            '-a', 'cq-level={}'.format(crf),
-            '-a', 'enable-chroma-deltaq=1',
-            '-a', 'aq-mode=1',
+            '-a', 'cq-level={}'.format(crf)
+        ]
+        if self._av1_enable_advanced_options:
+            commandline += [
+                '-a', 'enable-chroma-deltaq=1',
+                '-a', 'aq-mode=1'
+            ]
+        commandline += [
             src_tmp_file_name,
             output_tmp_file.name
         ]
-
         subprocess.run(commandline)
         if src_tmp_file is not None:
             src_tmp_file.close()
         self._lossy_data = output_tmp_file.read()
         output_tmp_file.close()
+        if len(self._lossy_data) == 0 and self._av1_enable_advanced_options:
+            self._av1_enable_advanced_options = False
+            self.avif_lossy_encode(img)
 
-    def _save_webp(self):
+    def _save_image(self):
         if not self._lossless:
             self.file_suffix = ".avif"
-        webp_transcoder.WEBP_output._save_webp(self)
+        webp_transcoder.WEBP_output._save_image(self)

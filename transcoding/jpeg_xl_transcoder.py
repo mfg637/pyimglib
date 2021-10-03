@@ -35,7 +35,7 @@ class JPEG_XL_Transcoder(jpeg_source_transcode.JPEGTranscode, abc.ABC):
 
     def _save(self):
         if self._webp_output:
-            self._save_webp()
+            self._save_image()
         else:
             outfile = open(self._output_file + ".jxl", 'wb')
             outfile.write(self._optimized_data)

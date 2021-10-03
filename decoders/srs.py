@@ -5,7 +5,7 @@ import pathlib
 import PIL.Image
 from .. import ACLMMP
 
-SRS_FILE_HEADER = "{\"ftype\":\"CLSRS\""
+SRS_FILE_HEADER = "CLSRS"
 
 
 class ClImage:
@@ -43,7 +43,7 @@ def is_ACLMMP_SRS(file_path):
         file.close()
         return False
     file.close()
-    return header == SRS_FILE_HEADER
+    return SRS_FILE_HEADER in header
 
 def cover_image_parser(dir, content_metadata, stream_metadata, original_filename):
     content_metadata['original_filename'] = original_filename

@@ -1,6 +1,6 @@
 import abc
 import os
-from . import webp_transcoder, base_transcoder, webp_anim_converter, avif_transcoder
+from . import webp_transcoder, base_transcoder, webp_anim_converter, avif_transcoder, srs_transcoder
 
 
 class PNGTranscode(webp_transcoder.WEBP_output):
@@ -26,10 +26,10 @@ class PNGTranscode(webp_transcoder.WEBP_output):
 
     def _encode(self):
         img = self._open_image()
-        self._webp_encode(img)
+        self._core_encoder(img)
 
     def _save(self):
-        self._save_webp()
+        self._save_image()
 
 
 class PNG_AVIF_Transcode(PNGTranscode, avif_transcoder.AVIF_WEBP_output, metaclass=abc.ABCMeta):
@@ -39,10 +39,23 @@ class PNG_AVIF_Transcode(PNGTranscode, avif_transcoder.AVIF_WEBP_output, metacla
 
     def _encode(self):
         img = self._open_image()
-        avif_transcoder.AVIF_WEBP_output._webp_encode(self, img)
+        avif_transcoder.AVIF_WEBP_output._core_encoder(self, img)
 
     def _save(self):
-        avif_transcoder.AVIF_WEBP_output._save_webp(self)
+        avif_transcoder.AVIF_WEBP_output._save_image(self)
+
+
+class PNG_SRS_Transcode(PNGTranscode, srs_transcoder.SrsTranscoder, metaclass=abc.ABCMeta):
+    def __init__(self, source, path: str, file_name: str, item_data: dict, pipe, metadata):
+        PNGTranscode.__init__(self, source, path, file_name, item_data, pipe)
+        srs_transcoder.SrsTranscoder.__init__(self, source, path, file_name, item_data, pipe, metadata)
+
+    def _encode(self):
+        img = self._open_image()
+        srs_transcoder.SrsTranscoder._core_encoder(self, img)
+
+    def _save(self):
+        srs_transcoder.SrsTranscoder._save_image(self)
 
 
 class PNGFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRemovable, PNGTranscode):
@@ -74,6 +87,12 @@ class AVIF_PNGFileTranscode(PNGFileTranscode, PNG_AVIF_Transcode):
         PNG_AVIF_Transcode.__init__(self, source, path, file_name, item_data, pipe)
 
 
+class SRS_PNGFileTranscode(PNGFileTranscode, PNG_SRS_Transcode):
+    def __init__(self, source: str, path: str, file_name: str, item_data: dict, pipe, metadata):
+        PNGFileTranscode.__init__(self, source, path, file_name, item_data, pipe)
+        PNG_SRS_Transcode.__init__(self, source, path, file_name, item_data, pipe, metadata)
+
+
 class PNGInMemoryTranscode(base_transcoder.InMemorySource, PNGTranscode):
 
     def __init__(self, source:bytearray, path:str, file_name:str, item_data:dict, pipe):
@@ -98,6 +117,12 @@ class PNGInMemoryTranscode(base_transcoder.InMemorySource, PNGTranscode):
 
 
 class AVIF_PNGInMemoryTranscode(PNGInMemoryTranscode, PNG_AVIF_Transcode):
-    def __init__(self, source, path, file_name, item_data, pipe):
+    def __init__(self, source, path, file_name, item_data, pipe, metadata):
         PNGInMemoryTranscode.__init__(self, source, path, file_name, item_data, pipe)
         PNG_AVIF_Transcode.__init__(self, source, path, file_name, item_data, pipe)
+
+
+class SRS_PNGInMemoryTranscode(PNGInMemoryTranscode, PNG_SRS_Transcode):
+    def __init__(self, source, path, file_name, item_data, pipe, metadata):
+        PNGInMemoryTranscode.__init__(self, source, path, file_name, item_data, pipe)
+        PNG_SRS_Transcode.__init__(self, source, path, file_name, item_data, pipe, metadata)

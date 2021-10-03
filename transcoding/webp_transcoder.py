@@ -46,7 +46,7 @@ class WEBP_output(webm_transcoder.WEBM_VideoOutputFormat):
         img.save(lossy_out_io, format="WEBP", lossless=False, quality=self._quality, method=6)
         self._lossy_data = lossy_out_io.getbuffer()
 
-    def _webp_encode(self, img):
+    def _core_encoder(self, img):
         self._lossless = False
         self._animated = False
         self._apng_test_convert(img)
@@ -92,7 +92,7 @@ class WEBP_output(webm_transcoder.WEBM_VideoOutputFormat):
                     ratio = math.ceil(ratio // 2)
         img.close()
 
-    def _save_webp(self):
+    def _save_image(self):
         if not self._animated:
             outfile = open(self._output_file + self.file_suffix, 'wb')
             if self._lossless:

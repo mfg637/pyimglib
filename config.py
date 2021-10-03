@@ -4,6 +4,7 @@ import enum
 class PREFERRED_CODEC(enum.Enum):
     WEBP = enum.auto()
     AVIF = enum.auto()
+    SRS = enum.auto()
 
 
 preferred_codec = PREFERRED_CODEC.WEBP
@@ -21,7 +22,7 @@ class AVIF_DECODING_SPEEDS(enum.Enum):
 
 
 avif_decoding_speed = AVIF_DECODING_SPEEDS.FAST
-avifenc_encoding_speed = 0
+avifenc_encoding_speed = 6
 
 # Max image size
 # works if image optimisations is enabled
@@ -40,3 +41,6 @@ class YUV4MPEG2_LIMITED_RANGE_CORRENTION_MODES(enum.Enum):
 
 
 yuv4mpeg2_limited_range_correction = YUV4MPEG2_LIMITED_RANGE_CORRENTION_MODES.CLIPPING
+
+srs_webp_size_limit = 2048
+srs_avif_trigger_size = 2560

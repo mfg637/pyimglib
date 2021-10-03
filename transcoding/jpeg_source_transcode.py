@@ -2,7 +2,7 @@ import abc
 import subprocess
 import os
 import io
-from . import webp_transcoder, base_transcoder, avif_transcoder
+from . import webp_transcoder, base_transcoder, avif_transcoder, srs_transcoder
 from .. import decoders
 from PIL import Image
 
@@ -55,14 +55,14 @@ class JPEGTranscode(webp_transcoder.WEBP_output):
         img = self._open_image()
         if self.size_treshold(img):
             self._webp_output = True
-            self._webp_encode(img)
+            self._core_encoder(img)
         else:
             img.close()
             self.lossless_encode()
 
     def _save(self):
         if self._webp_output:
-            self._save_webp()
+            self._save_image()
         else:
             outfile = open(self._output_file + ".jpg", 'wb')
             outfile.write(self._optimized_data)
@@ -79,6 +79,21 @@ class AVIF_JPEG_Transcoder(JPEGTranscode, avif_transcoder.AVIF_WEBP_output):
     def __init__(self, source, path:str, file_name:str, item_data:dict, pipe):
         JPEGTranscode.__init__(self, source, path, file_name, item_data, pipe)
         avif_transcoder.AVIF_WEBP_output.__init__(self, source, path, file_name, item_data, pipe)
+
+    def _transparency_check(self, img):
+        return False
+
+
+class SRS_JPEG_Transcoder(JPEGTranscode, srs_transcoder.SrsTranscoder):
+    __metaclass__ = abc.ABCMeta
+
+    def get_color_profile(self):
+        subsampling = decoders.jpeg.read_frame_data(self._get_source_data())[1]
+        return self.get_color_profile_by_subsampling(subsampling)
+
+    def __init__(self, source, path:str, file_name:str, item_data:dict, pipe, metadata):
+        JPEGTranscode.__init__(self, source, path, file_name, item_data, pipe)
+        srs_transcoder.SrsTranscoder.__init__(self, source, path, file_name, item_data, pipe, metadata)
 
     def _transparency_check(self, img):
         return False
@@ -149,3 +164,15 @@ class AVIF_JPEGInMemoryTranscode(AVIF_JPEG_Transcoder, JPEGInMemoryTranscode):
     def __init__(self, source: bytearray, path: str, file_name: str, item_data: dict, pipe):
         JPEGInMemoryTranscode.__init__(self, source, path, file_name, item_data, pipe)
         AVIF_JPEG_Transcoder.__init__(self, source, path, file_name, item_data, pipe)
+
+
+class SRS_JPEGFileTranscode(SRS_JPEG_Transcoder, JPEGFileTranscode):
+    def __init__(self, source: str, path: str, file_name: str, item_data: dict, pipe, metadata):
+        JPEGFileTranscode.__init__(self, source, path, file_name, item_data, pipe)
+        SRS_JPEG_Transcoder.__init__(self, source, path, file_name, item_data, pipe, metadata)
+
+
+class SRS_JPEGInMemoryTranscode(SRS_JPEG_Transcoder, JPEGInMemoryTranscode):
+    def __init__(self, source: bytearray, path: str, file_name: str, item_data: dict, pipe, metadata):
+        JPEGInMemoryTranscode.__init__(self, source, path, file_name, item_data, pipe)
+        SRS_JPEG_Transcoder.__init__(self, source, path, file_name, item_data, pipe, metadata)
