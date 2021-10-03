@@ -108,3 +108,13 @@ def get_file_paths(file_path):
         for level in video:
             file_list.append(dir.joinpath(video[level]))
         return file_list
+
+def type_detect(file_path):
+    if type(file_path) is str:
+        file_path = pathlib.Path(file_path)
+    dir = file_path.parent
+    fp = open(file_path, "r")
+    content_metadata, streams_metadata, minimal_content_compatibility_level = ACLMMP.srs_parser.parseJSON(fp)
+    fp.close()
+
+    return ACLMMP.srs_parser.MEDIA_TYPE(content_metadata["media-type"])
