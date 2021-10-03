@@ -40,7 +40,7 @@ class JPEGTranscode(webp_transcoder.WEBP_output):
         source_data = self._get_source_data()
         process = subprocess.Popen(['jpegtran', '-copy', meta_copy, '-arithmetic'],
                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        process.stdin.write(source_data)
+        process.stdin.write(source_data.getvalue())
         process.stdin.close()
         self._optimized_data = process.stdout.read()
         process.stdout.close()
