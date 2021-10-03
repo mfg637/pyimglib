@@ -24,13 +24,13 @@ class ClImage:
     def progressive_lods(self):
         lods = list()
         for level in self._levels_sorted:
-            lods.append(self._levels[level])
+            lods.append(self._dir.joinpath(self._levels[level]))
         return lods
 
     def get_image_file_list(self):
         files = list()
         for level in self._levels:
-            files.append(self._levels[level])
+            files.append(self._dir.joinpath(self._levels[level]))
         return files
 
 
@@ -89,19 +89,22 @@ def get_file_paths(file_path):
         ).get_image_file_list()
     elif content_metadata["media-type"] == ACLMMP.srs_parser.MEDIA_TYPE.VIDEO.value:
         file_list = list()
+        file_list_raw = list()
         if 'poster-image' in content_metadata:
-            file_list.extend(
+            file_list_raw.extend(
                 cover_image_parser(
                     dir, content_metadata, content_metadata['poster-image'], file_path
                 ).get_image_file_list()
             )
         elif 'cover-image' in content_metadata:
-            file_list.extend(
+            file_list_raw.extend(
                 cover_image_parser(
                     dir, content_metadata, content_metadata['cover-image'], file_path
                 ).get_image_file_list()
             )
+        for f in file_list_raw:
+            file_list.append(dir.joinpath(f))
         video = streams_metadata[0].levels
         for level in video:
-            file_list.append(video[level])
+            file_list.append(dir.joinpath(video[level]))
         return file_list
