@@ -21,6 +21,7 @@ class AVIF_DECODING_SPEEDS(enum.Enum):
 
 
 avif_decoding_speed = AVIF_DECODING_SPEEDS.FAST
+avifenc_encoding_speed = 0
 
 # Max image size
 # works if image optimisations is enabled

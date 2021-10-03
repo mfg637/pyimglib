@@ -18,6 +18,8 @@ class WEBP_output(webm_transcoder.WEBM_VideoOutputFormat):
     def __init__(self, source, path: str, file_name: str, item_data: dict, pipe):
         super().__init__(source, path, file_name, item_data, pipe)
         self.file_suffix = '.webp'
+        self._lossy_encode = self.webp_lossy_encode
+
 
     @abc.abstractmethod
     def _apng_test_convert(self, img):
@@ -34,12 +36,12 @@ class WEBP_output(webm_transcoder.WEBM_VideoOutputFormat):
     def _invalid_file_exception_handle(self, e):
         pass
 
-    def _lossless_encode(self, img:Image.Image) -> None:
+    def _lossless_encode(self, img: Image.Image) -> None:
         lossless_out_io = io.BytesIO()
         img.save(lossless_out_io, format="WEBP", lossless=True, quality=100, method=6)
         self._lossless_data = lossless_out_io.getbuffer()
 
-    def _lossy_encode(self, img:Image.Image) -> None:
+    def webp_lossy_encode(self, img: Image.Image) -> None:
         lossy_out_io = io.BytesIO()
         img.save(lossy_out_io, format="WEBP", lossless=False, quality=self._quality, method=6)
         self._lossy_data = lossy_out_io.getbuffer()
