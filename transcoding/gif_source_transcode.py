@@ -8,6 +8,9 @@ from PIL import Image
 class GIFTranscode(webm_transcoder.WEBM_VideoOutputFormat):
     __metaclass__ = abc.ABCMeta
 
+    def __init__(self, source, path: str, file_name: str, item_data: dict, pipe):
+        super().__init__(source, path, file_name, item_data, pipe)
+
     def _encode(self):
         img = self._open_image()
         self._animated = img.is_animated
@@ -51,6 +54,7 @@ class GIFInMemoryTranscode(base_transcoder.InMemorySource, GIFTranscode):
 
     def __init__(self, source:bytearray, path:str, file_name:str, item_data:dict, pipe):
         base_transcoder.InMemorySource.__init__(self, source, path, file_name, item_data, pipe)
+        GIFTranscode.__init__(self, source, path, file_name, item_data, pipe)
         in_io = io.BytesIO(self._source)
         img = Image.open(in_io)
         self._animated = img.is_animated

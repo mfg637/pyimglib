@@ -5,39 +5,41 @@ import tempfile
 from . import base_transcoder, statistics
 
 
-def animation2webm(source, out_file, crf=32):
-    fname = ""
-    f = None
-    if type(source) is str:
-        fname = source
-    elif isinstance(source, (bytes, bytearray)):
-        f = tempfile.NamedTemporaryFile()
-        fname = f.name
-        f.write(source)
-    subprocess.call(
-        [
-            'ffmpeg',
-            '-loglevel', 'error',
-            '-i', fname,
-            '-pix_fmt', 'yuva420p',
-            '-c:v', 'libvpx-vp9',
-            '-crf', str(crf),
-            '-b:v', '0',
-            '-profile:v', '0',
-            '-f', 'webm',
-            out_file
-        ]
-    )
-    if isinstance(source, (bytes, bytearray)):
-        f.close()
-
-
-
 class WEBM_VideoOutputFormat(base_transcoder.BaseTranscoder):
+    def __init__(self, source, path: str, file_name: str, item_data: dict, pipe):
+        super().__init__(source, path, file_name, item_data, pipe)
+        self._cl0_filename = self._output_file + '_cl0.webm'
+
+    def animation2webm(self, crf=32):
+        fname = ""
+        f = None
+        if type(self._source) is str:
+            fname = self._source
+        elif isinstance(self._source, (bytes, bytearray)):
+            f = tempfile.NamedTemporaryFile()
+            fname = f.name
+            f.write(self._source)
+        subprocess.call(
+            [
+                'ffmpeg',
+                '-loglevel', 'error',
+                '-i', fname,
+                '-pix_fmt', 'yuva420p10le',
+                '-c:v', 'libaom-av1',
+                '-crf', str(crf),
+                '-b:v', '0',
+                '-profile:v', '0',
+                '-f', 'webm',
+                self._cl0_filename
+            ]
+        )
+        if isinstance(self._source, (bytes, bytearray)):
+            f.close()
+
     def animation_encode(self):
-        self._quality = 85
-        animation2webm(self._source, self._output_file + '.webm')
-        self._output_size = os.path.getsize(self._output_file + '.webm')
+        self._quality = 68
+        self.animation2webm()
+        self._output_size = os.path.getsize(self._cl0_filename)
 
     @abc.abstractmethod
     def _all_optimisations_failed(self):
