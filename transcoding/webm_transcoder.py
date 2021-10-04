@@ -8,7 +8,7 @@ from . import base_transcoder, statistics
 class WEBM_VideoOutputFormat(base_transcoder.BaseTranscoder):
     def __init__(self, source, path: str, file_name: str, item_data: dict, pipe):
         super().__init__(source, path, file_name, item_data, pipe)
-        self._cl0_filename = self._output_file + '_cl0.webm'
+        self._cl0w_filename = self._output_file + '_cl0w.webm'
 
     def animation2webm(self, crf=32):
         fname = ""
@@ -30,16 +30,17 @@ class WEBM_VideoOutputFormat(base_transcoder.BaseTranscoder):
                 '-b:v', '0',
                 '-profile:v', '0',
                 '-f', 'webm',
-                self._cl0_filename
+                self._cl0w_filename
             ]
         )
         if isinstance(self._source, (bytes, bytearray)):
             f.close()
 
     def animation_encode(self):
+        print("WEBM ANIMATION ENCODE")
         self._quality = 68
         self.animation2webm()
-        self._output_size = os.path.getsize(self._cl0_filename)
+        self._output_size = os.path.getsize(self._cl0w_filename)
 
     @abc.abstractmethod
     def _all_optimisations_failed(self):
@@ -51,7 +52,7 @@ class WEBM_VideoOutputFormat(base_transcoder.BaseTranscoder):
 
     def gif_optimisations_failed(self):
         print("optimisations_failed")
-        os.remove(self._output_file + '.webm')
+        print("FILE SIZE", self._output_size)
         self._fext = 'webp'
         converter = self.get_converter_type()(self._source)
         out_data = converter.compress(lossless=True)

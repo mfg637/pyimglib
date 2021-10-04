@@ -3,7 +3,11 @@
 
 import os
 
-from . import statistics, gif_source_transcode, png_source_transcode, jpeg_source_transcode, jpeg_xl_transcoder
+from . import statistics,\
+    gif_source_transcode,\
+    png_source_transcode,\
+    jpeg_source_transcode,\
+    jpeg_xl_transcoder
 from .. import config
 
 
@@ -96,7 +100,7 @@ def get_memory_transcoder(source: bytearray, path: str, filename: str, tags: dic
                 return jpeg_xl_transcoder.JPEG_XL_BurrefedSourceTranscoder(source, path, filename, tags, pipe)
         else:
             if config.preferred_codec == config.PREFERRED_CODEC.SRS:
-                return jpeg_source_transcode.SRS_JPEGInMemoryTranscode(source, path, filename, tags, pipe)
+                return jpeg_source_transcode.SRS_JPEGInMemoryTranscode(source, path, filename, tags, pipe, metadata)
             elif config.preferred_codec == config.PREFERRED_CODEC.AVIF:
                 return jpeg_source_transcode.AVIF_JPEGInMemoryTranscode(source, path, filename, tags, pipe)
             elif config.PREFERRED_CODEC.WEBP:
@@ -104,7 +108,10 @@ def get_memory_transcoder(source: bytearray, path: str, filename: str, tags: dic
             else:
                 return jpeg_source_transcode.JPEGInMemoryTranscode(source, path, filename, tags, pipe)
     elif isGIF(source):
-        return gif_source_transcode.GIFInMemoryTranscode(source, path, filename, tags, pipe)
+        if config.preferred_codec == config.PREFERRED_CODEC.SRS:
+            return gif_source_transcode.SRS_GIFInMemoryTranscode(source, path, filename, tags, pipe, metadata)
+        else:
+            return gif_source_transcode.GIFInMemoryTranscode(source, path, filename, tags, pipe)
     else:
         print(source[:16])
         exit()

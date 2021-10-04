@@ -1,7 +1,7 @@
 import abc
 import os
 import io
-from . import webm_transcoder, base_transcoder, webp_anim_converter
+from . import webm_transcoder, base_transcoder, webp_anim_converter, srs_video_loop
 from PIL import Image
 
 
@@ -9,16 +9,15 @@ class GIFTranscode(webm_transcoder.WEBM_VideoOutputFormat):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, source, path: str, file_name: str, item_data: dict, pipe):
-        super().__init__(source, path, file_name, item_data, pipe)
+        webm_transcoder.WEBM_VideoOutputFormat.__init__(self, source, path, file_name, item_data, pipe)
 
     def _encode(self):
+        print("WEBM GIF Encode")
         img = self._open_image()
         self._animated = img.is_animated
         if not self._animated:
             raise base_transcoder.NotOptimizableSourceException()
-        self._quality = 85
-        webm_transcoder.animation2webm(self._source, self._output_file + '.webm')
-        self._output_size = os.path.getsize(self._output_file + '.webm')
+        webm_transcoder.WEBM_VideoOutputFormat.animation_encode(self)
 
     def _save(self):
         pass
@@ -32,6 +31,36 @@ class GIFTranscode(webm_transcoder.WEBM_VideoOutputFormat):
 
     def _optimisations_failed(self):
         self.gif_optimisations_failed()
+
+
+class SRS_GIFTranscode(srs_video_loop.SrsVideoLoopOutput):
+    __metaclass__ = abc.ABCMeta
+
+    def __init__(self, source, path: str, file_name: str, item_data: dict, pipe, metadata):
+        print("SRS_GIFTranscode")
+        super().__init__(source, path, file_name, item_data, pipe, metadata)
+
+    def _encode(self):
+        print("SRS ENCODE")
+        img = self._open_image()
+        self._animated = img.is_animated
+        if not self._animated:
+            raise base_transcoder.NotOptimizableSourceException()
+        srs_video_loop.SrsVideoLoopOutput.animation_encode(self)
+
+    @abc.abstractmethod
+    def _all_optimisations_failed(self):
+        pass
+
+    def get_converter_type(self):
+        return webp_anim_converter.GIFconverter
+
+    def _optimisations_failed(self):
+        srs_video_loop.SrsVideoLoopOutput._optimisations_failed(self)
+        outfile = open(self._output_file + ".gif", "bw")
+        outfile.write(self._source)
+        outfile.close()
+        print("save " + self._output_file + ".gif")
 
 
 class GIFFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRemovable, GIFTranscode):
@@ -50,6 +79,13 @@ class GIFFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRem
         os.remove(self._output_file)
 
 
+class SRS_GIFFileTranscode(GIFFileTranscode, SRS_GIFTranscode):
+    def __init__(self, source: str, path: str, file_name: str, item_data: dict, pipe, metadata):
+        print("SRS_GIFFileTranscode")
+        GIFFileTranscode.__init__(self, source, path, file_name, item_data, pipe)
+        SRS_GIFTranscode.__init__(self, source, path, file_name, item_data, pipe, metadata)
+
+
 class GIFInMemoryTranscode(base_transcoder.InMemorySource, GIFTranscode):
 
     def __init__(self, source:bytearray, path:str, file_name:str, item_data:dict, pipe):
@@ -59,10 +95,26 @@ class GIFInMemoryTranscode(base_transcoder.InMemorySource, GIFTranscode):
         img = Image.open(in_io)
         self._animated = img.is_animated
         img.close()
-        self._quality = 85
 
     def _all_optimisations_failed(self):
         outfile = open(self._output_file + ".gif", "bw")
         outfile.write(self._source)
         outfile.close()
         print("save " + self._output_file + ".gif")
+
+
+class SRS_GIFInMemoryTranscode(GIFInMemoryTranscode, SRS_GIFTranscode):
+    def __init__(self, source: bytearray, path: str, file_name: str, item_data: dict, pipe, metadata):
+        print("SRS_GIFInMemoryTranscode")
+        GIFInMemoryTranscode.__init__(self, source, path, file_name, item_data, pipe)
+        SRS_GIFTranscode.__init__(self, source, path, file_name, item_data, pipe, metadata)
+        print("SRS_GIFInMemoryTranscode", "self._encode", self._encode)
+
+    def _encode(self):
+        SRS_GIFTranscode._encode(self)
+
+    def _save(self):
+        SRS_GIFTranscode._save(self)
+
+    def _optimisations_failed(self):
+        SRS_GIFTranscode._optimisations_failed(self)

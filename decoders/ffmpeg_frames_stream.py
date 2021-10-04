@@ -2,15 +2,7 @@ import PIL.Image
 import subprocess
 from . import frames_stream, ffmpeg
 
-
-def fps_calc(raw_str):
-    _f = raw_str.split("/")
-    if len(_f) != 2 and len(_f) > 0:
-        return int(_f[0])
-    elif len(_f) == 2:
-        return int(_f[0])/int(_f[1])
-    else:
-        raise ValueError(raw_str)
+from .ffmpeg.parser import fps_calc
 
 
 class FFmpegFramesStream(frames_stream.FramesStream):
@@ -19,16 +11,9 @@ class FFmpegFramesStream(frames_stream.FramesStream):
         self._original_filename = original_filename
         data = ffmpeg.probe(file_name)
 
-        video = None
-        for stream in data['streams']:
-            if stream['codec_type'] == "video":
-                video = stream
+        video = ffmpeg.parser.find_video_stream(data, ffmpeg.parser.SPECIFY_VIDEO_STREAM.LAST)
 
-        fps = None
-        if video['avg_frame_rate'] == "0/0":
-            fps = fps_calc(video['r_frame_rate'])
-        else:
-            fps = fps_calc(video['avg_frame_rate'])
+        fps = ffmpeg.parser.get_fps(video)
         self._frame_time_ms = int(round(1 / fps * 1000))
 
         self._width = video["width"]

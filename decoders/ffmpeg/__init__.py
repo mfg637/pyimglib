@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import subprocess, json
-from . import exceptions
+import json
+import subprocess
 from platform import system
 
+from . import exceptions, parser
 
 if system() == "Windows":
     si = subprocess.STARTUPINFO()
