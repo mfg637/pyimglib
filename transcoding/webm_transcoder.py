@@ -1,18 +1,19 @@
 import subprocess
 import os
 import abc
+import tempfile
 from . import base_transcoder, statistics
 
 
 def animation2webm(source, out_file, crf=32):
     fname = ""
+    f = None
     if type(source) is str:
         fname = source
     elif isinstance(source, (bytes, bytearray)):
-        fname = "transcode"
-        file = open(fname, "bw")
-        file.write(source)
-        file.close()
+        f = tempfile.NamedTemporaryFile()
+        fname = f.name
+        f.write(source)
     subprocess.call(
         [
             'ffmpeg',
@@ -28,7 +29,7 @@ def animation2webm(source, out_file, crf=32):
         ]
     )
     if isinstance(source, (bytes, bytearray)):
-        os.remove(fname)
+        f.close()
 
 
 
