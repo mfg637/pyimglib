@@ -29,6 +29,7 @@ class WEBM_VideoOutputFormat(base_transcoder.BaseTranscoder):
                 '-crf', str(crf),
                 '-b:v', '0',
                 '-profile:v', '0',
+                '-cpu-used', '4',
                 '-f', 'webm',
                 self._cl0w_filename
             ]
@@ -37,7 +38,6 @@ class WEBM_VideoOutputFormat(base_transcoder.BaseTranscoder):
             f.close()
 
     def animation_encode(self):
-        print("WEBM ANIMATION ENCODE")
         self._quality = 68
         self.animation2webm()
         self._output_size = os.path.getsize(self._cl0w_filename)

@@ -10,7 +10,6 @@ from abc import ABC
 
 class SrsVideoLoopOutput(webm_transcoder.WEBM_VideoOutputFormat, ABC):
     def __init__(self, source, path, file_name, item_data, pipe, metadata):
-        print("SrsVideoLoopOutput")
         webm_transcoder.WEBM_VideoOutputFormat.__init__(self, source, path, file_name, item_data, pipe)
         self._cl3w_filename = self._output_file + '_cl3w.webm'
         self._content_metadata = metadata
@@ -49,6 +48,7 @@ class SrsVideoLoopOutput(webm_transcoder.WEBM_VideoOutputFormat, ABC):
             '-crf', str(crf),
             '-b:v', '0',
             '-profile:v', '0',
+            '-cpu-used', '4',
             '-f', 'webm',
             self._cl3w_filename
         ]

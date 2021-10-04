@@ -12,7 +12,6 @@ class GIFTranscode(webm_transcoder.WEBM_VideoOutputFormat):
         webm_transcoder.WEBM_VideoOutputFormat.__init__(self, source, path, file_name, item_data, pipe)
 
     def _encode(self):
-        print("WEBM GIF Encode")
         img = self._open_image()
         self._animated = img.is_animated
         if not self._animated:
@@ -37,11 +36,9 @@ class SRS_GIFTranscode(srs_video_loop.SrsVideoLoopOutput):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, source, path: str, file_name: str, item_data: dict, pipe, metadata):
-        print("SRS_GIFTranscode")
         super().__init__(source, path, file_name, item_data, pipe, metadata)
 
     def _encode(self):
-        print("SRS ENCODE")
         img = self._open_image()
         self._animated = img.is_animated
         if not self._animated:
@@ -81,7 +78,6 @@ class GIFFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRem
 
 class SRS_GIFFileTranscode(GIFFileTranscode, SRS_GIFTranscode):
     def __init__(self, source: str, path: str, file_name: str, item_data: dict, pipe, metadata):
-        print("SRS_GIFFileTranscode")
         GIFFileTranscode.__init__(self, source, path, file_name, item_data, pipe)
         SRS_GIFTranscode.__init__(self, source, path, file_name, item_data, pipe, metadata)
 
@@ -105,10 +101,8 @@ class GIFInMemoryTranscode(base_transcoder.InMemorySource, GIFTranscode):
 
 class SRS_GIFInMemoryTranscode(GIFInMemoryTranscode, SRS_GIFTranscode):
     def __init__(self, source: bytearray, path: str, file_name: str, item_data: dict, pipe, metadata):
-        print("SRS_GIFInMemoryTranscode")
         GIFInMemoryTranscode.__init__(self, source, path, file_name, item_data, pipe)
         SRS_GIFTranscode.__init__(self, source, path, file_name, item_data, pipe, metadata)
-        print("SRS_GIFInMemoryTranscode", "self._encode", self._encode)
 
     def _encode(self):
         SRS_GIFTranscode._encode(self)

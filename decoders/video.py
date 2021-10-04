@@ -5,8 +5,11 @@ def mp4_header_check(prefix):
     return prefix[4:12] == b"ftypisom" or prefix[4:12] == b"ftypmp42"
 
 
+MKV_HEADER = b"\x1a\x45\xdf\xa3"
+
+
 def mkv_header_check(prefix):
-    return prefix[:4] == b"\x1a\x45\xdf\xa3"
+    return prefix[:4] == MKV_HEADER
 
 
 def is_video(file_path):
@@ -14,6 +17,13 @@ def is_video(file_path):
     header = file.read(16)
     file.close()
     return mkv_header_check(header) or mp4_header_check(header)
+
+
+def is_webm(file_path):
+    file = open(file_path, 'rb')
+    header = file.read(16)
+    file.close()
+    return mkv_header_check(header)
 
 
 def open_video(file_path):

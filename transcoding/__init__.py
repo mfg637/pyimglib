@@ -7,8 +7,10 @@ from . import statistics,\
     gif_source_transcode,\
     png_source_transcode,\
     jpeg_source_transcode,\
-    jpeg_xl_transcoder
-from .. import config
+    jpeg_xl_transcoder,\
+    srs_video
+
+from .. import config, decoders
 
 
 # derpibooru-dl only
@@ -112,6 +114,11 @@ def get_memory_transcoder(source: bytearray, path: str, filename: str, tags: dic
             return gif_source_transcode.SRS_GIFInMemoryTranscode(source, path, filename, tags, pipe, metadata)
         else:
             return gif_source_transcode.GIFInMemoryTranscode(source, path, filename, tags, pipe)
+    elif bytes(source[:4]) in decoders.video.MKV_HEADER:
+        if config.preferred_codec == config.PREFERRED_CODEC.SRS:
+            return srs_video.SRS_WEBM_Converter(source, path, filename, tags, pipe, metadata)
+        else:
+            return srs_video.WEBM_WRITER(source, path, filename, tags, pipe)
     else:
         print(source[:16])
         exit()

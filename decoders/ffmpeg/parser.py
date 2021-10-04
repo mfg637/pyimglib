@@ -33,3 +33,11 @@ def find_video_stream(data, first_or_last=SPECIFY_VIDEO_STREAM.FIRST):
             if first_or_last == SPECIFY_VIDEO_STREAM.FIRST:
                 break
     return video
+
+
+def find_audio_streams(data):
+    streams = list()
+    for stream in data['streams']:
+        if stream['codec_type'] == "audio":
+            streams.append(stream)
+    return streams
