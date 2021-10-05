@@ -66,7 +66,8 @@ def decode(file_path: pathlib.Path):
 
     if content_metadata["media-type"] == ACLMMP.srs_parser.MEDIA_TYPE.IMAGE.value:
         return ClImage(dir, content_metadata, streams_metadata[3].tags, streams_metadata[3].levels)
-    elif content_metadata["media-type"] == ACLMMP.srs_parser.MEDIA_TYPE.VIDEO.value:
+    elif content_metadata["media-type"] == ACLMMP.srs_parser.MEDIA_TYPE.VIDEO.value or \
+         content_metadata["media-type"] == ACLMMP.srs_parser.MEDIA_TYPE.VIDEOLOOP.value:
         video = streams_metadata[0].get_compatible_files(config.ACLMMP_COMPATIBILITY_LEVEL)[0]
         if 'poster-image' in content_metadata:
             return cover_image_parser(dir, content_metadata, content_metadata['poster-image'], file_path)
@@ -87,7 +88,8 @@ def get_file_paths(file_path):
         return ClImage(
             dir, content_metadata, streams_metadata[3].tags, streams_metadata[3].levels
         ).get_image_file_list()
-    elif content_metadata["media-type"] == ACLMMP.srs_parser.MEDIA_TYPE.VIDEO.value:
+    elif content_metadata["media-type"] == ACLMMP.srs_parser.MEDIA_TYPE.VIDEO.value or \
+            content_metadata["media-type"] == ACLMMP.srs_parser.MEDIA_TYPE.VIDEOLOOP.value:
         file_list = list()
         file_list_raw = list()
         if 'poster-image' in content_metadata:
