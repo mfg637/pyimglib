@@ -4,6 +4,7 @@ import pathlib
 import os
 from . import statistics
 from ..decoders import ffmpeg
+from .. import config
 
 
 class WEBM_WRITER:
@@ -53,7 +54,7 @@ class SRS_WEBM_Converter:
             src_fps_valid = False
             while fps > 30:
                 fps /= 2
-        size_valid = (video["width"] <= 1920 or video["height"] <= 1280)
+        size_valid = (video["width"] <= config.cl3_width and video["height"] <= config.cl3_height)
         audio_streams = ffmpeg.parser.find_audio_streams(src_metadata)
         cl3 = None
         if not src_fps_valid or not size_valid or video['pix_fmt'] != "yuv420p":
@@ -69,7 +70,11 @@ class SRS_WEBM_Converter:
                     '-r', str(fps)
                 ]
             if not size_valid:
-                commandline += ['-vf', 'scale=\'min(1280,iw)\':\'min(1280,ih)\'']
+                commandline += [
+                    '-vf', 'scale=\'min({},iw)\':\'min({},ih)\':force_original_aspect_ratio=decrease'.format(
+                        config.cl3_width, config.cl3_height
+                    )
+                ]
             commandline += [
                 '-c:v', 'libvpx-vp9',
                 '-crf', str(crf),
@@ -81,6 +86,7 @@ class SRS_WEBM_Converter:
                 ]
             commandline += [
                 '-cpu-used', '4',
+                '-g', str(round(fps*config.gop_length_seconds)),
                 '-f', 'webm',
                 self._output_file + "_cl3.webm"
             ]

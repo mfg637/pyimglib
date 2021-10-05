@@ -45,3 +45,7 @@ yuv4mpeg2_limited_range_correction = YUV4MPEG2_LIMITED_RANGE_CORRENTION_MODES.CL
 srs_webp_size_limit = 2048
 srs_avif_trigger_size = 2560
 srs_thumbnail_for_lossless_trigger_size = 4096
+
+cl3_width = 1280
+cl3_height = 720
+gop_length_seconds = 10

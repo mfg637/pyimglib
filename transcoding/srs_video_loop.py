@@ -4,6 +4,7 @@ import os
 import json
 import pathlib
 from ..decoders import ffmpeg
+from .. import config
 from . import webm_transcoder
 from abc import ABC
 
@@ -41,14 +42,19 @@ class SrsVideoLoopOutput(webm_transcoder.WEBM_VideoOutputFormat, ABC):
             commandline += [
                 '-r', str(fps)
             ]
-        if video["width"] > 1920 or video["height"] > 1280:
-            commandline += ['-vf', 'scale=\'min(1280,iw)\':\'min(1280,ih)\'']
+        if video["width"] > config.cl3_width or video["height"] > config.cl3_height:
+            commandline += [
+                '-vf', 'scale=\'min({},iw)\':\'min({},ih)\':force_original_aspect_ratio=decrease'.format(
+                    config.cl3_width, config.cl3_height
+                )
+            ]
         commandline += [
             '-c:v', 'libvpx-vp9',
             '-crf', str(crf),
             '-b:v', '0',
             '-profile:v', '0',
             '-cpu-used', '4',
+            '-g', str(round(fps*config.gop_length_seconds)),
             '-f', 'webm',
             self._cl3w_filename
         ]
