@@ -3,6 +3,7 @@ import os
 import abc
 import tempfile
 from . import base_transcoder, statistics
+from .. import config
 
 
 class WEBM_VideoOutputFormat(base_transcoder.BaseTranscoder):
@@ -10,7 +11,7 @@ class WEBM_VideoOutputFormat(base_transcoder.BaseTranscoder):
         super().__init__(source, path, file_name, item_data, pipe)
         self._cl0w_filename = self._output_file + '_cl0w.webm'
 
-    def animation2webm(self, crf=32):
+    def animation2webm(self):
         fname = ""
         f = None
         if type(self._source) is str:
@@ -26,7 +27,7 @@ class WEBM_VideoOutputFormat(base_transcoder.BaseTranscoder):
                 '-i', fname,
                 '-pix_fmt', 'yuva420p10le',
                 '-c:v', 'libaom-av1',
-                '-crf', str(crf),
+                '-crf', str(config.VIDEOLOOP_CRF),
                 '-b:v', '0',
                 '-profile:v', '0',
                 '-cpu-used', '4',

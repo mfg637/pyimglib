@@ -38,7 +38,6 @@ class SRS_WEBM_Converter:
     def transcode(self):
         fname = self._output_file + ".webm"
         f = None
-        crf = 24
         clx = self._file_name + ".webm"
         cl1 = None
         if type(self._source) is str:
@@ -54,38 +53,12 @@ class SRS_WEBM_Converter:
         size_valid = videoprocessing.cl3_size_valid(video)
         audio_streams = ffmpeg.parser.find_audio_streams(src_metadata)
         cl3 = None
+        passfile = videoprocessing.ffmpeg_get_passfile_prefix()
         if not src_fps_valid or not size_valid or video['pix_fmt'] != "yuv420p":
             cl3 = self._file_name + "_cl3.webm"
-            commandline = [
-                'ffmpeg',
-                '-loglevel', 'error',
-                '-i', fname,
-                '-pix_fmt', 'yuv420p'
-            ]
-            if not src_fps_valid:
-                commandline += videoprocessing.ffmpeg_set_fps_commandline(fps)
-            if not size_valid:
-                commandline += videoprocessing.CL3_FFMPEG_SCALE_COMMANDLINE
-            commandline += [
-                '-c:v', 'libvpx-vp9',
-                '-crf', str(crf),
-                '-b:v', '0',
-                '-profile:v', '0']
-            if len(audio_streams):
-                commandline += [
-                    '-an'
-                ]
-            commandline += [
-                '-cpu-used', '4',
-                '-g', str(round(fps*config.gop_length_seconds)),
-                '-f', 'webm',
-                self._output_file + "_cl3.webm"
-            ]
-            subprocess.call(
-                commandline
-            )
         audio = list()
         cl3x = None
+        bitrate = 0
         if len(audio_streams):
             vstream_file = None
             if cl3 is None:
@@ -103,6 +76,8 @@ class SRS_WEBM_Converter:
                 vstream_file
             ]
             subprocess.run(commandline)
+            vstream_data = ffmpeg.probe(vstream_file)
+            bitrate = ffmpeg.parser.get_file_bitrate(vstream_data)
             for stream in audio_streams:
                 index = stream['index']
                 chanels = stream['channels']
@@ -120,6 +95,49 @@ class SRS_WEBM_Converter:
                 channels = dict()
                 channels[str(chanels)] = {'3w': aname}
                 audio.append({"channels": channels})
+        else:
+            bitrate = ffmpeg.parser.get_file_bitrate(src_metadata)
+
+        if not src_fps_valid or not size_valid or video['pix_fmt'] != "yuv420p":
+            for PASS in range(1, 3):
+                commandline = [
+                    'ffmpeg',
+                    '-loglevel', 'error',
+                    '-i', fname,
+                    '-pix_fmt', 'yuv420p'
+                ]
+                if not src_fps_valid:
+                    commandline += videoprocessing.ffmpeg_set_fps_commandline(fps)
+                if not size_valid:
+                    commandline += videoprocessing.CL3_FFMPEG_SCALE_COMMANDLINE
+                commandline += [
+                    '-c:v', 'libvpx-vp9',
+                    '-crf', str(config.VP9_VIDEO_CRF),
+                    '-b:v', str(round(bitrate * config.cl3_to_orig_ratio)),
+                    '-profile:v', '0']
+                if len(audio_streams):
+                    commandline += [
+                        '-an'
+                    ]
+                commandline += [
+                    '-cpu-used', '4',
+                    '-pass', str(PASS),
+                    '-passlogfile', passfile,
+                    '-g', str(round(fps*config.gop_length_seconds))
+                ]
+                if PASS == 1:
+                    commandline += [
+                        '-f', 'null',
+                        os.devnull
+                    ]
+                elif PASS == 2:
+                    commandline += [
+                        '-f', 'webm',
+                        self._output_file + "_cl3.webm"
+                    ]
+                subprocess.call(
+                    commandline
+                )
 
         srs_data = None
         if len(audio):

@@ -49,3 +49,10 @@ srs_thumbnail_for_lossless_trigger_size = 4096
 cl3_width = 1280
 cl3_height = 720
 gop_length_seconds = 10
+
+# Ratio of CL3 transcoded video stream size to original video stream size.
+# Lesser is smaller, but worse quality.
+# Reasonable range: 0.5-1
+cl3_to_orig_ratio = 0.5
+VP9_VIDEO_CRF = 24
+VIDEOLOOP_CRF = 32

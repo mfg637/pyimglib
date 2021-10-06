@@ -16,7 +16,7 @@ class SrsVideoLoopOutput(webm_transcoder.WEBM_VideoOutputFormat, ABC):
         self._cl3w_filename = self._output_file + '_cl3w.webm'
         self._content_metadata = metadata
 
-    def animation2webm_cl3w(self, crf=32):
+    def animation2webm_cl3w(self):
         fname = ""
         f = None
         if type(self._source) is str:
@@ -41,7 +41,7 @@ class SrsVideoLoopOutput(webm_transcoder.WEBM_VideoOutputFormat, ABC):
             commandline += videoprocessing.CL3_FFMPEG_SCALE_COMMANDLINE
         commandline += [
             '-c:v', 'libvpx-vp9',
-            '-crf', str(crf),
+            '-crf', str(config.VIDEOLOOP_CRF),
             '-b:v', '0',
             '-profile:v', '0',
             '-cpu-used', '4',

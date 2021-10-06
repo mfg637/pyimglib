@@ -1,4 +1,5 @@
 from ... import config
+import tempfile
 
 
 CL3_FFMPEG_SCALE_COMMANDLINE = [
@@ -23,3 +24,10 @@ def limit_fps(fps):
 
 def cl3_size_valid(video):
     return video["width"] <= config.cl3_width and video["height"] <= config.cl3_height
+
+
+def ffmpeg_get_passfile_prefix():
+    passfilename = ""
+    with tempfile.NamedTemporaryFile() as f:
+        passfilename = f.name
+    return passfilename

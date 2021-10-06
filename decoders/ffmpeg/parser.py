@@ -41,3 +41,7 @@ def find_audio_streams(data):
         if stream['codec_type'] == "audio":
             streams.append(stream)
     return streams
+
+
+def get_file_bitrate(data):
+    return int(data["format"]["bit_rate"])
