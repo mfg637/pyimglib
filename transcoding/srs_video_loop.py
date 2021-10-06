@@ -6,6 +6,7 @@ import pathlib
 from ..decoders import ffmpeg
 from .. import config
 from . import webm_transcoder
+from .common import videoprocessing
 from abc import ABC
 
 
@@ -27,11 +28,7 @@ class SrsVideoLoopOutput(webm_transcoder.WEBM_VideoOutputFormat, ABC):
         src_metadata = ffmpeg.probe(fname)
         video = ffmpeg.parser.find_video_stream(src_metadata)
         fps = ffmpeg.parser.get_fps(video)
-        src_fps_valid = True
-        if fps > 30:
-            src_fps_valid = False
-            while fps > 30:
-                fps /= 2
+        fps, src_fps_valid = videoprocessing.limit_fps(fps)
         commandline = [
             'ffmpeg',
             '-loglevel', 'error',
@@ -39,15 +36,9 @@ class SrsVideoLoopOutput(webm_transcoder.WEBM_VideoOutputFormat, ABC):
             '-pix_fmt', 'yuv420p'
         ]
         if not src_fps_valid:
-            commandline += [
-                '-r', str(fps)
-            ]
-        if video["width"] > config.cl3_width or video["height"] > config.cl3_height:
-            commandline += [
-                '-vf', 'scale=\'min({},iw)\':\'min({},ih)\':force_original_aspect_ratio=decrease'.format(
-                    config.cl3_width, config.cl3_height
-                )
-            ]
+            commandline += videoprocessing.ffmpeg_set_fps_commandline(fps)
+        if not videoprocessing.cl3_size_valid(video):
+            commandline += videoprocessing.CL3_FFMPEG_SCALE_COMMANDLINE
         commandline += [
             '-c:v', 'libvpx-vp9',
             '-crf', str(crf),

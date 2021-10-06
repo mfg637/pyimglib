@@ -8,7 +8,8 @@ from . import statistics,\
     png_source_transcode,\
     jpeg_source_transcode,\
     jpeg_xl_transcoder,\
-    srs_video
+    srs_video,\
+    common
 
 from .. import config, decoders
 

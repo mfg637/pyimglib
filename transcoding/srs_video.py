@@ -3,6 +3,7 @@ import json
 import pathlib
 import os
 from . import statistics
+from .common import videoprocessing
 from ..decoders import ffmpeg
 from .. import config
 
@@ -49,12 +50,8 @@ class SRS_WEBM_Converter:
         src_metadata = ffmpeg.probe(fname)
         video = ffmpeg.parser.find_video_stream(src_metadata)
         fps = ffmpeg.parser.get_fps(video)
-        src_fps_valid = True
-        if fps > 30:
-            src_fps_valid = False
-            while fps > 30:
-                fps /= 2
-        size_valid = (video["width"] <= config.cl3_width and video["height"] <= config.cl3_height)
+        fps, src_fps_valid = videoprocessing.limit_fps(fps)
+        size_valid = videoprocessing.cl3_size_valid(video)
         audio_streams = ffmpeg.parser.find_audio_streams(src_metadata)
         cl3 = None
         if not src_fps_valid or not size_valid or video['pix_fmt'] != "yuv420p":
@@ -66,15 +63,9 @@ class SRS_WEBM_Converter:
                 '-pix_fmt', 'yuv420p'
             ]
             if not src_fps_valid:
-                commandline += [
-                    '-r', str(fps)
-                ]
+                commandline += videoprocessing.ffmpeg_set_fps_commandline(fps)
             if not size_valid:
-                commandline += [
-                    '-vf', 'scale=\'min({},iw)\':\'min({},ih)\':force_original_aspect_ratio=decrease'.format(
-                        config.cl3_width, config.cl3_height
-                    )
-                ]
+                commandline += videoprocessing.CL3_FFMPEG_SCALE_COMMANDLINE
             commandline += [
                 '-c:v', 'libvpx-vp9',
                 '-crf', str(crf),
