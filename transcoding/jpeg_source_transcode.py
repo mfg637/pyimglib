@@ -2,6 +2,7 @@ import abc
 import subprocess
 import os
 import io
+import json
 from . import webp_transcoder, base_transcoder, avif_transcoder, srs_transcoder
 from .. import decoders
 from PIL import Image
@@ -98,6 +99,12 @@ class SRS_JPEG_Transcoder(JPEGTranscode, srs_transcoder.SrsTranscoder):
     def _transparency_check(self, img):
         return False
 
+    def _encode(self):
+        img = self._open_image()
+        # disable arithmetic encoding for the wide compatibility (compatibility level 4 limitations)
+        self._webp_output = True
+        self._core_encoder(img)
+
 
 class JPEGFileTranscode(base_transcoder.FilePathSource, base_transcoder.UnremovableSource, JPEGTranscode):
     def __init__(self, source: str, path: str, file_name: str, item_data: dict, pipe):
@@ -176,3 +183,22 @@ class SRS_JPEGInMemoryTranscode(SRS_JPEG_Transcoder, JPEGInMemoryTranscode):
     def __init__(self, source: bytearray, path: str, file_name: str, item_data: dict, pipe, metadata):
         JPEGInMemoryTranscode.__init__(self, source, path, file_name, item_data, pipe)
         SRS_JPEG_Transcoder.__init__(self, source, path, file_name, item_data, pipe, metadata)
+
+    def _optimisations_failed(self):
+        JPEGInMemoryTranscode._optimisations_failed(self)
+        srs_data = {
+            "ftype": "CLSRS",
+            "content": {
+                "media-type": 0,
+                "tags": dict()
+            },
+            "streams": {
+                "image": {"levels": {"4": self._file_name + ".jpg"}}
+            }
+        }
+        for key in self._item_data:
+            srs_data['content']['tags'][key] = list(self._item_data[key])
+        srs_data['content'].update(self._content_metadata)
+        srs_file = open(self._output_file + '.srs', 'w')
+        json.dump(srs_data, srs_file)
+        srs_file.close()
