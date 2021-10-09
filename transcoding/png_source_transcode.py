@@ -16,6 +16,7 @@ class PNGTranscode(webp_transcoder.WEBP_output):
 
     def __init__(self, source, path, file_name, item_data, pipe):
         base_transcoder.BaseTranscoder.__init__(self, source, path, file_name, item_data, pipe)
+        webp_transcoder.WEBP_output.__init__(self, source, path, file_name, item_data, pipe)
         self._animated = False
         self._lossless = False
         self._lossless_data = b''
