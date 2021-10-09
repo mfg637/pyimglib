@@ -196,9 +196,4 @@ class SRS_JPEGInMemoryTranscode(SRS_JPEG_Transcoder, JPEGInMemoryTranscode):
                 "image": {"levels": {"4": self._file_name + ".jpg"}}
             }
         }
-        for key in self._item_data:
-            srs_data['content']['tags'][key] = list(self._item_data[key])
-        srs_data['content'].update(self._content_metadata)
-        srs_file = open(self._output_file + '.srs', 'w')
-        json.dump(srs_data, srs_file)
-        srs_file.close()
+        self._srs_write_srs(srs_data)
