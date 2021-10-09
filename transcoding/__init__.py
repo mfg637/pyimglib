@@ -9,7 +9,8 @@ from . import statistics,\
     jpeg_source_transcode,\
     jpeg_xl_transcoder,\
     srs_video,\
-    common
+    common,\
+    srs_svg
 
 from .. import config, decoders
 
@@ -120,6 +121,11 @@ def get_memory_transcoder(source: bytearray, path: str, filename: str, tags: dic
             return srs_video.SRS_WEBM_Converter(source, path, filename, tags, pipe, metadata)
         else:
             return srs_video.WEBM_WRITER(source, path, filename, tags, pipe)
+    elif b"<svg" in source:
+        if config.preferred_codec == config.PREFERRED_CODEC.SRS:
+            return srs_svg.SRS_SVG_Converter(source, path, filename, tags, pipe, metadata)
+        else:
+            return srs_svg.SVG_WRITER(source, path, filename, tags, pipe)
     else:
         print(source[:16])
         exit()

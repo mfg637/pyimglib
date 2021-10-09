@@ -7,6 +7,7 @@ import subprocess
 
 import PIL.Image
 import cairosvg
+import tempfile
 
 svg_tag = re.compile(r'<svg[^>]*>')
 attributes = re.compile(r'[a-zA-Z\:]+\s?=\s?[\'\"][^\'\"]+[\'\"]')
@@ -24,9 +25,13 @@ def is_svg(file_path):
 
 
 def get_resolution(file_path):
-    file = open(file_path, 'r')
-    data = file.read()
-    file.close()
+    data = None
+    if type(file_path) is bytes:
+        data = str(file_path)
+    else:
+        file = open(file_path, 'r')
+        data = file.read()
+        file.close()
     svg_tag_data = svg_tag.search(data).group(0)
     svg_raw_attributes = attributes.findall(svg_tag_data)
     svg_attributes = dict()
@@ -63,10 +68,20 @@ def decode(file_path, required_size=None):
     buffer = None
     import defusedxml
     try:
-        buffer = io.BytesIO(cairosvg.svg2png(url=str(file_path), scale=scale))
+        if type(file_path) is bytes:
+            buffer = io.BytesIO(cairosvg.svg2png(bytestring=file_path, scale=scale))
+        else:
+            buffer = io.BytesIO(cairosvg.svg2png(url=str(file_path), scale=scale))
     except defusedxml.common.EntitiesForbidden:
+        tmpfile = None
+        if type(file_path) is bytes:
+            tmpfile = tempfile.NamedTemporaryFile("bw")
+            tmpfile.write(file_path)
+            file_path = tmpfile.name
         buffer = io.BytesIO(subprocess.run(
             ['rsvg-convert', '--format=png', '-z', str(scale), str(file_path)],
             capture_output=True
         ).stdout)
+        if tmpfile is not None:
+            tmpfile.close()
     return PIL.Image.open(buffer)
