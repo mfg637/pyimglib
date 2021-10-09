@@ -58,6 +58,17 @@ class SRS_GIFTranscode(srs_video_loop.SrsVideoLoopOutput):
         outfile.write(self._source)
         outfile.close()
         print("save " + self._output_file + ".gif")
+        srs_data = {
+            "ftype": "CLSRS",
+            "content": {
+                "media-type": 0,
+                "tags": dict()
+            },
+            "streams": {
+                "image": {"levels": {"4": self._file_name + ".gif"}}
+            }
+        }
+        self._srs_write_srs(srs_data)
 
 
 class GIFFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRemovable, GIFTranscode):

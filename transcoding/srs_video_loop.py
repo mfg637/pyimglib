@@ -1,12 +1,11 @@
 import subprocess
 import tempfile
 import os
-import json
 import pathlib
 from ..decoders import ffmpeg
 from .. import config
 from . import webm_transcoder
-from .common import videoprocessing
+from .common import videoprocessing, srs
 from abc import ABC
 
 
@@ -82,9 +81,7 @@ class SrsVideoLoopOutput(webm_transcoder.WEBM_VideoOutputFormat, ABC):
         if self._cl0w_filename:
             srs_video_levels["3w"] = pathlib.Path(self._cl3w_filename).name
         srs_data['streams']['video']['levels'] = srs_video_levels
-        for key in self._item_data:
-            srs_data['content']['tags'][key] = list(self._item_data[key])
-        srs_data['content'].update(self._content_metadata)
-        srs_file = open(self._output_file + '.srs', 'w')
-        json.dump(srs_data, srs_file)
-        srs_file.close()
+        self._srs_write_srs(srs_data)
+
+    def _srs_write_srs(self, srs_data):
+        srs.write_srs(srs_data, self._item_data, self._content_metadata, self._output_file)

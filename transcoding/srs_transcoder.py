@@ -1,10 +1,10 @@
-import abc
 import math
-import json
 import pathlib
 from PIL import Image
 from . import avif_transcoder, webp_transcoder, noise_detection, base_transcoder
+from .common import srs
 from .. import config
+
 
 
 class SrsTranscoder(avif_transcoder.AVIF_WEBP_output):
@@ -116,11 +116,6 @@ class SrsTranscoder(avif_transcoder.AVIF_WEBP_output):
             self._srs_write_srs(srs_data)
 
     def _srs_write_srs(self, srs_data):
-        for key in self._item_data:
-            srs_data['content']['tags'][key] = list(self._item_data[key])
-        srs_data['content'].update(self._content_metadata)
-        srs_file = open(self._output_file + '.srs', 'w')
-        json.dump(srs_data, srs_file)
-        srs_file.close()
+        srs.write_srs(srs_data, self._item_data, self._content_metadata, self._output_file)
 
 
