@@ -8,7 +8,8 @@ class NoisyImageEnum(enum.Enum):
 
 
 def noise_detection(img:Image.Image) -> NoisyImageEnum:
-    img1 = img.filter(
+    img1 = img.convert("RGBA")
+    img2 = img1.filter(
         ImageFilter.Kernel(
             (3, 3),
             (
@@ -20,6 +21,6 @@ def noise_detection(img:Image.Image) -> NoisyImageEnum:
         )
     )
     pixels = img.size[0] * img.size[1]
-    noise_ratio = 1 - (img1.convert('L').histogram()[0] / pixels)
+    noise_ratio = 1 - (img2.convert('L').histogram()[0] / pixels)
     print("noise ratio", noise_ratio)
     return NoisyImageEnum.NOISELESS if noise_ratio < 0.2 else NoisyImageEnum.NOISY

@@ -28,22 +28,27 @@ class SrsTranscoder(avif_transcoder.AVIF_WEBP_output):
         self._webp_lossy_data = self._lossy_data
 
     def _core_encoder(self, img):
-        self._lossless = False
-        self._animated = False
-        self._avif_lossy_data = None
-        self._webp_lossy_data = None
-        self._apng_test_convert(img)
-        if img.mode in {'1', 'P', 'PA'}:
-            raise base_transcoder.NotOptimizableSourceException()
-        self._lossless = True \
-            if noise_detection.noise_detection(img) == noise_detection.NoisyImageEnum.NOISELESS else False
-        ratio = 80
-        if 'vector' in self._item_data['content']:
+        def _lossless_encode_script():
             self._quality = 100
             self._lossless = True
             self._lossless_encode(img)
             self._output_size = len(self._lossless_data)
             self._thumbnail_encode_for_lossless(img)
+        self._lossless = False
+        self._animated = False
+        self._avif_lossy_data = None
+        self._webp_lossy_data = None
+        self._apng_test_convert(img)
+        if img.mode in {'P', 'PA'}:
+            _lossless_encode_script()
+            return
+        elif img.mode == '1':
+            raise base_transcoder.NotOptimizableSourceException()
+        self._lossless = True \
+            if noise_detection.noise_detection(img) == noise_detection.NoisyImageEnum.NOISELESS else False
+        ratio = 80
+        if 'vector' in self._item_data['content']:
+            _lossless_encode_script()
         else:
             if img.width >= config.srs_avif_trigger_size or img.height >= config.srs_avif_trigger_size:
                 if self._lossless:
@@ -90,6 +95,9 @@ class SrsTranscoder(avif_transcoder.AVIF_WEBP_output):
                 cl2_file = open(self._output_file + '_lossless.webp', 'wb')
                 cl2_file.write(self._lossless_data)
                 cl2_file.close()
+                if self._webp_lossy_data is None or len(self._webp_lossy_data) == 0:
+                    cl2 = None
+                    cl3 = self._file_name + '_lossless.webp'
             if self._webp_lossy_data is not None and len(self._webp_lossy_data):
                 cl3 = pathlib.Path(self._output_file + '.webp').name
                 cl3_file = open(self._output_file + '.webp', 'wb')

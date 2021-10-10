@@ -69,6 +69,10 @@ class BaseTranscoder:
         self._size = self._get_source_size()
         try:
             self._encode()
+        except NotOptimizableSourceException:
+            self._optimisations_failed()
+            statistics.pipe_send(self._pipe)
+            return
         except (
             AlreadyOptimizedSourceException,
             NotOptimizableSourceException
