@@ -20,9 +20,12 @@ class WEBM_VideoOutputFormat(base_transcoder.BaseTranscoder):
             f = tempfile.NamedTemporaryFile()
             fname = f.name
             f.write(self._source)
-        subprocess.call(
-            [
-                'ffmpeg',
+        commandline = [
+                'ffmpeg'
+        ]
+        if config.allow_rewrite:
+            commandline += ['-y']
+        commandline += [
                 '-loglevel', 'error',
                 '-i', fname,
                 '-pix_fmt', 'yuva420p10le',
@@ -34,6 +37,8 @@ class WEBM_VideoOutputFormat(base_transcoder.BaseTranscoder):
                 '-f', 'webm',
                 self._cl0w_filename
             ]
+        subprocess.call(
+            commandline
         )
         if isinstance(self._source, (bytes, bytearray)):
             f.close()

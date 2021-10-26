@@ -29,7 +29,10 @@ class SrsVideoLoopOutput(webm_transcoder.WEBM_VideoOutputFormat, ABC):
         fps = ffmpeg.parser.get_fps(video)
         fps, src_fps_valid = videoprocessing.limit_fps(fps)
         commandline = [
-            'ffmpeg',
+            'ffmpeg']
+        if config.allow_rewrite:
+            commandline += ['-y']
+        commandline += [
             '-loglevel', 'error',
             '-i', fname,
             '-pix_fmt', 'yuv420p'

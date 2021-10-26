@@ -56,3 +56,5 @@ gop_length_seconds = 10
 cl3_to_orig_ratio = 0.5
 VP9_VIDEO_CRF = 24
 VIDEOLOOP_CRF = 32
+
+allow_rewrite = False

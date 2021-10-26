@@ -68,7 +68,11 @@ class SRS_WEBM_Converter:
                 cl1 = self._file_name + "_cl1.webm"
                 vstream_file = self._output_file + "_cl1.webm"
             commandline = [
-                'ffmpeg',
+                'ffmpeg'
+            ]
+            if config.allow_rewrite:
+                commandline += ['-y']
+            commandline += [
                 '-i', fname,
                 '-map', '0:v:0',
                 '-c', 'copy',
@@ -84,7 +88,11 @@ class SRS_WEBM_Converter:
                 afname = self._output_file + "_audio{}.webm.cl3w".format(index)
                 aname = self._file_name + "_audio{}.webm.cl3w".format(index)
                 commandline = [
-                    'ffmpeg',
+                    'ffmpeg'
+                ]
+                if config.allow_rewrite:
+                    commandline += ['-y']
+                commandline += [
                     '-i', fname,
                     '-map', '0:{}'.format(index),
                     '-c', 'copy',
@@ -101,7 +109,11 @@ class SRS_WEBM_Converter:
         if not src_fps_valid or not size_valid or video['pix_fmt'] != "yuv420p":
             for PASS in range(1, 3):
                 commandline = [
-                    'ffmpeg',
+                    'ffmpeg'
+                ]
+                if config.allow_rewrite:
+                    commandline += ['-y']
+                commandline += [
                     '-loglevel', 'error',
                     '-i', fname,
                     '-pix_fmt', 'yuv420p'
