@@ -45,7 +45,8 @@ class SrsTranscoder(avif_transcoder.AVIF_WEBP_output):
         elif img.mode == '1':
             raise base_transcoder.NotOptimizableSourceException()
         self._lossless = True \
-            if noise_detection.noise_detection(img) == noise_detection.NoisyImageEnum.NOISELESS else False
+            if noise_detection.noise_detection(img) == noise_detection.NoisyImageEnum.NOISELESS and \
+               img.width <= webp_transcoder.MAX_SIZE and img.height <= webp_transcoder.MAX_SIZE else False
         ratio = 80
         if 'vector' in self._item_data['content']:
             _lossless_encode_script()
