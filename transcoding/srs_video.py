@@ -195,7 +195,7 @@ class SRS_WEBM_Converter:
         else:
             if cl1:
                 srs_video_levels["1w"] = cl1
-            if cl2:
+            elif cl2:
                 srs_video_levels["2w"] = cl2
             else:
                 srs_video_levels["1w"] = clx
