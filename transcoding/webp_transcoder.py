@@ -89,7 +89,7 @@ class WEBP_output(webm_transcoder.WEBM_VideoOutputFormat):
                     self._quality -= 5
                     self._lossy_encode(img)
                     self._output_size = len(self._lossy_data)
-                    ratio = math.ceil(ratio // 2)
+                    ratio = math.ceil(ratio // config.WEBP_QSCALE)
         img.close()
 
     def _save_image(self):

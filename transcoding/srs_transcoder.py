@@ -72,7 +72,7 @@ class SrsTranscoder(avif_transcoder.AVIF_WEBP_output):
                         self._quality -= 5
                         self.avif_lossy_encode(img)
                         self._output_size = len(self._lossy_data)
-                        ratio = math.ceil(ratio // 2)
+                        ratio = math.ceil(ratio // config.SRS_QSCALE)
                     self._avif_lossy_data = self._lossy_data
                     self._thumbnail_encode(img, 90)
                     self._output_size = len(self._avif_lossy_data) + len(self._webp_lossy_data)

@@ -58,3 +58,5 @@ VP9_VIDEO_CRF = 24
 VIDEOLOOP_CRF = 32
 
 allow_rewrite = False
+
+WEBP_QSCALE = SRS_QSCALE = 1.375
