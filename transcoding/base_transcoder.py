@@ -17,7 +17,7 @@ class NotOptimizableSourceException(Exception):
 class BaseTranscoder:
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, source, path:str, file_name:str, item_data:dict, pipe):
+    def __init__(self, source, path: str, file_name: str, item_data: dict, pipe):
         self._source = source
         self._path = path
         self._file_name = file_name
