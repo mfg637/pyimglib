@@ -9,8 +9,8 @@ from .. import decoders
 
 
 class AVIF_WEBP_output(webp_transcoder.WEBP_output, metaclass=abc.ABCMeta):
-    def __init__(self, source, path: str, file_name: str, item_data: dict, pipe):
-        webp_transcoder.WEBP_output.__init__(self, source, path, file_name, item_data, pipe)
+    def __init__(self, source, path: str, file_name: str, item_data: dict):
+        webp_transcoder.WEBP_output.__init__(self, source, path, file_name, item_data)
         self._bit_depth = 10
         self._av1_enable_advanced_options = True
 

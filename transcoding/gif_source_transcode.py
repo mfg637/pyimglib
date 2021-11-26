@@ -8,8 +8,8 @@ from PIL import Image
 class GIFTranscode(webm_transcoder.WEBM_VideoOutputFormat):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, source, path: str, file_name: str, item_data: dict, pipe):
-        webm_transcoder.WEBM_VideoOutputFormat.__init__(self, source, path, file_name, item_data, pipe)
+    def __init__(self, source, path: str, file_name: str, item_data: dict):
+        webm_transcoder.WEBM_VideoOutputFormat.__init__(self, source, path, file_name, item_data)
 
     def _encode(self):
         img = self._open_image()
@@ -35,8 +35,8 @@ class GIFTranscode(webm_transcoder.WEBM_VideoOutputFormat):
 class SRS_GIFTranscode(srs_video_loop.SrsVideoLoopOutput):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, source, path: str, file_name: str, item_data: dict, pipe, metadata):
-        super().__init__(source, path, file_name, item_data, pipe, metadata)
+    def __init__(self, source, path: str, file_name: str, item_data: dict, metadata):
+        super().__init__(source, path, file_name, item_data, metadata)
 
     def _encode(self):
         img = self._open_image()
@@ -73,8 +73,8 @@ class SRS_GIFTranscode(srs_video_loop.SrsVideoLoopOutput):
 
 class GIFFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRemovable, GIFTranscode):
 
-    def __init__(self, source: str, path: str, file_name: str, item_data: dict, pipe):
-        base_transcoder.FilePathSource.__init__(self, source, path, file_name, item_data, pipe)
+    def __init__(self, source: str, path: str, file_name: str, item_data: dict):
+        base_transcoder.FilePathSource.__init__(self, source, path, file_name, item_data)
         img = Image.open(source)
         self._animated = img.is_animated
         img.close()
@@ -88,16 +88,16 @@ class GIFFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRem
 
 
 class SRS_GIFFileTranscode(GIFFileTranscode, SRS_GIFTranscode):
-    def __init__(self, source: str, path: str, file_name: str, item_data: dict, pipe, metadata):
-        GIFFileTranscode.__init__(self, source, path, file_name, item_data, pipe)
-        SRS_GIFTranscode.__init__(self, source, path, file_name, item_data, pipe, metadata)
+    def __init__(self, source: str, path: str, file_name: str, item_data: dict, metadata):
+        GIFFileTranscode.__init__(self, source, path, file_name, item_data)
+        SRS_GIFTranscode.__init__(self, source, path, file_name, item_data, metadata)
 
 
 class GIFInMemoryTranscode(base_transcoder.InMemorySource, GIFTranscode):
 
-    def __init__(self, source:bytearray, path:str, file_name:str, item_data:dict, pipe):
-        base_transcoder.InMemorySource.__init__(self, source, path, file_name, item_data, pipe)
-        GIFTranscode.__init__(self, source, path, file_name, item_data, pipe)
+    def __init__(self, source: bytearray, path: str, file_name: str, item_data: dict):
+        base_transcoder.InMemorySource.__init__(self, source, path, file_name, item_data)
+        GIFTranscode.__init__(self, source, path, file_name, item_data)
         in_io = io.BytesIO(self._source)
         img = Image.open(in_io)
         self._animated = img.is_animated
@@ -111,9 +111,9 @@ class GIFInMemoryTranscode(base_transcoder.InMemorySource, GIFTranscode):
 
 
 class SRS_GIFInMemoryTranscode(GIFInMemoryTranscode, SRS_GIFTranscode):
-    def __init__(self, source: bytearray, path: str, file_name: str, item_data: dict, pipe, metadata):
-        GIFInMemoryTranscode.__init__(self, source, path, file_name, item_data, pipe)
-        SRS_GIFTranscode.__init__(self, source, path, file_name, item_data, pipe, metadata)
+    def __init__(self, source: bytearray, path: str, file_name: str, item_data: dict, metadata):
+        GIFInMemoryTranscode.__init__(self, source, path, file_name, item_data)
+        SRS_GIFTranscode.__init__(self, source, path, file_name, item_data, metadata)
 
     def _encode(self):
         SRS_GIFTranscode._encode(self)

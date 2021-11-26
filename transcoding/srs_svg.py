@@ -7,10 +7,9 @@ from .common import srs
 
 class SVG_WRITER:
 
-    def __init__(self, source, path, file_name, item_data, pipe):
+    def __init__(self, source, path, file_name, item_data):
         self._source = source
         self._output_file = pathlib.Path(path).joinpath(file_name)
-        self._pipe = pipe
 
     def transcode(self):
         f = None
@@ -19,17 +18,15 @@ class SVG_WRITER:
             f = clx.open("bw")
             f.write(self._source)
             f.close()
-        statistics.pipe_send(self._pipe)
 
 
 class SRS_SVG_Converter:
-    def __init__(self, source, path, file_name, item_data, pipe, metadata):
+    def __init__(self, source, path, file_name, item_data, metadata):
         self._source = source
         self._output_file = pathlib.Path(path).joinpath(file_name)
         self._file_name = file_name
         self._item_data = item_data
         self._content_metadata = metadata
-        self._pipe = pipe
 
 
     def transcode(self):
@@ -63,4 +60,4 @@ class SRS_SVG_Converter:
             }
         }
         srs.write_srs(srs_data, self._item_data, self._content_metadata, self._output_file.with_suffix(".srs"))
-        statistics.pipe_send(self._pipe)
+        return 0, 0, 0, 0

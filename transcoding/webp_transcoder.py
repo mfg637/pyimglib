@@ -15,8 +15,8 @@ if config.MAX_SIZE is not None:
 class WEBP_output(webm_transcoder.WEBM_VideoOutputFormat):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, source, path: str, file_name: str, item_data: dict, pipe):
-        super().__init__(source, path, file_name, item_data, pipe)
+    def __init__(self, source, path: str, file_name: str, item_data: dict):
+        super().__init__(source, path, file_name, item_data)
         self.file_suffix = '.webp'
         self._lossy_encode = self.webp_lossy_encode
 

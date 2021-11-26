@@ -7,8 +7,8 @@ from .. import config
 
 
 class WEBM_VideoOutputFormat(base_transcoder.BaseTranscoder):
-    def __init__(self, source, path: str, file_name: str, item_data: dict, pipe):
-        super().__init__(source, path, file_name, item_data, pipe)
+    def __init__(self, source, path: str, file_name: str, item_data: dict):
+        super().__init__(source, path, file_name, item_data)
         self._cl0w_filename = self._output_file + '_cl0w.webm'
 
     def animation2webm(self):

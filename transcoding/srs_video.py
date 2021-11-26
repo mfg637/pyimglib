@@ -12,10 +12,9 @@ CL3_MAX_VIDEO_BITRATE = 5_000_000
 
 class WEBM_WRITER:
 
-    def __init__(self, source, path, file_name, item_data, pipe):
+    def __init__(self, source, path, file_name, item_data):
         self._source = source
         self._output_file = os.path.join(path, file_name)
-        self._pipe = pipe
 
     def transcode(self):
         f = None
@@ -24,17 +23,16 @@ class WEBM_WRITER:
             f = open(clx, "bw")
             f.write(self._source)
             f.close()
-        statistics.pipe_send(self._pipe)
+        return 0, 0, 0, 0
 
 
 class SRS_WEBM_Converter:
-    def __init__(self, source, path, file_name, item_data, pipe, metadata):
+    def __init__(self, source, path, file_name, item_data, metadata):
         self._source = source
         self._output_file = os.path.join(path, file_name)
         self._file_name = file_name
         self._item_data = item_data
         self._content_metadata = metadata
-        self._pipe = pipe
 
 
     def transcode(self):
@@ -211,4 +209,4 @@ class SRS_WEBM_Converter:
         srs_file.close()
         if len(audio):
             os.remove(fname)
-        statistics.pipe_send(self._pipe)
+        return 0, 0, 0, 0

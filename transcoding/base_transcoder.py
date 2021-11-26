@@ -17,12 +17,11 @@ class NotOptimizableSourceException(Exception):
 class BaseTranscoder:
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, source, path: str, file_name: str, item_data: dict, pipe):
+    def __init__(self, source, path: str, file_name: str, item_data: dict):
         self._source = source
         self._path = path
         self._file_name = file_name
         self._item_data = item_data
-        self._pipe = pipe
         self._size = 0
         self._output_file = os.path.join(path, file_name)
         self._output_size = 0
@@ -71,14 +70,12 @@ class BaseTranscoder:
             self._encode()
         except NotOptimizableSourceException:
             self._optimisations_failed()
-            statistics.pipe_send(self._pipe)
-            return
+            return 0, 0, 0, 0
         except (
             AlreadyOptimizedSourceException,
             NotOptimizableSourceException
         ):
-            statistics.pipe_send(self._pipe)
-            return
+            return 0, 0, 0, 0
         self._record_timestamps()
         if (self._size > self._output_size) and (self._output_size > 0):
             self._save()
@@ -88,15 +85,11 @@ class BaseTranscoder:
                 round((1 - self._output_size / self._size) * 100, 2),
                 self._quality
             ))
-            statistics.sumsize += self._size
-            statistics.sumos += self._output_size
-            statistics.avq += self._quality
-            statistics.items += 1
             self._remove_source()
+            return self._output_size, self._size, self._quality, 1
         else:
             self._optimisations_failed()
-        if config.enable_multiprocessing:
-            statistics.pipe_send(self._pipe)
+            return 0, 0, 0, 0
 
 
 class SourceRemovable(BaseTranscoder):
@@ -116,8 +109,8 @@ class UnremovableSource(BaseTranscoder):
 class FilePathSource(BaseTranscoder):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, source: str, path: str, file_name: str, item_data: dict, pipe):
-        BaseTranscoder.__init__(self, source, path, file_name, item_data, pipe)
+    def __init__(self, source: str, path: str, file_name: str, item_data: dict):
+        BaseTranscoder.__init__(self, source, path, file_name, item_data)
         self._tmp_src = None
 
     def _record_timestamps(self):
@@ -134,8 +127,8 @@ class FilePathSource(BaseTranscoder):
 class InMemorySource(UnremovableSource):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, source:bytearray, path:str, file_name:str, item_data:dict, pipe):
-        BaseTranscoder.__init__(self, source, path, file_name, item_data, pipe)
+    def __init__(self, source: bytearray, path: str, file_name: str, item_data: dict):
+        BaseTranscoder.__init__(self, source, path, file_name, item_data)
 
     def _open_image(self) -> Image.Image:
         src_io = io.BytesIO(self._source)

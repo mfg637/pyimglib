@@ -5,12 +5,6 @@ avq = 0
 items = 0
 
 
-def pipe_send(pipe):
-    if pipe is not None:
-        pipe.send((sumos, sumsize, avq, items))
-        pipe.close()
-
-
 def print_stats():
     if items:
         print(('total save: {} MBytes ({}%) from {} total MBytes \n'

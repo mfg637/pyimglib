@@ -14,9 +14,9 @@ class PNGTranscode(webp_transcoder.WEBP_output):
             img.close()
             return None
 
-    def __init__(self, source, path, file_name, item_data, pipe):
-        base_transcoder.BaseTranscoder.__init__(self, source, path, file_name, item_data, pipe)
-        webp_transcoder.WEBP_output.__init__(self, source, path, file_name, item_data, pipe)
+    def __init__(self, source, path, file_name, item_data):
+        base_transcoder.BaseTranscoder.__init__(self, source, path, file_name, item_data)
+        webp_transcoder.WEBP_output.__init__(self, source, path, file_name, item_data)
         self._animated = False
         self._lossless = False
         self._lossless_data = b''
@@ -34,9 +34,9 @@ class PNGTranscode(webp_transcoder.WEBP_output):
 
 
 class PNG_AVIF_Transcode(PNGTranscode, avif_transcoder.AVIF_WEBP_output, metaclass=abc.ABCMeta):
-    def __init__(self, source, path: str, file_name: str, item_data: dict, pipe):
-        PNGTranscode.__init__(self, source, path, file_name, item_data, pipe)
-        avif_transcoder.AVIF_WEBP_output.__init__(self, source, path, file_name, item_data, pipe)
+    def __init__(self, source, path: str, file_name: str, item_data: dict):
+        PNGTranscode.__init__(self, source, path, file_name, item_data)
+        avif_transcoder.AVIF_WEBP_output.__init__(self, source, path, file_name, item_data)
 
     def _encode(self):
         img = self._open_image()
@@ -47,9 +47,9 @@ class PNG_AVIF_Transcode(PNGTranscode, avif_transcoder.AVIF_WEBP_output, metacla
 
 
 class PNG_SRS_Transcode(PNGTranscode, srs_transcoder.SrsTranscoder, metaclass=abc.ABCMeta):
-    def __init__(self, source, path: str, file_name: str, item_data: dict, pipe, metadata):
-        PNGTranscode.__init__(self, source, path, file_name, item_data, pipe)
-        srs_transcoder.SrsTranscoder.__init__(self, source, path, file_name, item_data, pipe, metadata)
+    def __init__(self, source, path: str, file_name: str, item_data: dict, metadata):
+        PNGTranscode.__init__(self, source, path, file_name, item_data)
+        srs_transcoder.SrsTranscoder.__init__(self, source, path, file_name, item_data, metadata)
 
     def _encode(self):
         img = self._open_image()
@@ -60,9 +60,9 @@ class PNG_SRS_Transcode(PNGTranscode, srs_transcoder.SrsTranscoder, metaclass=ab
 
 
 class PNGFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRemovable, PNGTranscode):
-    def __init__(self, source: str, path: str, file_name: str, item_data: dict, pipe):
-        base_transcoder.FilePathSource.__init__(self, source, path, file_name, item_data, pipe)
-        PNGTranscode.__init__(self, source, path, file_name, item_data, pipe)
+    def __init__(self, source: str, path: str, file_name: str, item_data: dict):
+        base_transcoder.FilePathSource.__init__(self, source, path, file_name, item_data)
+        PNGTranscode.__init__(self, source, path, file_name, item_data)
 
     def _invalid_file_exception_handle(self, e):
         print('invalid file ' + self._source + ' ({}) has been deleted'.format(e))
@@ -83,22 +83,22 @@ class PNGFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRem
 
 
 class AVIF_PNGFileTranscode(PNGFileTranscode, PNG_AVIF_Transcode):
-    def __init__(self, source: str, path: str, file_name: str, item_data: dict, pipe):
-        PNGFileTranscode.__init__(self, source, path, file_name, item_data, pipe)
-        PNG_AVIF_Transcode.__init__(self, source, path, file_name, item_data, pipe)
+    def __init__(self, source: str, path: str, file_name: str, item_data: dict):
+        PNGFileTranscode.__init__(self, source, path, file_name, item_data)
+        PNG_AVIF_Transcode.__init__(self, source, path, file_name, item_data)
 
 
 class SRS_PNGFileTranscode(PNGFileTranscode, PNG_SRS_Transcode):
-    def __init__(self, source: str, path: str, file_name: str, item_data: dict, pipe, metadata):
-        PNGFileTranscode.__init__(self, source, path, file_name, item_data, pipe)
-        PNG_SRS_Transcode.__init__(self, source, path, file_name, item_data, pipe, metadata)
+    def __init__(self, source: str, path: str, file_name: str, item_data: dict, metadata):
+        PNGFileTranscode.__init__(self, source, path, file_name, item_data)
+        PNG_SRS_Transcode.__init__(self, source, path, file_name, item_data, metadata)
 
 
 class PNGInMemoryTranscode(base_transcoder.InMemorySource, PNGTranscode):
 
-    def __init__(self, source:bytearray, path:str, file_name:str, item_data:dict, pipe):
-        base_transcoder.InMemorySource.__init__(self, source, path, file_name, item_data, pipe)
-        PNGTranscode.__init__(self, source, path, file_name, item_data, pipe)
+    def __init__(self, source: bytearray, path: str, file_name: str, item_data: dict):
+        base_transcoder.InMemorySource.__init__(self, source, path, file_name, item_data)
+        PNGTranscode.__init__(self, source, path, file_name, item_data)
 
     def _invalid_file_exception_handle(self, e):
         print('invalid png data')
@@ -118,12 +118,12 @@ class PNGInMemoryTranscode(base_transcoder.InMemorySource, PNGTranscode):
 
 
 class AVIF_PNGInMemoryTranscode(PNGInMemoryTranscode, PNG_AVIF_Transcode):
-    def __init__(self, source, path, file_name, item_data, pipe, metadata):
-        PNGInMemoryTranscode.__init__(self, source, path, file_name, item_data, pipe)
-        PNG_AVIF_Transcode.__init__(self, source, path, file_name, item_data, pipe)
+    def __init__(self, source, path, file_name, item_data):
+        PNGInMemoryTranscode.__init__(self, source, path, file_name, item_data)
+        PNG_AVIF_Transcode.__init__(self, source, path, file_name, item_data)
 
 
 class SRS_PNGInMemoryTranscode(PNGInMemoryTranscode, PNG_SRS_Transcode):
-    def __init__(self, source, path, file_name, item_data, pipe, metadata):
-        PNGInMemoryTranscode.__init__(self, source, path, file_name, item_data, pipe)
-        PNG_SRS_Transcode.__init__(self, source, path, file_name, item_data, pipe, metadata)
+    def __init__(self, source, path, file_name, item_data, metadata):
+        PNGInMemoryTranscode.__init__(self, source, path, file_name, item_data)
+        PNG_SRS_Transcode.__init__(self, source, path, file_name, item_data, metadata)

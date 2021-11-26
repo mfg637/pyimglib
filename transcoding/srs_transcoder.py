@@ -6,10 +6,9 @@ from .common import srs
 from .. import config
 
 
-
 class SrsTranscoder(avif_transcoder.AVIF_WEBP_output):
-    def __init__(self, source, path: str, file_name: str, item_data: dict, pipe, metadata):
-        avif_transcoder.AVIF_WEBP_output.__init__(self, source, path, file_name, item_data, pipe)
+    def __init__(self, source, path: str, file_name: str, item_data: dict, metadata):
+        avif_transcoder.AVIF_WEBP_output.__init__(self, source, path, file_name, item_data)
         self._content_metadata = metadata
 
     def _thumbnail_encode_for_lossless(self, img):

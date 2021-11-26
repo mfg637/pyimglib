@@ -43,9 +43,9 @@ class JPEG_XL_Transcoder(jpeg_source_transcode.JPEGTranscode, abc.ABC):
 
 
 class AVIF_JPEG_XL_Transcoder(jpeg_source_transcode.AVIF_JPEG_Transcoder, JPEG_XL_Transcoder):
-    def __init__(self, source, path:str, file_name:str, item_data:dict, pipe):
-        jpeg_source_transcode.AVIF_JPEG_Transcoder.__init__(self, source, path, file_name, item_data, pipe)
-        JPEG_XL_Transcoder.__init__(self, source, path, file_name, item_data, pipe)
+    def __init__(self, source, path: str, file_name: str, item_data: dict):
+        jpeg_source_transcode.AVIF_JPEG_Transcoder.__init__(self, source, path, file_name, item_data)
+        JPEG_XL_Transcoder.__init__(self, source, path, file_name, item_data)
 
 
 class JPEG_XL_FileTranscoder(base_transcoder.FilePathSource, JPEG_XL_Transcoder):
@@ -71,9 +71,9 @@ class JPEG_XL_FileTranscoder(base_transcoder.FilePathSource, JPEG_XL_Transcoder)
     def _optimisations_failed(self):
         print("save " + self._source)
 
-    def __init__(self, source: str, path: str, file_name: str, item_data: dict, pipe):
-        base_transcoder.FilePathSource.__init__(self, source, path, file_name, item_data, pipe)
-        JPEG_XL_Transcoder.__init__(self, source, path, file_name, item_data, pipe)
+    def __init__(self, source: str, path: str, file_name: str, item_data: dict):
+        base_transcoder.FilePathSource.__init__(self, source, path, file_name, item_data)
+        JPEG_XL_Transcoder.__init__(self, source, path, file_name, item_data)
         self._quality = 100
         self._optimized_data = b''
 
@@ -94,20 +94,20 @@ class JPEG_XL_BurrefedSourceTranscoder(base_transcoder.InMemorySource, JPEG_XL_T
         outfile.close()
         print("save " + self._output_file + ".jpg")
 
-    def __init__(self, source:bytearray, path:str, file_name:str, item_data:dict, pipe):
-        base_transcoder.InMemorySource.__init__(self, source, path, file_name, item_data, pipe)
-        JPEG_XL_Transcoder.__init__(self, source, path, file_name, item_data, pipe)
+    def __init__(self, source:bytearray, path: str, file_name: str, item_data: dict):
+        base_transcoder.InMemorySource.__init__(self, source, path, file_name, item_data)
+        JPEG_XL_Transcoder.__init__(self, source, path, file_name, item_data)
         self._quality = 100
         self._optimized_data = b''
 
 
 class AVIF_JPEG_XL_FileTranscode(AVIF_JPEG_XL_Transcoder, JPEG_XL_FileTranscoder):
-    def __init__(self, source: str, path: str, file_name: str, item_data: dict, pipe):
-        JPEG_XL_FileTranscoder.__init__(self, source, path, file_name, item_data, pipe)
-        AVIF_JPEG_XL_Transcoder.__init__(self, source, path, file_name, item_data, pipe)
+    def __init__(self, source: str, path: str, file_name: str, item_data: dict):
+        JPEG_XL_FileTranscoder.__init__(self, source, path, file_name, item_data)
+        AVIF_JPEG_XL_Transcoder.__init__(self, source, path, file_name, item_data)
 
 
 class AVIF_JPEG_XL_BufferTranscode(AVIF_JPEG_XL_Transcoder, JPEG_XL_BurrefedSourceTranscoder):
-    def __init__(self, source: bytearray, path: str, file_name: str, item_data: dict, pipe):
-        JPEG_XL_BurrefedSourceTranscoder.__init__(self, source, path, file_name, item_data, pipe)
-        AVIF_JPEG_XL_Transcoder.__init__(self, source, path, file_name, item_data, pipe)
+    def __init__(self, source: bytearray, path: str, file_name: str, item_data: dict):
+        JPEG_XL_BurrefedSourceTranscoder.__init__(self, source, path, file_name, item_data)
+        AVIF_JPEG_XL_Transcoder.__init__(self, source, path, file_name, item_data)
