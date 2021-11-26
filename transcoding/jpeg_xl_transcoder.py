@@ -4,9 +4,12 @@ import tempfile
 import pathlib
 import os
 import io
+import logging
 
 from . import jpeg_source_transcode, base_transcoder
 from .. import config
+
+logger = logging.getLogger(__name__)
 
 
 class JPEG_XL_Transcoder(jpeg_source_transcode.JPEGTranscode, abc.ABC):
@@ -62,14 +65,14 @@ class JPEG_XL_FileTranscoder(base_transcoder.FilePathSource, JPEG_XL_Transcoder)
         os.utime(self._output_file, (self._atime, self._mtime))
 
     def _invalid_file_exception_handle(self, e):
-        print('invalid file ' + self._source + ' ({}) has been deleted'.format(e))
+        logging.warning('invalid file ' + self._source + ' ({}) has been deleted'.format(e))
         self._remove_source()
 
     def _remove_source(self):
         os.remove(self._source)
 
     def _optimisations_failed(self):
-        print("save " + self._source)
+        logging.warning("save " + self._source)
 
     def __init__(self, source: str, path: str, file_name: str, item_data: dict):
         base_transcoder.FilePathSource.__init__(self, source, path, file_name, item_data)
@@ -86,13 +89,13 @@ class JPEG_XL_BurrefedSourceTranscoder(base_transcoder.InMemorySource, JPEG_XL_T
         return io.BytesIO(self._source)
 
     def _invalid_file_exception_handle(self, e):
-        print('invalid jpeg data')
+        logging.exception('invalid jpeg data')
 
     def _optimisations_failed(self):
         outfile = open(self._output_file + ".jpg", "bw")
         outfile.write(self._source)
         outfile.close()
-        print("save " + self._output_file + ".jpg")
+        logging.warning("save " + self._output_file + ".jpg")
 
     def __init__(self, source:bytearray, path: str, file_name: str, item_data: dict):
         base_transcoder.InMemorySource.__init__(self, source, path, file_name, item_data)

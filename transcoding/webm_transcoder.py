@@ -2,8 +2,11 @@ import subprocess
 import os
 import abc
 import tempfile
+import logging
 from . import base_transcoder, statistics
 from .. import config
+
+logger = logging.getLogger(__name__)
 
 
 class WEBM_VideoOutputFormat(base_transcoder.BaseTranscoder):
@@ -57,8 +60,8 @@ class WEBM_VideoOutputFormat(base_transcoder.BaseTranscoder):
         pass
 
     def gif_optimisations_failed(self):
-        print("optimisations_failed")
-        print("FILE SIZE", self._output_size)
+        logging.exception("optimisations_failed")
+        logging.debug("FILE SIZE", self._output_size)
         self._fext = 'webp'
         converter = self.get_converter_type()(self._source)
         out_data = converter.compress(lossless=True)
@@ -71,7 +74,7 @@ class WEBM_VideoOutputFormat(base_transcoder.BaseTranscoder):
             outfile = open(self._output_file + '.webp', 'wb')
             outfile.write(out_data.tobytes())
             outfile.close()
-            print(('save {} kbyte ({}%) quality = {}').format(
+            logger.info(('save {} kbyte ({}%) quality = {}').format(
                 round((self._size - self._output_size) / 1024, 2),
                 round((1 - self._output_size / self._size) * 100, 2),
                 self._quality

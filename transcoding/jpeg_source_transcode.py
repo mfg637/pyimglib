@@ -2,10 +2,12 @@ import abc
 import subprocess
 import os
 import io
-import json
+import logging
 from . import webp_transcoder, base_transcoder, avif_transcoder, srs_transcoder
 from .. import decoders
 from PIL import Image
+
+logger = logging.getLogger(__name__)
 
 
 def is_arithmetic_jpg(file_path):
@@ -134,7 +136,7 @@ class JPEGFileTranscode(base_transcoder.FilePathSource, base_transcoder.Unremova
         pass
 
     def _invalid_file_exception_handle(self, e):
-        print('invalid file ' + self._source + ' ({}) has been deleted'.format(e))
+        logging.warning('invalid file ' + self._source + ' ({}) has been deleted'.format(e))
         os.remove(self._source)
 
 
@@ -149,7 +151,7 @@ class JPEGInMemoryTranscode(base_transcoder.InMemorySource, JPEGTranscode):
         outfile = open(self._output_file + ".jpg", "bw")
         outfile.write(self._source)
         outfile.close()
-        print("save " + self._output_file + ".jpg")
+        logging.warning("save " + self._output_file + ".jpg")
 
     def _arithmetic_check(self):
         pass
@@ -158,7 +160,7 @@ class JPEGInMemoryTranscode(base_transcoder.InMemorySource, JPEGTranscode):
         return io.BytesIO(self._source)
 
     def _invalid_file_exception_handle(self, e):
-        print('invalid jpeg data')
+        logging.exception('invalid jpeg data')
 
 
 class AVIF_JPEGFileTranscode(AVIF_JPEG_Transcoder, JPEGFileTranscode):

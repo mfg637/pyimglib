@@ -14,6 +14,10 @@ from . import statistics,\
 
 from .. import config, decoders
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # derpibooru-dl only
 def check_exists(source, path, filename):
@@ -123,5 +127,5 @@ def get_memory_transcoder(source: bytearray, path: str, filename: str, tags: dic
         else:
             return srs_svg.SVG_WRITER(source, path, filename, tags)
     else:
-        print(source[:16])
+        logger.error("NON IDENTIFIED FILE FORMAT", source[:16])
         exit()

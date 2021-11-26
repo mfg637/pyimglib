@@ -1,6 +1,8 @@
 import abc
 import os
+import logging
 from . import webp_transcoder, base_transcoder, webp_anim_converter, avif_transcoder, srs_transcoder
+logger = logging.getLogger(__name__)
 
 
 class PNGTranscode(webp_transcoder.WEBP_output):
@@ -65,7 +67,7 @@ class PNGFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRem
         PNGTranscode.__init__(self, source, path, file_name, item_data)
 
     def _invalid_file_exception_handle(self, e):
-        print('invalid file ' + self._source + ' ({}) has been deleted'.format(e))
+        logging.warning('invalid file ' + self._source + ' ({}) has been deleted'.format(e))
         os.remove(self._source)
 
     def _set_utime(self) -> None:
@@ -74,11 +76,11 @@ class PNGFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRem
     def _optimisations_failed(self):
         if self._animated:
             self.gif_optimisations_failed()
-        print("save " + self._source)
+        logging.warning("save " + self._source)
         os.remove(self._output_file + '.webp')
 
     def _all_optimisations_failed(self):
-        print("save " + self._source)
+        logging.warning("save " + self._source)
         os.remove(self._output_file)
 
 
@@ -101,7 +103,7 @@ class PNGInMemoryTranscode(base_transcoder.InMemorySource, PNGTranscode):
         PNGTranscode.__init__(self, source, path, file_name, item_data)
 
     def _invalid_file_exception_handle(self, e):
-        print('invalid png data')
+        logging.exception('invalid png data')
 
     def _optimisations_failed(self):
         if self._animated:
@@ -110,7 +112,7 @@ class PNGInMemoryTranscode(base_transcoder.InMemorySource, PNGTranscode):
             outfile = open(self._output_file + ".png", "bw")
             outfile.write(self._source)
             outfile.close()
-            print("save " + self._output_file + ".png")
+            logging.warning("save " + self._output_file + ".png")
 
     def _all_optimisations_failed(self):
         self._animated = False

@@ -4,6 +4,9 @@ import io
 from . import webm_transcoder, base_transcoder, webp_anim_converter, srs_video_loop
 from PIL import Image
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class GIFTranscode(webm_transcoder.WEBM_VideoOutputFormat):
     __metaclass__ = abc.ABCMeta
@@ -57,7 +60,7 @@ class SRS_GIFTranscode(srs_video_loop.SrsVideoLoopOutput):
         outfile = open(self._output_file + ".gif", "bw")
         outfile.write(self._source)
         outfile.close()
-        print("save " + self._output_file + ".gif")
+        logger.warning("save " + self._output_file + ".gif")
         srs_data = {
             "ftype": "CLSRS",
             "content": {
@@ -83,7 +86,7 @@ class GIFFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRem
         os.utime(self._output_file+'.webm', (self._atime, self._mtime))
 
     def _all_optimisations_failed(self):
-        print("save " + self._source)
+        logger.warning("save " + self._source)
         os.remove(self._output_file)
 
 
@@ -107,7 +110,7 @@ class GIFInMemoryTranscode(base_transcoder.InMemorySource, GIFTranscode):
         outfile = open(self._output_file + ".gif", "bw")
         outfile.write(self._source)
         outfile.close()
-        print("save " + self._output_file + ".gif")
+        logger.warning("save " + self._output_file + ".gif")
 
 
 class SRS_GIFInMemoryTranscode(GIFInMemoryTranscode, SRS_GIFTranscode):

@@ -1,9 +1,12 @@
 import math
 import pathlib
+import logging
 from PIL import Image
 from . import avif_transcoder, webp_transcoder, noise_detection, base_transcoder
 from .common import srs
 from .. import config
+
+logger = logging.getLogger(__name__)
 
 
 class SrsTranscoder(avif_transcoder.AVIF_WEBP_output):
@@ -55,10 +58,10 @@ class SrsTranscoder(avif_transcoder.AVIF_WEBP_output):
                 if self._lossless:
                     ratio = 40
                     self._lossless_encode(img)
-                    print("lossless size", len(self._lossless_data))
+                    logging.debug("lossless size", len(self._lossless_data))
                 self.avif_lossy_encode(img)
                 if self._lossless:
-                    print("lossy size", len(self._lossy_data), "quality", self._quality)
+                    logging.debug("lossy size", len(self._lossy_data), "quality", self._quality)
                 if self._lossless and len(self._lossless_data) < len(self._lossy_data):
                     self._lossless = True
                     self._output_size = len(self._lossless_data)

@@ -2,11 +2,14 @@ import subprocess
 import tempfile
 import os
 import pathlib
+import logging
 from ..decoders import ffmpeg
 from .. import config
 from . import webm_transcoder
 from .common import videoprocessing, srs
 from abc import ABC
+
+logger = logging.getLogger(__name__)
 
 
 class SrsVideoLoopOutput(webm_transcoder.WEBM_VideoOutputFormat, ABC):
@@ -58,7 +61,6 @@ class SrsVideoLoopOutput(webm_transcoder.WEBM_VideoOutputFormat, ABC):
             f.close()
 
     def animation_encode(self):
-        print("SRS ANIMATION ENCODE")
         webm_transcoder.WEBM_VideoOutputFormat.animation_encode(self)
         self.animation2webm_cl3w()
         self._output_size = os.path.getsize(self._cl3w_filename) + self._output_size

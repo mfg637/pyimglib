@@ -1,10 +1,12 @@
 import abc
 import os
 import io
-from . import statistics
+import logging
 from .. import config
 from PIL import Image
 
+
+logger = logging.getLogger(__name__)
 
 class AlreadyOptimizedSourceException(Exception):
     pass
@@ -80,7 +82,7 @@ class BaseTranscoder:
         if (self._size > self._output_size) and (self._output_size > 0):
             self._save()
             self._set_utime()
-            print(('save {} kbyte ({}%) quality = {}').format(
+            logger.info(('save {} kbyte ({}%) quality = {}').format(
                 round((self._size - self._output_size) / 1024, 2),
                 round((1 - self._output_size / self._size) * 100, 2),
                 self._quality

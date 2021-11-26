@@ -1,9 +1,12 @@
 import abc
 import io
 import math
+import logging
 from . import webm_transcoder, base_transcoder, noise_detection
 from .. import config
 from PIL import Image
+
+logging.getLogger(__name__)
 
 
 MAX_SIZE = 16383
@@ -72,10 +75,10 @@ class WEBP_output(webm_transcoder.WEBM_VideoOutputFormat):
             if self._lossless:
                 ratio = 40
                 self._lossless_encode(img)
-                print("lossless size", len(self._lossless_data))
+                logging.debug("lossless size", len(self._lossless_data))
             self._lossy_encode(img)
             if self._lossless:
-                print("lossy size", len(self._lossy_data), "quality", self._quality)
+                logging.debug("lossy size", len(self._lossy_data), "quality", self._quality)
             if self._lossless and len(self._lossless_data) < len(self._lossy_data):
                 self._lossless = True
                 self._lossy_data = None

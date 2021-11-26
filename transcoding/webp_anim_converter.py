@@ -2,7 +2,10 @@ import abc
 import io
 import subprocess
 import os
+import logging
 from PIL import Image
+
+logger = logging.getLogger(__name__)
 
 
 class Converter():
@@ -20,7 +23,7 @@ class Converter():
         pass
 
     def compress(self, quality: int = 90, fast: bool = True, lossless: bool = False) -> memoryview:
-        print('try to convert, quality={}, f={}'.format(quality, fast))
+        logger.debug('try to convert, quality={}, f={}'.format(quality, fast))
         out_io = io.BytesIO()
         kwargs = dict()
         if fast and not lossless:
