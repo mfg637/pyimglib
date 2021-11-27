@@ -1,7 +1,7 @@
 import abc
 import os
 import logging
-from . import webp_transcoder, base_transcoder, webp_anim_converter, avif_transcoder, srs_transcoder
+from . import webp_transcoder, base_transcoder, webp_anim_converter, avif_transcoder, srs_transcoder, srs_video_loop
 logger = logging.getLogger(__name__)
 
 
@@ -53,12 +53,23 @@ class PNG_SRS_Transcode(PNGTranscode, srs_transcoder.SrsTranscoder, metaclass=ab
         PNGTranscode.__init__(self, source, path, file_name, item_data)
         srs_transcoder.SrsTranscoder.__init__(self, source, path, file_name, item_data, metadata)
 
+    def _apng_test_convert(self, img):
+        if img.custom_mimetype == "image/apng":
+            self._animated = True
+            self._fext = 'webm'
+            srs_video_loop.SrsVideoLoopOutput.animation_encode(self)
+            img.close()
+            return None
+
     def _encode(self):
         img = self._open_image()
         srs_transcoder.SrsTranscoder._core_encoder(self, img)
 
     def _save(self):
-        srs_transcoder.SrsTranscoder._save_image(self)
+        if self._animated:
+            srs_video_loop.SrsVideoLoopOutput._save(self)
+        else:
+            srs_transcoder.SrsTranscoder._save_image(self)
 
 
 class PNGFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRemovable, PNGTranscode):

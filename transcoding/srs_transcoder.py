@@ -2,16 +2,17 @@ import math
 import pathlib
 import logging
 from PIL import Image
-from . import avif_transcoder, webp_transcoder, noise_detection, base_transcoder
+from . import avif_transcoder, webp_transcoder, noise_detection, base_transcoder, srs_video_loop
 from .common import srs
 from .. import config
 
 logger = logging.getLogger(__name__)
 
 
-class SrsTranscoder(avif_transcoder.AVIF_WEBP_output):
+class SrsTranscoder(avif_transcoder.AVIF_WEBP_output, srs_video_loop.SrsVideoLoopOutput):
     def __init__(self, source, path: str, file_name: str, item_data: dict, metadata):
         avif_transcoder.AVIF_WEBP_output.__init__(self, source, path, file_name, item_data)
+        srs_video_loop.SrsVideoLoopOutput.__init__(self, source, path, file_name, item_data, metadata)
         self._content_metadata = metadata
 
     def _thumbnail_encode_for_lossless(self, img):
@@ -41,6 +42,8 @@ class SrsTranscoder(avif_transcoder.AVIF_WEBP_output):
         self._avif_lossy_data = None
         self._webp_lossy_data = None
         self._apng_test_convert(img)
+        if self._animated:
+            return
         if img.mode in {'P', 'PA'}:
             _lossless_encode_script()
             return
