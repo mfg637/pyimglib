@@ -57,8 +57,8 @@ class AVIF_WEBP_output(webp_transcoder.WEBP_output, metaclass=abc.ABCMeta):
         output_tmp_file = tempfile.NamedTemporaryFile(mode='rb', suffix=".avif", delete=True)
         crf = 100 - self._quality
         commandline = ['avifenc']
-        if config.avif_encoding_threads is not None and config.avif_encoding_threads > 0:
-            commandline += ['-j', str(config.avif_encoding_threads)]
+        if config.encoding_threads is not None and config.encoding_threads > 0:
+            commandline += ['-j', str(config.encoding_threads)]
         commandline += self.get_color_profile()
         commandline += [
             '-d', str(self._bit_depth),

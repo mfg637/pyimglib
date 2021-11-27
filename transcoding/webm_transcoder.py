@@ -37,6 +37,8 @@ class WEBM_VideoOutputFormat(base_transcoder.BaseTranscoder):
                 '-b:v', '0',
                 '-profile:v', '0',
                 '-cpu-used', '4',
+                '-row-mt', '1',
+                '-threads', str(config.encoding_threads),
                 '-f', 'webm',
                 self._cl0w_filename
             ]

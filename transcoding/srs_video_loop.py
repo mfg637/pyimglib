@@ -51,6 +51,8 @@ class SrsVideoLoopOutput(webm_transcoder.WEBM_VideoOutputFormat, ABC):
             '-profile:v', '0',
             '-cpu-used', '4',
             '-g', str(round(fps*config.gop_length_seconds)),
+            '-row-mt', '1',
+            '-threads', str(config.encoding_threads),
             '-f', 'webm',
             self._cl3w_filename
         ]
