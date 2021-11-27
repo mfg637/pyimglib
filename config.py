@@ -55,7 +55,9 @@ gop_length_seconds = 10
 # Reasonable range: 0.5-1
 cl3_to_orig_ratio = 0.5
 VP9_VIDEO_CRF = 24
-VIDEOLOOP_CRF = 32
+GIF_VIDEOLOOP_CRF = 32
+APNG_VIDEOLOOP_CRF = VP9_VIDEO_CRF
+VIDEOLOOP_CRF = GIF_VIDEOLOOP_CRF
 
 allow_rewrite = False
 

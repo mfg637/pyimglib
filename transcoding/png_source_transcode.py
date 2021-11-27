@@ -2,6 +2,7 @@ import abc
 import os
 import logging
 from . import webp_transcoder, base_transcoder, webp_anim_converter, avif_transcoder, srs_transcoder, srs_video_loop
+from .. import config
 logger = logging.getLogger(__name__)
 
 
@@ -12,7 +13,9 @@ class PNGTranscode(webp_transcoder.WEBP_output):
         if img.custom_mimetype == "image/apng":
             self._animated = True
             self._fext = 'webm'
+            config.VIDEOLOOP_CRF = config.APNG_VIDEOLOOP_CRF
             self.animation_encode()
+            config.VIDEOLOOP_CRF = config.GIF_VIDEOLOOP_CRF
             img.close()
             return None
 
@@ -57,7 +60,9 @@ class PNG_SRS_Transcode(PNGTranscode, srs_transcoder.SrsTranscoder, metaclass=ab
         if img.custom_mimetype == "image/apng":
             self._animated = True
             self._fext = 'webm'
+            config.VIDEOLOOP_CRF = config.APNG_VIDEOLOOP_CRF
             srs_video_loop.SrsVideoLoopOutput.animation_encode(self)
+            config.VIDEOLOOP_CRF = config.GIF_VIDEOLOOP_CRF
             img.close()
             return None
 
