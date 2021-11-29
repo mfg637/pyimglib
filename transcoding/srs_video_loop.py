@@ -5,7 +5,7 @@ import pathlib
 import logging
 from ..decoders import ffmpeg
 from .. import config
-from . import webm_transcoder
+from . import webm_transcoder, base_transcoder
 from .common import videoprocessing, srs
 from abc import ABC
 
@@ -63,13 +63,28 @@ class SrsVideoLoopOutput(webm_transcoder.WEBM_VideoOutputFormat, ABC):
             f.close()
 
     def animation_encode(self):
-        webm_transcoder.WEBM_VideoOutputFormat.animation_encode(self)
-        self.animation2webm_cl3w()
-        self._output_size = os.path.getsize(self._cl3w_filename) + self._output_size
+        try:
+            webm_transcoder.WEBM_VideoOutputFormat.animation_encode(self)
+        except base_transcoder.NotOptimizableSourceException:
+            try:
+                os.remove(self._cl0w_filename)
+            except FileNotFoundError:
+                pass
+            self._cl0w_filename = None
+        try:
+            self.animation2webm_cl3w()
+        except subprocess.CalledProcessError:
+            raise base_transcoder.NotOptimizableSourceException()
+        try:
+            self._output_size = os.path.getsize(self._cl3w_filename) + self._output_size
+        except FileNotFoundError:
+            raise base_transcoder.NotOptimizableSourceException()
 
     def _optimisations_failed(self):
-        os.remove(self._cl0w_filename)
-        os.remove(self._cl3w_filename)
+        try:
+            os.remove(self._cl3w_filename)
+        except FileNotFoundError:
+            pass
 
     def _save(self):
         srs_data = {

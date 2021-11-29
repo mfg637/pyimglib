@@ -51,7 +51,10 @@ class WEBM_VideoOutputFormat(base_transcoder.BaseTranscoder):
     def animation_encode(self):
         self._quality = 68
         self.animation2webm()
-        self._output_size = os.path.getsize(self._cl0w_filename)
+        try:
+            self._output_size = os.path.getsize(self._cl0w_filename)
+        except FileNotFoundError:
+            raise base_transcoder.NotOptimizableSourceException()
 
     @abc.abstractmethod
     def _all_optimisations_failed(self):
