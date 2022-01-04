@@ -67,6 +67,9 @@ class BaseTranscoder:
         global sumos
         global avq
         global items
+
+        output_file = None
+
         self._size = self._get_source_size()
         try:
             self._encode()
@@ -80,7 +83,7 @@ class BaseTranscoder:
             return 0, 0, 0, 0
         self._record_timestamps()
         if (self._size > self._output_size) and (self._output_size > 0):
-            self._save()
+            output_file = self._save()
             self._set_utime()
             logger.info(('save {} kbyte ({}%) quality = {}').format(
                 round((self._size - self._output_size) / 1024, 2),
@@ -88,10 +91,10 @@ class BaseTranscoder:
                 self._quality
             ))
             self._remove_source()
-            return self._output_size, self._size, self._quality, 1
+            return self._output_size, self._size, self._quality, 1, output_file
         else:
-            self._optimisations_failed()
-            return 0, 0, 0, 0
+            output_file = self._optimisations_failed()
+            return 0, 0, 0, 0, output_file
 
 
 class SourceRemovable(BaseTranscoder):

@@ -128,9 +128,9 @@ class SrsTranscoder(avif_transcoder.AVIF_WEBP_output, srs_video_loop.SrsVideoLoo
             if cl3:
                 srs_image_levels["3"] = cl3
             srs_data['streams']['image']['levels'] = srs_image_levels
-            self._srs_write_srs(srs_data)
+            return self._srs_write_srs(srs_data)
 
     def _srs_write_srs(self, srs_data):
-        srs.write_srs(srs_data, self._item_data, self._content_metadata, self._output_file)
+        return srs.write_srs(srs_data, self._item_data, self._content_metadata, self._output_file)
 
 

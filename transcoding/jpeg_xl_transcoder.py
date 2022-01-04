@@ -38,11 +38,13 @@ class JPEG_XL_Transcoder(jpeg_source_transcode.JPEGTranscode, abc.ABC):
 
     def _save(self):
         if self._webp_output:
-            self._save_image()
+            return self._save_image()
         else:
-            outfile = open(self._output_file + ".jxl", 'wb')
+            fname = self._output_file + ".jxl"
+            outfile = open(fname, 'wb')
             outfile.write(self._optimized_data)
             outfile.close()
+            return fname
 
 
 class AVIF_JPEG_XL_Transcoder(jpeg_source_transcode.AVIF_JPEG_Transcoder, JPEG_XL_Transcoder):
@@ -73,6 +75,7 @@ class JPEG_XL_FileTranscoder(base_transcoder.FilePathSource, JPEG_XL_Transcoder)
 
     def _optimisations_failed(self):
         logging.warning("save " + self._source)
+        return self._source
 
     def __init__(self, source: str, path: str, file_name: str, item_data: dict):
         base_transcoder.FilePathSource.__init__(self, source, path, file_name, item_data)
@@ -92,10 +95,12 @@ class JPEG_XL_BurrefedSourceTranscoder(base_transcoder.InMemorySource, JPEG_XL_T
         logging.exception('invalid jpeg data')
 
     def _optimisations_failed(self):
-        outfile = open(self._output_file + ".jpg", "bw")
+        fname = self._output_file + ".jpg"
+        outfile = open(fname, "bw")
         outfile.write(self._source)
         outfile.close()
-        logging.warning("save " + self._output_file + ".jpg")
+        logging.warning("save " + fname)
+        return fname
 
     def __init__(self, source:bytearray, path: str, file_name: str, item_data: dict):
         base_transcoder.InMemorySource.__init__(self, source, path, file_name, item_data)

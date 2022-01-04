@@ -204,9 +204,10 @@ class SRS_WEBM_Converter:
         srs_data['content'].update(self._content_metadata)
         if len(audio):
             srs_data['streams']['audio'].extend(audio)
-        srs_file = open(self._output_file + '.srs', 'w')
+        srs_fname = self._output_file + '.srs'
+        srs_file = open(srs_fname, 'w')
         json.dump(srs_data, srs_file)
         srs_file.close()
         if len(audio):
             os.remove(fname)
-        return 0, 0, 0, 0
+        return 0, 0, 0, 0, srs_fname

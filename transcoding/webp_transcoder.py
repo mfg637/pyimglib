@@ -99,9 +99,11 @@ class WEBP_output(webm_transcoder.WEBM_VideoOutputFormat):
 
     def _save_image(self):
         if not self._animated:
-            outfile = open(self._output_file + self.file_suffix, 'wb')
+            output_fname = self._output_file + self.file_suffix
+            outfile = open(output_fname, 'wb')
             if self._lossless:
                 outfile.write(self._lossless_data)
             else:
                 outfile.write(self._lossy_data)
             outfile.close()
+            return output_fname

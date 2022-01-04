@@ -32,7 +32,7 @@ class GIFTranscode(webm_transcoder.WEBM_VideoOutputFormat):
         return webp_anim_converter.GIFconverter
 
     def _optimisations_failed(self):
-        self.gif_optimisations_failed()
+        return self.gif_optimisations_failed()
 
 
 class SRS_GIFTranscode(srs_video_loop.SrsVideoLoopOutput):
@@ -71,7 +71,7 @@ class SRS_GIFTranscode(srs_video_loop.SrsVideoLoopOutput):
                 "image": {"levels": {"4": self._file_name + ".gif"}}
             }
         }
-        self._srs_write_srs(srs_data)
+        return self._srs_write_srs(srs_data)
 
 
 class GIFFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRemovable, GIFTranscode):
@@ -88,6 +88,7 @@ class GIFFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRem
     def _all_optimisations_failed(self):
         logger.warning("save " + self._source)
         os.remove(self._output_file)
+        return self._source
 
 
 class SRS_GIFFileTranscode(GIFFileTranscode, SRS_GIFTranscode):
@@ -111,6 +112,7 @@ class GIFInMemoryTranscode(base_transcoder.InMemorySource, GIFTranscode):
         outfile.write(self._source)
         outfile.close()
         logger.warning("save " + self._output_file + ".gif")
+        return self._output_file + ".gif"
 
 
 class SRS_GIFInMemoryTranscode(GIFInMemoryTranscode, SRS_GIFTranscode):
@@ -122,7 +124,7 @@ class SRS_GIFInMemoryTranscode(GIFInMemoryTranscode, SRS_GIFTranscode):
         SRS_GIFTranscode._encode(self)
 
     def _save(self):
-        SRS_GIFTranscode._save(self)
+        return SRS_GIFTranscode._save(self)
 
     def _optimisations_failed(self):
-        SRS_GIFTranscode._optimisations_failed(self)
+        return SRS_GIFTranscode._optimisations_failed(self)

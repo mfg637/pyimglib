@@ -65,11 +65,13 @@ class JPEGTranscode(webp_transcoder.WEBP_output):
 
     def _save(self):
         if self._webp_output:
-            self._save_image()
+            return self._save_image()
         else:
-            outfile = open(self._output_file + ".jpg", 'wb')
+            fname = self._output_file + ".jpg"
+            outfile = open(fname, 'wb')
             outfile.write(self._optimized_data)
             outfile.close()
+            return fname
 
 
 class AVIF_JPEG_Transcoder(JPEGTranscode, avif_transcoder.AVIF_WEBP_output):
@@ -148,10 +150,12 @@ class JPEGInMemoryTranscode(base_transcoder.InMemorySource, JPEGTranscode):
         self._optimized_data = b''
 
     def _optimisations_failed(self):
-        outfile = open(self._output_file + ".jpg", "bw")
+        fname = self._output_file + ".jpg"
+        outfile = open(fname, "bw")
         outfile.write(self._source)
         outfile.close()
-        logging.warning("save " + self._output_file + ".jpg")
+        logging.warning("save " + fname)
+        return fname
 
     def _arithmetic_check(self):
         pass
@@ -198,4 +202,4 @@ class SRS_JPEGInMemoryTranscode(SRS_JPEG_Transcoder, JPEGInMemoryTranscode):
                 "image": {"levels": {"4": self._file_name + ".jpg"}}
             }
         }
-        self._srs_write_srs(srs_data)
+        return self._srs_write_srs(srs_data)

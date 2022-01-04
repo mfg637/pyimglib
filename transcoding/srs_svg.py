@@ -59,5 +59,4 @@ class SRS_SVG_Converter:
                 "image": {"levels": {"1": cl1, "3": cl3}}
             }
         }
-        srs.write_srs(srs_data, self._item_data, self._content_metadata, self._output_file.with_suffix(".srs"))
-        return 0, 0, 0, 0
+        return 0, 0, 0, 0, srs.write_srs(srs_data, self._item_data, self._content_metadata, self._output_file.with_suffix(".srs"))

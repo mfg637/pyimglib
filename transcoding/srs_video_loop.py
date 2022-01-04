@@ -103,7 +103,7 @@ class SrsVideoLoopOutput(webm_transcoder.WEBM_VideoOutputFormat, ABC):
         if self._cl0w_filename:
             srs_video_levels["3w"] = pathlib.Path(self._cl3w_filename).name
         srs_data['streams']['video']['levels'] = srs_video_levels
-        self._srs_write_srs(srs_data)
+        return self._srs_write_srs(srs_data)
 
     def _srs_write_srs(self, srs_data):
-        srs.write_srs(srs_data, self._item_data, self._content_metadata, self._output_file)
+        return srs.write_srs(srs_data, self._item_data, self._content_metadata, self._output_file)

@@ -35,7 +35,7 @@ class PNGTranscode(webp_transcoder.WEBP_output):
         self._core_encoder(img)
 
     def _save(self):
-        self._save_image()
+        return self._save_image()
 
 
 class PNG_AVIF_Transcode(PNGTranscode, avif_transcoder.AVIF_WEBP_output, metaclass=abc.ABCMeta):
@@ -48,7 +48,7 @@ class PNG_AVIF_Transcode(PNGTranscode, avif_transcoder.AVIF_WEBP_output, metacla
         avif_transcoder.AVIF_WEBP_output._core_encoder(self, img)
 
     def _save(self):
-        avif_transcoder.AVIF_WEBP_output._save_image(self)
+        return avif_transcoder.AVIF_WEBP_output._save_image(self)
 
 
 class PNG_SRS_Transcode(PNGTranscode, srs_transcoder.SrsTranscoder, metaclass=abc.ABCMeta):
@@ -72,9 +72,9 @@ class PNG_SRS_Transcode(PNGTranscode, srs_transcoder.SrsTranscoder, metaclass=ab
 
     def _save(self):
         if self._animated:
-            srs_video_loop.SrsVideoLoopOutput._save(self)
+            return srs_video_loop.SrsVideoLoopOutput._save(self)
         else:
-            srs_transcoder.SrsTranscoder._save_image(self)
+            return srs_transcoder.SrsTranscoder._save_image(self)
 
 
 class PNGFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRemovable, PNGTranscode):
@@ -94,6 +94,7 @@ class PNGFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRem
             self.gif_optimisations_failed()
         logging.warning("save " + self._source)
         os.remove(self._output_file + '.webp')
+        return self._source
 
     def _all_optimisations_failed(self):
         logging.warning("save " + self._source)
@@ -123,12 +124,14 @@ class PNGInMemoryTranscode(base_transcoder.InMemorySource, PNGTranscode):
 
     def _optimisations_failed(self):
         if self._animated:
-            self.gif_optimisations_failed()
+            return self.gif_optimisations_failed()
         else:
+            fname = self._output_file + ".png"
             outfile = open(self._output_file + ".png", "bw")
             outfile.write(self._source)
             outfile.close()
             logging.warning("save " + self._output_file + ".png")
+            return fname
 
     def _all_optimisations_failed(self):
         self._animated = False

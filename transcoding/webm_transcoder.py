@@ -65,6 +65,7 @@ class WEBM_VideoOutputFormat(base_transcoder.BaseTranscoder):
         pass
 
     def gif_optimisations_failed(self):
+        fname = None
         logging.exception("optimisations_failed")
         logging.debug("FILE SIZE", self._output_size)
         self._fext = 'webp'
@@ -76,7 +77,8 @@ class WEBM_VideoOutputFormat(base_transcoder.BaseTranscoder):
         else:
             out_data = converter.compress(lossless=True, fast=False)
             self._output_size = len(out_data)
-            outfile = open(self._output_file + '.webp', 'wb')
+            fname = self._output_file + '.webp'
+            outfile = open(fname, 'wb')
             outfile.write(out_data.tobytes())
             outfile.close()
             logger.info(('save {} kbyte ({}%) quality = {}').format(
@@ -91,3 +93,4 @@ class WEBM_VideoOutputFormat(base_transcoder.BaseTranscoder):
             statistics.avq += self._quality
             statistics.items += 1
         converter.close()
+        return fname
