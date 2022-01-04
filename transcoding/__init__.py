@@ -15,6 +15,7 @@ from . import statistics,\
 from .. import config, decoders
 
 import logging
+import exceptions
 
 logger = logging.getLogger(__name__)
 
@@ -128,4 +129,4 @@ def get_memory_transcoder(source: bytearray, path: str, filename: str, tags: dic
             return srs_svg.SVG_WRITER(source, path, filename, tags)
     else:
         logger.error("NON IDENTIFIED FILE FORMAT", source[:16])
-        exit()
+        raise exceptions.NotIdentifiedFileFormat()
