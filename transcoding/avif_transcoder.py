@@ -63,8 +63,8 @@ class AVIF_WEBP_output(webp_transcoder.WEBP_output, metaclass=abc.ABCMeta):
         commandline += [
             '-d', str(self._bit_depth),
             '-s', str(config.avifenc_encoding_speed),
-            '--min', '1',
-            '--max', '63',
+            '--min', str(max(crf - config.avifenc_qdeviation, 1)),
+            '--max', str(min(crf + config.avifenc_qdeviation, 63)),
             '-a', 'end-usage=q',
             '-a', 'cq-level={}'.format(crf)
         ]
