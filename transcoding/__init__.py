@@ -15,7 +15,7 @@ from . import statistics,\
 from .. import config, decoders
 
 import logging
-import exceptions
+from .. import exceptions
 
 logger = logging.getLogger(__name__)
 
