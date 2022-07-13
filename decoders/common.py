@@ -54,7 +54,7 @@ def get_image_format(file_path) -> str:
         pil_image = None
         try:
             pil_image = PIL.Image.open(file_path)
-            return pil_image.format
+            return pil_image.format.lower()
         except PIL.Image.UnidentifiedImageError:
             if svg.is_svg(file_path):
                 return "svg"
