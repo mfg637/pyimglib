@@ -14,4 +14,4 @@ from . import jpeg,\
     srs,\
     YUV4MPEG2
 
-from .common import open_image
+from .common import open_image, get_image_format

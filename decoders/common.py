@@ -35,3 +35,28 @@ def open_image(file_path, required_size=None):
                 raise ValueError()
         else:
             return pil_image
+
+
+def get_image_format(file_path) -> str:
+    if jpeg.is_JPEG(file_path):
+        return "jpeg"
+    elif avif.is_avif(file_path):
+        return "avif"
+    elif YUV4MPEG2.is_Y4M(file_path):
+        return "y4m"
+    elif jpeg_xl.is_JPEG_XL(file_path):
+        return "jpeg xl"
+    elif video.is_video(file_path):
+        return "video"
+    elif srs.is_ACLMMP_SRS(file_path):
+        return "SRS sheet"
+    else:
+        pil_image = None
+        try:
+            pil_image = PIL.Image.open(file_path)
+            return pil_image.format
+        except PIL.Image.UnidentifiedImageError:
+            if svg.is_svg(file_path):
+                return "svg"
+            else:
+                raise ValueError()
