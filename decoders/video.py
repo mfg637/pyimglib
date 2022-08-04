@@ -1,7 +1,4 @@
-import os
-
 from . import ffmpeg_frames_stream
-import pathlib
 
 
 def mp4_header_check(prefix):
@@ -17,11 +14,16 @@ def mkv_header_check(prefix):
 
 def mpd_check(file_path):
     file = open(file_path, 'r')
-    line = file.readline()
-    if "<?xml" in line:
+    try:
         line = file.readline()
-        if "<MPD" in line:
-            return True
+        if "<?xml" in line:
+            line = file.readline()
+            if "<MPD" in line:
+                file.close()
+                return True
+    except UnicodeDecodeError:
+        pass
+    file.close()
     return False
 
 
@@ -48,12 +50,7 @@ def open_video(file_path):
     if is_regular_video(file_path):
         return ffmpeg_frames_stream.FFmpegFramesStream(file_path)
     elif mpd_check(file_path):
-        path = pathlib.Path(file_path)
-        parent_dir = path.parent
-        prev_dir = os.getcwd()
-        os.chdir(parent_dir)
-        stream = ffmpeg_frames_stream.FFmpegFramesStream(path.name)
-        os.chdir(prev_dir)
+        stream = ffmpeg_frames_stream.FFmpegFramesStream(file_path)
         return stream
     else:
         raise NotImplementedError()
