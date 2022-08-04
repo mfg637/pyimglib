@@ -1,4 +1,7 @@
+import os
+
 from . import ffmpeg_frames_stream
+import pathlib
 
 
 def mp4_header_check(prefix):
@@ -12,11 +15,26 @@ def mkv_header_check(prefix):
     return prefix[:4] == MKV_HEADER
 
 
-def is_video(file_path):
+def mpd_check(file_path):
+    file = open(file_path, 'r')
+    line = file.readline()
+    if "<?xml" in line:
+        line = file.readline()
+        if "<MPD" in line:
+            return True
+    return False
+
+
+def is_regular_video(file_path):
     file = open(file_path, 'rb')
     header = file.read(16)
     file.close()
     return mkv_header_check(header) or mp4_header_check(header)
+
+
+def is_video(file_path):
+    regular = is_regular_video(file_path)
+    return regular or mpd_check(file_path)
 
 
 def is_webm(file_path):
@@ -27,7 +45,15 @@ def is_webm(file_path):
 
 
 def open_video(file_path):
-    if is_video(file_path):
+    if is_regular_video(file_path):
         return ffmpeg_frames_stream.FFmpegFramesStream(file_path)
+    elif mpd_check(file_path):
+        path = pathlib.Path(file_path)
+        parent_dir = path.parent
+        prev_dir = os.getcwd()
+        os.chdir(parent_dir)
+        stream = ffmpeg_frames_stream.FFmpegFramesStream(path.name)
+        os.chdir(prev_dir)
+        return stream
     else:
         raise NotImplementedError()
