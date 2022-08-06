@@ -19,9 +19,9 @@ class PNGTranscode(webp_transcoder.WEBP_output):
             img.close()
             return None
 
-    def __init__(self, source, path, file_name, item_data):
-        base_transcoder.BaseTranscoder.__init__(self, source, path, file_name, item_data)
-        webp_transcoder.WEBP_output.__init__(self, source, path, file_name, item_data)
+    def __init__(self, source, path, file_name, force_lossless):
+        base_transcoder.BaseTranscoder.__init__(self, source, path, file_name)
+        webp_transcoder.WEBP_output.__init__(self, source, path, file_name, force_lossless)
         self._animated = False
         self._lossless = False
         self._lossless_data = b''
@@ -39,9 +39,9 @@ class PNGTranscode(webp_transcoder.WEBP_output):
 
 
 class PNG_AVIF_Transcode(PNGTranscode, avif_transcoder.AVIF_WEBP_output, metaclass=abc.ABCMeta):
-    def __init__(self, source, path: str, file_name: str, item_data: dict):
-        PNGTranscode.__init__(self, source, path, file_name, item_data)
-        avif_transcoder.AVIF_WEBP_output.__init__(self, source, path, file_name, item_data)
+    def __init__(self, source, path: str, file_name: str, force_lossless):
+        PNGTranscode.__init__(self, source, path, file_name, force_lossless)
+        avif_transcoder.AVIF_WEBP_output.__init__(self, source, path, file_name, force_lossless)
 
     def _encode(self):
         img = self._open_image()
@@ -78,9 +78,9 @@ class PNG_SRS_Transcode(PNGTranscode, srs_transcoder.SrsTranscoder, metaclass=ab
 
 
 class PNGFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRemovable, PNGTranscode):
-    def __init__(self, source: str, path: str, file_name: str, item_data: dict):
-        base_transcoder.FilePathSource.__init__(self, source, path, file_name, item_data)
-        PNGTranscode.__init__(self, source, path, file_name, item_data)
+    def __init__(self, source: str, path: str, file_name: str, force_lossless):
+        base_transcoder.FilePathSource.__init__(self, source, path, file_name, force_lossless)
+        PNGTranscode.__init__(self, source, path, file_name, force_lossless)
 
     def _invalid_file_exception_handle(self, e):
         logging.warning('invalid file ' + self._source + ' ({}) has been deleted'.format(e))

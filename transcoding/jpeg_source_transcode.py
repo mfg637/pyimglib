@@ -111,10 +111,10 @@ class SRS_JPEG_Transcoder(JPEGTranscode, srs_transcoder.SrsTranscoder):
 
 
 class JPEGFileTranscode(base_transcoder.FilePathSource, base_transcoder.UnremovableSource, JPEGTranscode):
-    def __init__(self, source: str, path: str, file_name: str, item_data: dict):
-        base_transcoder.FilePathSource.__init__(self, source, path, file_name, item_data)
-        base_transcoder.UnremovableSource.__init__(self, source, path, file_name, item_data)
-        JPEGTranscode.__init__(self, source, path, file_name, item_data)
+    def __init__(self, source: str, path: str, file_name: str):
+        base_transcoder.FilePathSource.__init__(self, source, path, file_name)
+        base_transcoder.UnremovableSource.__init__(self, source, path, file_name)
+        JPEGTranscode.__init__(self, source, path, file_name)
         self._quality = 100
         self._optimized_data = b''
 
@@ -143,9 +143,9 @@ class JPEGFileTranscode(base_transcoder.FilePathSource, base_transcoder.Unremova
 
 
 class JPEGInMemoryTranscode(base_transcoder.InMemorySource, JPEGTranscode):
-    def __init__(self, source: bytearray, path: str, file_name: str, item_data: dict):
-        base_transcoder.InMemorySource.__init__(self, source, path, file_name, item_data)
-        JPEGTranscode.__init__(self, source, path, file_name, item_data)
+    def __init__(self, source: bytearray, path: str, file_name: str):
+        base_transcoder.InMemorySource.__init__(self, source, path, file_name)
+        JPEGTranscode.__init__(self, source, path, file_name)
         self._quality = 100
         self._optimized_data = b''
 
@@ -169,25 +169,25 @@ class JPEGInMemoryTranscode(base_transcoder.InMemorySource, JPEGTranscode):
 
 class AVIF_JPEGFileTranscode(AVIF_JPEG_Transcoder, JPEGFileTranscode):
     def __init__(self, source: str, path: str, file_name: str, item_data: dict):
-        JPEGFileTranscode.__init__(self, source, path, file_name, item_data)
+        JPEGFileTranscode.__init__(self, source, path, file_name)
         AVIF_JPEG_Transcoder.__init__(self, source, path, file_name, item_data)
 
 
 class AVIF_JPEGInMemoryTranscode(AVIF_JPEG_Transcoder, JPEGInMemoryTranscode):
     def __init__(self, source: bytearray, path: str, file_name: str, item_data: dict):
-        JPEGInMemoryTranscode.__init__(self, source, path, file_name, item_data)
+        JPEGInMemoryTranscode.__init__(self, source, path, file_name)
         AVIF_JPEG_Transcoder.__init__(self, source, path, file_name, item_data)
 
 
 class SRS_JPEGFileTranscode(SRS_JPEG_Transcoder, JPEGFileTranscode):
     def __init__(self, source: str, path: str, file_name: str, item_data: dict, metadata):
-        JPEGFileTranscode.__init__(self, source, path, file_name, item_data)
+        JPEGFileTranscode.__init__(self, source, path, file_name)
         SRS_JPEG_Transcoder.__init__(self, source, path, file_name, item_data, metadata)
 
 
 class SRS_JPEGInMemoryTranscode(SRS_JPEG_Transcoder, JPEGInMemoryTranscode):
     def __init__(self, source: bytearray, path: str, file_name: str, item_data: dict, metadata):
-        JPEGInMemoryTranscode.__init__(self, source, path, file_name, item_data)
+        JPEGInMemoryTranscode.__init__(self, source, path, file_name)
         SRS_JPEG_Transcoder.__init__(self, source, path, file_name, item_data, metadata)
 
     def _optimisations_failed(self):

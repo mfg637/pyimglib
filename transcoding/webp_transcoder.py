@@ -18,10 +18,11 @@ if config.MAX_SIZE is not None:
 class WEBP_output(webm_transcoder.WEBM_VideoOutputFormat):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, source, path: str, file_name: str, item_data: dict):
-        webm_transcoder.WEBM_VideoOutputFormat.__init__(self, source, path, file_name, item_data)
+    def __init__(self, source, path: str, file_name: str, forse_lossess=False):
+        webm_transcoder.WEBM_VideoOutputFormat.__init__(self, source, path, file_name, )
         self.file_suffix = '.webp'
         self._lossy_encode = self.webp_lossy_encode
+        self._forse_lossless = forse_lossess
 
 
     @abc.abstractmethod
@@ -68,7 +69,7 @@ class WEBP_output(webm_transcoder.WEBM_VideoOutputFormat):
             self._invalid_file_exception_handle(e)
             raise base_transcoder.NotOptimizableSourceException()
         ratio = 80
-        if 'vector' in self._item_data['content']:
+        if self._forse_lossless:
             self._quality = 100
             self._lossless = True
             self._lossless_encode(img)

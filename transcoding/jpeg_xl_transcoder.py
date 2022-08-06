@@ -48,9 +48,9 @@ class JPEG_XL_Transcoder(jpeg_source_transcode.JPEGTranscode, abc.ABC):
 
 
 class AVIF_JPEG_XL_Transcoder(jpeg_source_transcode.AVIF_JPEG_Transcoder, JPEG_XL_Transcoder):
-    def __init__(self, source, path: str, file_name: str, item_data: dict):
-        jpeg_source_transcode.AVIF_JPEG_Transcoder.__init__(self, source, path, file_name, item_data)
-        JPEG_XL_Transcoder.__init__(self, source, path, file_name, item_data)
+    def __init__(self, source, path: str, file_name: str, force_lossless):
+        jpeg_source_transcode.AVIF_JPEG_Transcoder.__init__(self, source, path, file_name, force_lossless)
+        JPEG_XL_Transcoder.__init__(self, source, path, file_name, force_lossless)
 
 
 class JPEG_XL_FileTranscoder(base_transcoder.FilePathSource, JPEG_XL_Transcoder):
@@ -77,9 +77,9 @@ class JPEG_XL_FileTranscoder(base_transcoder.FilePathSource, JPEG_XL_Transcoder)
         logging.warning("save " + self._source)
         return self._source
 
-    def __init__(self, source: str, path: str, file_name: str, item_data: dict):
-        base_transcoder.FilePathSource.__init__(self, source, path, file_name, item_data)
-        JPEG_XL_Transcoder.__init__(self, source, path, file_name, item_data)
+    def __init__(self, source: str, path: str, file_name: str, force_lossless):
+        base_transcoder.FilePathSource.__init__(self, source, path, file_name)
+        JPEG_XL_Transcoder.__init__(self, source, path, file_name)
         self._quality = 100
         self._optimized_data = b''
 
@@ -102,9 +102,9 @@ class JPEG_XL_BurrefedSourceTranscoder(base_transcoder.InMemorySource, JPEG_XL_T
         logging.warning("save " + fname)
         return fname
 
-    def __init__(self, source:bytearray, path: str, file_name: str, item_data: dict):
-        base_transcoder.InMemorySource.__init__(self, source, path, file_name, item_data)
-        JPEG_XL_Transcoder.__init__(self, source, path, file_name, item_data)
+    def __init__(self, source:bytearray, path: str, file_name: str, force_lossless):
+        base_transcoder.InMemorySource.__init__(self, source, path, file_name)
+        JPEG_XL_Transcoder.__init__(self, source, path, file_name, force_lossless)
         self._quality = 100
         self._optimized_data = b''
 

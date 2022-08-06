@@ -33,16 +33,18 @@ def check_exists(source, path, filename):
         return os.path.isfile(fname + '.webp') or os.path.isfile(fname+'.webm')
 
 
-def get_file_transcoder(source: str, path: str, filename: str, tags: dict, metadata={}):
+def get_file_transcoder(
+        source: str, path: str, filename: str, force_lossless=False, tags: dict = dict(), metadata=dict()
+    ):
     if os.path.splitext(source)[1].lower() == '.png':
         if config.preferred_codec == config.PREFERRED_CODEC.SRS:
             return png_source_transcode.SRS_PNGFileTranscode(source, path, filename, tags, metadata)
         elif config.preferred_codec == config.PREFERRED_CODEC.AVIF:
             return png_source_transcode.AVIF_PNGFileTranscode(source, path, filename, tags)
         elif config.PREFERRED_CODEC.WEBP:
-            return png_source_transcode.PNGFileTranscode(source, path, filename, tags)
+            return png_source_transcode.PNGFileTranscode(source, path, filename)
         else:
-            return png_source_transcode.PNGFileTranscode(source, path, filename, tags)
+            return png_source_transcode.PNGFileTranscode(source, path, filename)
     elif os.path.splitext(source)[1].lower() in {'.jpg', '.jpeg'}:
         if config.jpeg_xl_tools_path is not None:
             if config.preferred_codec == config.PREFERRED_CODEC.SRS:
@@ -50,18 +52,18 @@ def get_file_transcoder(source: str, path: str, filename: str, tags: dict, metad
             elif config.preferred_codec == config.PREFERRED_CODEC.AVIF:
                 return jpeg_xl_transcoder.JPEG_XL_FileTranscoder(source, path, filename, tags)
             elif config.PREFERRED_CODEC.WEBP:
-                return jpeg_xl_transcoder.JPEG_XL_FileTranscoder(source, path, filename, tags)
+                return jpeg_xl_transcoder.JPEG_XL_FileTranscoder(source, path, filename)
             else:
-                return jpeg_xl_transcoder.JPEG_XL_FileTranscoder(source, path, filename, tags)
+                return jpeg_xl_transcoder.JPEG_XL_FileTranscoder(source, path, filename)
         else:
             if config.preferred_codec == config.PREFERRED_CODEC.SRS:
                 return jpeg_source_transcode.SRS_JPEGFileTranscode(source, path, filename, tags, metadata)
             elif config.preferred_codec == config.PREFERRED_CODEC.AVIF:
                 return jpeg_source_transcode.JPEGFileTranscode(source, path, filename, tags)
             elif config.PREFERRED_CODEC.WEBP:
-                return jpeg_source_transcode.JPEGFileTranscode(source, path, filename, tags)
+                return jpeg_source_transcode.JPEGFileTranscode(source, path, filename)
             else:
-                return jpeg_source_transcode.JPEGFileTranscode(source, path, filename, tags)
+                return jpeg_source_transcode.JPEGFileTranscode(source, path, filename)
     elif os.path.splitext(source)[1].lower() == '.gif':
         return gif_source_transcode.GIFFileTranscode(source, path, filename, tags)
 
