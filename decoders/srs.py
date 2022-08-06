@@ -1,4 +1,4 @@
-import config
+from .. import config
 from . import ffmpeg_frames_stream
 from .common import open_image
 import pathlib
