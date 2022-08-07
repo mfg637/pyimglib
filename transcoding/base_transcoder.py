@@ -4,6 +4,8 @@ import io
 import logging
 import pathlib
 
+import PIL
+
 from .. import config
 from PIL import Image
 
@@ -26,7 +28,7 @@ class BaseTranscoder:
         self._path = path
         self._file_name = file_name
         self._size = 0
-        self._output_file = os.path.join(path, file_name)
+        self._output_file = None
         self._output_size = 0
         self._quality = 95
         self._fext = 'webp'
@@ -124,6 +126,8 @@ class FilePathSource(BaseTranscoder):
         self._mtime = os.path.getmtime(self._source)
 
     def _open_image(self) -> Image.Image:
+        if config.custom_pillow_image_limits != -1:
+            PIL.Image.MAX_IMAGE_PIXELS = config.custom_pillow_image_limits
         return Image.open(self._source)
 
     def _get_source_size(self) -> int:
@@ -137,6 +141,8 @@ class InMemorySource(UnremovableSource):
         BaseTranscoder.__init__(self, source, path, file_name)
 
     def _open_image(self) -> Image.Image:
+        if config.custom_pillow_image_limits != -1:
+            PIL.Image.MAX_IMAGE_PIXELS = config.custom_pillow_image_limits
         src_io = io.BytesIO(self._source)
         return Image.open(src_io)
 

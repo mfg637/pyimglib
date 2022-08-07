@@ -1,5 +1,7 @@
 import enum
 
+custom_pillow_image_limits = -1
+
 
 class PREFERRED_CODEC(enum.Enum):
     WEBP = enum.auto()
@@ -11,17 +13,17 @@ preferred_codec = PREFERRED_CODEC.AVIF
 
 
 # if 0 or None, AVIF's multithreading is off
-# else, it's enables row-mt
+# or, it's enables row-mt
 encoding_threads = 1
 avifdec_workers_count = 1
 
 
-class AVIF_DECODING_SPEEDS(enum.Enum):
+class AVIF_DECODING_SPEED(enum.Enum):
     FAST = enum.auto()
     SLOW = enum.auto()
 
 
-avif_decoding_speed = AVIF_DECODING_SPEEDS.FAST
+avif_decoding_speed = AVIF_DECODING_SPEED.FAST
 avifenc_encoding_speed = 0
 
 # Max image size

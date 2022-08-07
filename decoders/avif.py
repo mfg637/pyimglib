@@ -82,10 +82,10 @@ async def async_decode(file, process_set_callback):
         _encoder.close()
         return result
 
-    if config.avif_decoding_speed == config.AVIF_DECODING_SPEEDS.FAST:
+    if config.avif_decoding_speed == config.AVIF_DECODING_SPEED.FAST:
         try:
             return await _encode(FastEncode, file, process_set_callback)
         except NotImplementedError:
             return await _encode(SlowEncode, file, process_set_callback)
-    elif config.avif_decoding_speed == config.AVIF_DECODING_SPEEDS.SLOW:
+    elif config.avif_decoding_speed == config.AVIF_DECODING_SPEED.SLOW:
         return await _encode(SlowEncode, file, process_set_callback)

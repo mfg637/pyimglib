@@ -78,6 +78,8 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
             self._anim_output_filename.unlink(missing_ok=True)
 
     def _encode(self):
+        if config.custom_pillow_image_limits != -1:
+            PIL.Image.MAX_IMAGE_PIXELS = config.custom_pillow_image_limits
         img = self._open_image()
         #self._core_encoder(img)
         self._lossless_encoder: encoders.Encoder = self.lossless_encoder_type(self._source, img)
@@ -93,7 +95,8 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
         self._lossless = True \
             if noise_detection.noise_detection(img) == noise_detection.NoisyImageEnum.NOISELESS else False
         try:
-            if (img.width > encoders.webp_encoder.MAX_SIZE) | (img.height > encoders.webp_encoder.MAX_SIZE):
+            if isinstance(self.lossy_encoder_type, encoders.webp_encoder.WEBPEncoder) and \
+                    (img.width > encoders.webp_encoder.MAX_SIZE) | (img.height > encoders.webp_encoder.MAX_SIZE):
                 img.thumbnail(
                     (encoders.webp_encoder.MAX_SIZE, encoders.webp_encoder.MAX_SIZE),
                     PIL.Image.Resampling.LANCZOS
@@ -202,12 +205,14 @@ class PNGFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRem
         if self._animated:
             self.anim_transcoding_failed()
         logging.warning("save " + self._source)
-        self._output_file.unlink(missing_ok=True)
+        if self._output_file is not None:
+            self._output_file.unlink(missing_ok=True)
         return self._source
 
     def _all_optimisations_failed(self):
         logging.warning("save " + self._source)
-        self._output_file.unlink(missing_ok=True)
+        if self._output_file is not None:
+            self._output_file.unlink(missing_ok=True)
 
 
 # class AVIF_PNGFileTranscode(PNGFileTranscode, PNG_AVIF_Transcode):
@@ -235,11 +240,11 @@ class PNGInMemoryTranscode(base_transcoder.InMemorySource, PNGTranscode):
         if self._animated:
             return self.anim_transcoding_failed()
         else:
-            fname = self._output_file + ".png"
-            outfile = open(self._output_file + ".png", "bw")
+            fname = self._output_file.with_suffix(".png")
+            outfile = open(self._output_file, "bw")
             outfile.write(self._source)
             outfile.close()
-            logging.warning("save " + self._output_file + ".png")
+            logging.warning("save " + str(self._output_file))
             return fname
 
     def _all_optimisations_failed(self):
