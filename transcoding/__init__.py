@@ -42,7 +42,11 @@ def get_file_transcoder(
         if config.preferred_codec == config.PREFERRED_CODEC.SRS:
             return png_source_transcode.SRS_PNGFileTranscode(source, path, filename, tags, metadata)
         elif config.preferred_codec == config.PREFERRED_CODEC.AVIF:
-            return png_source_transcode.AVIF_PNGFileTranscode(source, path, filename, tags)
+            png_transcoder = png_source_transcode.PNGFileTranscode(source, path, filename, force_lossless)
+            png_transcoder.lossy_encoder_type = encoders.avif_encoder.AVIFEncoder
+            png_transcoder.lossless_encoder_type = encoders.avif_encoder.AVIFLosslessEncoder
+            png_transcoder.animation_encoder_type = encoders.webm_encoder.AV1Encoder
+            return png_transcoder
         elif config.preferred_codec == config.PREFERRED_CODEC.WEBP or config.preferred_codec is None:
             png_transcoder = png_source_transcode.PNGFileTranscode(source, path, filename, force_lossless)
             png_transcoder.lossless_encoder_type = encoders.webp_encoder.WEBPLosslessEncoder

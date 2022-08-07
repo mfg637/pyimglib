@@ -56,6 +56,8 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
                 self._output_size = os.path.getsize(self._anim_output_filename)
             except FileNotFoundError:
                 raise base_transcoder.NotOptimizableSourceException()
+            else:
+                self._output_file = self._anim_output_filename
             img.close()
             return
 
@@ -78,8 +80,8 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
     def _encode(self):
         img = self._open_image()
         #self._core_encoder(img)
-        self._lossless_encoder: encoders.Encoder = self.lossless_encoder_type(img)
-        self._lossy_encoder: encoders.Encoder = self.lossy_encoder_type(img)
+        self._lossless_encoder: encoders.Encoder = self.lossless_encoder_type(self._source, img)
+        self._lossy_encoder: encoders.Encoder = self.lossy_encoder_type(self._source, img)
 
         self._lossless = False
         self._animated = False
@@ -135,9 +137,13 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
 
     def _save(self):
         if self._lossless:
-            self._lossless_encoder.save(self._lossless_data, pathlib.Path(self._path), self._file_name)
+            self._output_file = self._lossless_encoder.save(
+                self._lossless_data, pathlib.Path(self._path), self._file_name
+            )
         else:
-            self._lossless_encoder.save(self._lossy_data, pathlib.Path(self._path), self._file_name)
+            self._output_file = self._lossless_encoder.save(
+                self._lossy_data, pathlib.Path(self._path), self._file_name
+            )
 
 
 # class PNG_AVIF_Transcode(PNGTranscode, avif_transcoder.AVIF_WEBP_output, metaclass=abc.ABCMeta):
@@ -189,18 +195,19 @@ class PNGFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRem
         os.remove(self._source)
 
     def _set_utime(self) -> None:
-        os.utime(self._output_file + '.' + self._fext, (self._atime, self._mtime))
+        os.utime(self._output_file, (self._atime, self._mtime))
+        #os.utime(self._output_file + '.' + self._fext, (self._atime, self._mtime))
 
     def _optimisations_failed(self):
         if self._animated:
             self.anim_transcoding_failed()
         logging.warning("save " + self._source)
-        os.remove(self._output_file + '.webp')
+        self._output_file.unlink(missing_ok=True)
         return self._source
 
     def _all_optimisations_failed(self):
         logging.warning("save " + self._source)
-        os.remove(self._output_file)
+        self._output_file.unlink(missing_ok=True)
 
 
 # class AVIF_PNGFileTranscode(PNGFileTranscode, PNG_AVIF_Transcode):

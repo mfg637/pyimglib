@@ -8,7 +8,7 @@ class Encoder(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def save(self, encoded_data: bytes, path: pathlib.Path, name: str):
+    def save(self, encoded_data: bytes, path: pathlib.Path, name: str) -> pathlib.Path:
         pass
 
 
