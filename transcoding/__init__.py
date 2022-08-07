@@ -10,7 +10,8 @@ from . import statistics,\
     jpeg_xl_transcoder,\
     srs_video,\
     common,\
-    srs_svg
+    srs_svg,\
+    encoders
 
 from .. import config, decoders
 
@@ -41,10 +42,11 @@ def get_file_transcoder(
             return png_source_transcode.SRS_PNGFileTranscode(source, path, filename, tags, metadata)
         elif config.preferred_codec == config.PREFERRED_CODEC.AVIF:
             return png_source_transcode.AVIF_PNGFileTranscode(source, path, filename, tags)
-        elif config.PREFERRED_CODEC.WEBP:
-            return png_source_transcode.PNGFileTranscode(source, path, filename, force_lossless)
-        else:
-            return png_source_transcode.PNGFileTranscode(source, path, filename, force_lossless)
+        elif config.preferred_codec == config.PREFERRED_CODEC.WEBP or config.preferred_codec is None:
+            png_transcoder = png_source_transcode.PNGFileTranscode(source, path, filename, force_lossless)
+            png_transcoder.lossless_encoder_type = encoders.webp_encoder.WEBPLosslessEncoder
+            png_transcoder.lossy_encoder_type = encoders.webp_encoder.WEBPEncoder
+            return png_transcoder
     elif os.path.splitext(source)[1].lower() in {'.jpg', '.jpeg'}:
         if config.jpeg_xl_tools_path is not None:
             if config.preferred_codec == config.PREFERRED_CODEC.SRS:
@@ -85,16 +87,19 @@ def isGIF(data: bytearray) -> bool:
     return bytes(data[:6]) in GIF_HEADERS
 
 
-def get_memory_transcoder(source: bytearray, path: str, filename: str, tags: dict, metadata={}):
+def get_memory_transcoder(
+        source: bytearray, path: str, filename: str, force_lossless=False, tags: dict = dict(), metadata={}
+):
     if isPNG(source):
         if config.preferred_codec == config.PREFERRED_CODEC.SRS:
             return png_source_transcode.SRS_PNGInMemoryTranscode(source, path, filename, tags, metadata)
         elif config.preferred_codec == config.PREFERRED_CODEC.AVIF:
             return png_source_transcode.AVIF_PNGInMemoryTranscode(source, path, filename, tags)
-        elif config.PREFERRED_CODEC.WEBP:
-            return png_source_transcode.PNGInMemoryTranscode(source, path, filename, tags)
-        else:
-            return png_source_transcode.PNGInMemoryTranscode(source, path, filename, tags)
+        elif config.preferred_codec == config.PREFERRED_CODEC.WEBP or config.preferred_codec is None:
+            png_transcoder = png_source_transcode.PNGInMemoryTranscode(source, path, filename, force_lossless)
+            png_transcoder.lossless_encoder_type = encoders.webp_encoder.WEBPLosslessEncoder
+            png_transcoder.lossy_encoder_type = encoders.webp_encoder.WEBPEncoder
+            return png_transcoder
     elif isJPEG(source):
         if config.jpeg_xl_tools_path is not None:
             if config.preferred_codec == config.PREFERRED_CODEC.SRS:
