@@ -1,4 +1,5 @@
 import io
+import pathlib
 
 import PIL.Image
 
@@ -14,3 +15,5 @@ class WEBPEncoder(Encoder):
         self.source.save(lossy_out_io, format="WEBP", lossless=False, quality=quality, method=6)
         return lossy_out_io.getbuffer()
 
+    def save(self, encoded_data: memoryview, path: pathlib.Path, name: str):
+        pass

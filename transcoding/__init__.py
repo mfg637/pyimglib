@@ -42,9 +42,9 @@ def get_file_transcoder(
         elif config.preferred_codec == config.PREFERRED_CODEC.AVIF:
             return png_source_transcode.AVIF_PNGFileTranscode(source, path, filename, tags)
         elif config.PREFERRED_CODEC.WEBP:
-            return png_source_transcode.PNGFileTranscode(source, path, filename)
+            return png_source_transcode.PNGFileTranscode(source, path, filename, force_lossless)
         else:
-            return png_source_transcode.PNGFileTranscode(source, path, filename)
+            return png_source_transcode.PNGFileTranscode(source, path, filename, force_lossless)
     elif os.path.splitext(source)[1].lower() in {'.jpg', '.jpeg'}:
         if config.jpeg_xl_tools_path is not None:
             if config.preferred_codec == config.PREFERRED_CODEC.SRS:
@@ -52,14 +52,14 @@ def get_file_transcoder(
             elif config.preferred_codec == config.PREFERRED_CODEC.AVIF:
                 return jpeg_xl_transcoder.JPEG_XL_FileTranscoder(source, path, filename, tags)
             elif config.PREFERRED_CODEC.WEBP:
-                return jpeg_xl_transcoder.JPEG_XL_FileTranscoder(source, path, filename)
+                return jpeg_xl_transcoder.JPEG_XL_FileTranscoder(source, path, filename, force_lossless)
             else:
-                return jpeg_xl_transcoder.JPEG_XL_FileTranscoder(source, path, filename)
+                return jpeg_xl_transcoder.JPEG_XL_FileTranscoder(source, path, filename, force_lossless)
         else:
             if config.preferred_codec == config.PREFERRED_CODEC.SRS:
                 return jpeg_source_transcode.SRS_JPEGFileTranscode(source, path, filename, tags, metadata)
             elif config.preferred_codec == config.PREFERRED_CODEC.AVIF:
-                return jpeg_source_transcode.JPEGFileTranscode(source, path, filename, tags)
+                return jpeg_source_transcode.JPEGFileTranscode(source, path, filename)
             elif config.PREFERRED_CODEC.WEBP:
                 return jpeg_source_transcode.JPEGFileTranscode(source, path, filename)
             else:
