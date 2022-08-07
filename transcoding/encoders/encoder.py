@@ -7,5 +7,12 @@ class Encoder(abc.ABC):
     def encode(self, quality) -> bytes:
         pass
 
+    @abc.abstractmethod
     def save(self, encoded_data: bytes, path: pathlib.Path, name: str):
+        pass
+
+
+class VideoEncoder(abc.ABC):
+    @abc.abstractmethod
+    def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
         pass

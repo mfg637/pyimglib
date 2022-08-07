@@ -4,6 +4,7 @@ import math
 import os
 import logging
 import pathlib
+import tempfile
 
 from . import webp_transcoder, base_transcoder, webp_anim_converter, avif_transcoder, srs_transcoder, srs_video_loop, \
     noise_detection
@@ -20,28 +21,47 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
     lossless_encoder_type = None
     animation_encoder_type = None
 
-    def _apng_test_convert(self, img):
-        if img.custom_mimetype == "image/apng":
-            self._animated = True
-            self._fext = 'webm'
-            config.VIDEOLOOP_CRF = config.APNG_VIDEOLOOP_CRF
-            #self.animation_encode()
-            config.VIDEOLOOP_CRF = config.GIF_VIDEOLOOP_CRF
-            img.close()
-            return None
-
-    @abc.abstractmethod
-    def _invalid_file_exception_handle(self, e):
-        pass
-
     def __init__(self, source, path, file_name, force_lossless=False):
         base_transcoder.BaseTranscoder.__init__(self, source, path, file_name)
-        #webp_transcoder.WEBP_output.__init__(self, source, path, file_name, force_lossless)
         self._animated = False
         self._lossless = False
         self._lossless_data = b''
         self._lossy_data = b''
         self._force_lossless = force_lossless
+        self._lossless_encoder = None
+        self._lossy_encoder = None
+        self._animation_encoder = None
+        self._anim_output_filename = None
+
+    def _apng_test_convert(self, img):
+        if img.custom_mimetype == "image/apng":
+            self._animated = True
+            #self._fext = 'webm'
+            self._quality = 100 - config.APNG_VIDEOLOOP_CRF
+            self._anim_output_filename = self._path.joinpath(self._file_name)
+            self._animation_encoder: encoders.VideoEncoder = self.animation_encoder_type(config.APNG_VIDEOLOOP_CRF)
+            tmpfile = None
+            if type(self._source) is str:
+                input_file = pathlib.Path(self._source)
+            elif isinstance(self._source, pathlib.Path):
+                input_file = self._source
+            else:
+                tmpfile = tempfile.NamedTemporaryFile(delete=True)
+                input_file = pathlib.Path(tmpfile.name)
+                tmpfile.write(self._source)
+            self._anim_output_filename = self._animation_encoder.encode(input_file, self._anim_output_filename)
+            if tmpfile is not None:
+                tmpfile.close()
+            try:
+                self._output_size = os.path.getsize(self._anim_output_filename)
+            except FileNotFoundError:
+                raise base_transcoder.NotOptimizableSourceException()
+            img.close()
+            return
+
+    @abc.abstractmethod
+    def _invalid_file_exception_handle(self, e):
+        pass
 
     def get_converter_type(self):
         return webp_anim_converter.APNGconverter
@@ -51,6 +71,10 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
         img.save(lossy_out_io, format="WEBP", lossless=False, quality=self._quality, method=6)
         self._lossy_data = lossy_out_io.getbuffer()
 
+    def anim_transcoding_failed(self):
+        if isinstance(self._anim_output_filename, pathlib.Path):
+            self._anim_output_filename.unlink(missing_ok=True)
+
     def _encode(self):
         img = self._open_image()
         #self._core_encoder(img)
@@ -59,7 +83,7 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
 
         self._lossless = False
         self._animated = False
-        #self._apng_test_convert(img)
+        self._apng_test_convert(img)
         if self._animated:
             return
         if img.mode in {'1', 'P', 'PA'}:
@@ -156,7 +180,7 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
 
 
 class PNGFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRemovable, PNGTranscode):
-    def __init__(self, source: str, path: str, file_name: str, force_lossless):
+    def __init__(self, source: str, path: pathlib.Path, file_name: str, force_lossless):
         base_transcoder.FilePathSource.__init__(self, source, path, file_name)
         PNGTranscode.__init__(self, source, path, file_name, force_lossless)
 
@@ -169,7 +193,7 @@ class PNGFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRem
 
     def _optimisations_failed(self):
         if self._animated:
-            self.gif_optimisations_failed()
+            self.anim_transcoding_failed()
         logging.warning("save " + self._source)
         os.remove(self._output_file + '.webp')
         return self._source
@@ -193,7 +217,7 @@ class PNGFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRem
 
 class PNGInMemoryTranscode(base_transcoder.InMemorySource, PNGTranscode):
 
-    def __init__(self, source: bytearray, path: str, file_name: str, force_lossless):
+    def __init__(self, source: bytearray, path: pathlib.Path, file_name: str, force_lossless):
         base_transcoder.InMemorySource.__init__(self, source, path, file_name)
         PNGTranscode.__init__(self, source, path, file_name, force_lossless)
 
@@ -202,7 +226,7 @@ class PNGInMemoryTranscode(base_transcoder.InMemorySource, PNGTranscode):
 
     def _optimisations_failed(self):
         if self._animated:
-            return self.gif_optimisations_failed()
+            return self.anim_transcoding_failed()
         else:
             fname = self._output_file + ".png"
             outfile = open(self._output_file + ".png", "bw")

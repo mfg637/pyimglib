@@ -2,6 +2,8 @@ import abc
 import os
 import io
 import logging
+import pathlib
+
 from .. import config
 from PIL import Image
 
@@ -19,7 +21,7 @@ class NotOptimizableSourceException(Exception):
 class BaseTranscoder:
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, source, path: str, file_name: str):
+    def __init__(self, source, path: pathlib.Path, file_name: str):
         self._source = source
         self._path = path
         self._file_name = file_name
@@ -113,7 +115,7 @@ class UnremovableSource(BaseTranscoder):
 class FilePathSource(BaseTranscoder):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, source: str, path: str, file_name: str):
+    def __init__(self, source: str, path: pathlib.Path, file_name: str):
         BaseTranscoder.__init__(self, source, path, file_name)
         self._tmp_src = None
 
@@ -131,7 +133,7 @@ class FilePathSource(BaseTranscoder):
 class InMemorySource(UnremovableSource):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, source: bytearray, path: str, file_name: str):
+    def __init__(self, source: bytearray, path: pathlib.Path, file_name: str):
         BaseTranscoder.__init__(self, source, path, file_name)
 
     def _open_image(self) -> Image.Image:

@@ -1,3 +1,3 @@
-from .encoder import Encoder
-from . import webp_encoder
+from .encoder import Encoder, VideoEncoder
+from . import webp_encoder, webm_encoder
 

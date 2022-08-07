@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pathlib
 
 from . import statistics,\
     gif_source_transcode,\
@@ -35,7 +36,7 @@ def check_exists(source, path, filename):
 
 
 def get_file_transcoder(
-        source: str, path: str, filename: str, force_lossless=False, tags: dict = dict(), metadata=dict()
+        source: str, path: pathlib.Path, filename: str, force_lossless=False, tags: dict = dict(), metadata=dict()
     ):
     if os.path.splitext(source)[1].lower() == '.png':
         if config.preferred_codec == config.PREFERRED_CODEC.SRS:
@@ -46,6 +47,7 @@ def get_file_transcoder(
             png_transcoder = png_source_transcode.PNGFileTranscode(source, path, filename, force_lossless)
             png_transcoder.lossless_encoder_type = encoders.webp_encoder.WEBPLosslessEncoder
             png_transcoder.lossy_encoder_type = encoders.webp_encoder.WEBPEncoder
+            png_transcoder.animation_encoder_type = encoders.webm_encoder.VP9Encoder
             return png_transcoder
     elif os.path.splitext(source)[1].lower() in {'.jpg', '.jpeg'}:
         if config.jpeg_xl_tools_path is not None:

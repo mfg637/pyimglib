@@ -59,7 +59,7 @@ GIF_VIDEOLOOP_CRF = 32
 APNG_VIDEOLOOP_CRF = VP9_VIDEO_CRF
 VIDEOLOOP_CRF = GIF_VIDEOLOOP_CRF
 
-avifenc_qdeviation = 10
+avifenc_qdeviation = 5
 
 allow_rewrite = False
 
