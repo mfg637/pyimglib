@@ -1,16 +1,17 @@
 import abc
+import io
+import logging
 import math
 import os
-import io
 import pathlib
 import tempfile
 
-from . import webm_transcoder, base_transcoder, webp_anim_converter, srs_video_loop, encoders
-from PIL import Image
-from .. import config
 import PIL.Image
+from PIL import Image
 
-import logging
+from . import base_transcoder, webp_anim_converter, encoders
+from .. import config
+
 logger = logging.getLogger(__name__)
 
 

@@ -6,7 +6,6 @@ custom_pillow_image_limits = -1
 class PREFERRED_CODEC(enum.Enum):
     WEBP = enum.auto()
     AVIF = enum.auto()
-    SRS = enum.auto()
 
 
 preferred_codec = PREFERRED_CODEC.WEBP
