@@ -118,7 +118,6 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
                 self._lossless_data = self._lossless_encoder.encode(100)
                 logging.debug("lossless size", len(self._lossless_data))
             self._lossy_data = self._lossy_encoder.encode(self._quality)
-            #self._lossy_encode(img)
             if self._lossless:
                 logging.debug("lossy size", len(self._lossy_data), "quality", self._quality)
             if self._lossless and len(self._lossless_data) < len(self._lossy_data):
@@ -133,7 +132,6 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
                 while ((self._output_size / self._get_source_size()) > ((100 - ratio) * 0.01)) and (self._quality >= 60):
                     self._quality -= 5
                     self._lossy_data = self._lossy_encoder.encode(self._quality)
-                    #self._lossy_encode(img)
                     self._output_size = len(self._lossy_data)
                     ratio = math.ceil(ratio // config.WEBP_QSCALE)
         img.close()

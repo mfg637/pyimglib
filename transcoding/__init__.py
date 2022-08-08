@@ -54,24 +54,26 @@ def get_file_transcoder(
             png_transcoder.animation_encoder_type = encoders.webm_encoder.VP9Encoder
             return png_transcoder
     elif os.path.splitext(source)[1].lower() in {'.jpg', '.jpeg'}:
-        if config.jpeg_xl_tools_path is not None:
-            if config.preferred_codec == config.PREFERRED_CODEC.SRS:
-                return jpeg_source_transcode.SRS_JPEGFileTranscode(source, path, filename, tags, metadata)
-            elif config.preferred_codec == config.PREFERRED_CODEC.AVIF:
-                return jpeg_xl_transcoder.JPEG_XL_FileTranscoder(source, path, filename, tags)
-            elif config.PREFERRED_CODEC.WEBP:
-                return jpeg_xl_transcoder.JPEG_XL_FileTranscoder(source, path, filename, force_lossless)
-            else:
-                return jpeg_xl_transcoder.JPEG_XL_FileTranscoder(source, path, filename, force_lossless)
-        else:
-            if config.preferred_codec == config.PREFERRED_CODEC.SRS:
-                return jpeg_source_transcode.SRS_JPEGFileTranscode(source, path, filename, tags, metadata)
-            elif config.preferred_codec == config.PREFERRED_CODEC.AVIF:
-                return jpeg_source_transcode.JPEGFileTranscode(source, path, filename)
-            elif config.PREFERRED_CODEC.WEBP:
-                return jpeg_source_transcode.JPEGFileTranscode(source, path, filename)
-            else:
-                return jpeg_source_transcode.JPEGFileTranscode(source, path, filename)
+        # if config.jpeg_xl_tools_path is not None:
+        if config.preferred_codec == config.PREFERRED_CODEC.SRS:
+            return jpeg_source_transcode.SRS_JPEGFileTranscode(source, path, filename, tags, metadata)
+        elif config.preferred_codec == config.PREFERRED_CODEC.AVIF:
+            jpeg_transcoder = jpeg_source_transcode.JPEGFileTranscode(source, path, filename)
+            jpeg_transcoder.lossy_encoder_type = encoders.avif_encoder.AVIFEncoder
+            return jpeg_transcoder
+        elif config.preferred_codec == config.PREFERRED_CODEC.WEBP or config.preferred_codec is None:
+            jpeg_transcoder = jpeg_source_transcode.JPEGFileTranscode(source, path, filename)
+            jpeg_transcoder.lossy_encoder_type = encoders.webp_encoder.WEBPEncoder
+            return jpeg_transcoder
+        # else:
+        #     if config.preferred_codec == config.PREFERRED_CODEC.SRS:
+        #         return jpeg_source_transcode.SRS_JPEGFileTranscode(source, path, filename, tags, metadata)
+        #     elif config.preferred_codec == config.PREFERRED_CODEC.AVIF:
+        #         return jpeg_source_transcode.JPEGFileTranscode(source, path, filename)
+        #     elif config.PREFERRED_CODEC.WEBP:
+        #         return jpeg_source_transcode.JPEGFileTranscode(source, path, filename)
+        #     else:
+        #         return jpeg_source_transcode.JPEGFileTranscode(source, path, filename)
     elif os.path.splitext(source)[1].lower() == '.gif':
         return gif_source_transcode.GIFFileTranscode(source, path, filename, tags)
 
@@ -100,7 +102,11 @@ def get_memory_transcoder(
         if config.preferred_codec == config.PREFERRED_CODEC.SRS:
             return png_source_transcode.SRS_PNGInMemoryTranscode(source, path, filename, tags, metadata)
         elif config.preferred_codec == config.PREFERRED_CODEC.AVIF:
-            return png_source_transcode.AVIF_PNGInMemoryTranscode(source, path, filename, tags)
+            png_transcoder = png_source_transcode.PNGInMemoryTranscode(source, path, filename, force_lossless)
+            png_transcoder.lossy_encoder_type = encoders.avif_encoder.AVIFEncoder
+            png_transcoder.lossless_encoder_type = encoders.avif_encoder.AVIFLosslessEncoder
+            png_transcoder.animation_encoder_type = encoders.webm_encoder.AV1Encoder
+            return png_transcoder
         elif config.preferred_codec == config.PREFERRED_CODEC.WEBP or config.preferred_codec is None:
             png_transcoder = png_source_transcode.PNGInMemoryTranscode(source, path, filename, force_lossless)
             png_transcoder.lossless_encoder_type = encoders.webp_encoder.WEBPLosslessEncoder

@@ -9,7 +9,7 @@ class PREFERRED_CODEC(enum.Enum):
     SRS = enum.auto()
 
 
-preferred_codec = PREFERRED_CODEC.AVIF
+preferred_codec = PREFERRED_CODEC.WEBP
 
 
 # if 0 or None, AVIF's multithreading is off

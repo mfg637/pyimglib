@@ -32,7 +32,7 @@ class BaseTranscoder:
         self._output_size = 0
         self._quality = 95
         self._fext = 'webp'
-        self._webp_output = False
+        self._lossy_output = False
 
     @abc.abstractmethod
     def _encode(self):
