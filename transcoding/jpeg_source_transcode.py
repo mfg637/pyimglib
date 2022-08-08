@@ -51,12 +51,16 @@ class JPEGTranscode(base_transcoder.BaseTranscoder):
         source_data = self._get_source_data()
         process = subprocess.Popen(['jpegtran', '-copy', meta_copy, '-arithmetic'],
                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        process.stdin.write(source_data.getvalue())
+        if type(source_data) is io.BytesIO:
+            process.stdin.write(source_data.getvalue())
+        else:
+            process.stdin.write(source_data)
         process.stdin.close()
         self._optimized_data = process.stdout.read()
         process.stdout.close()
         process.terminate()
         self._output_size = len(self._optimized_data)
+        self._output_file = self._path.joinpath(self._file_name)
 
     def size_treshold(self, img):
         return img.width > 1024 or img.height > 1024
