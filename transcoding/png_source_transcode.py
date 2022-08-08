@@ -137,12 +137,14 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
         img.close()
 
     def _save(self):
-        if self._lossless:
+        if self._animated:
+            pass
+        elif self._lossless:
             self._output_file = self._lossless_encoder.save(
                 self._lossless_data, pathlib.Path(self._path), self._file_name
             )
         else:
-            self._output_file = self._lossless_encoder.save(
+            self._output_file = self._lossy_encoder.save(
                 self._lossy_data, pathlib.Path(self._path), self._file_name
             )
 
