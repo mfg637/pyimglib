@@ -83,7 +83,7 @@ def isGIF(data: bytearray) -> bool:
 
 
 def get_memory_transcoder(
-        source: bytearray, path: pathlib.Path, filename: str, force_lossless=False, tags: dict = dict(), metadata={}
+        source: bytearray, path: pathlib.Path, filename: str, force_lossless=False
 ):
     if isPNG(source):
         png_transcoder = png_source_transcode.PNGInMemoryTranscode(source, path, filename, force_lossless)
