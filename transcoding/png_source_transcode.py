@@ -26,6 +26,7 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
         base_transcoder.BaseTranscoder.__init__(self, source, path, file_name)
         self._animated = False
         self._lossless = False
+        self._output_file = self._path.joinpath(self._file_name)
         self._lossless_data = b''
         self._lossy_data = b''
         self._force_lossless = force_lossless
@@ -151,6 +152,7 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
             self._output_file = self._lossy_encoder.save(
                 self._lossy_data, pathlib.Path(self._path), self._file_name
             )
+        return self._output_file
 
 
 class PNGFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRemovable, PNGTranscode):
@@ -192,12 +194,12 @@ class PNGInMemoryTranscode(base_transcoder.InMemorySource, PNGTranscode):
         if self._animated:
             return self.anim_transcoding_failed()
         else:
-            fname = self._output_file.with_suffix(".png")
+            self._output_file = self._output_file.with_suffix(".png")
             outfile = open(self._output_file, "bw")
             outfile.write(self._source)
             outfile.close()
             logging.warning("save " + str(self._output_file))
-            return fname
+            return self._output_file
 
     def _all_optimisations_failed(self):
         self._animated = False

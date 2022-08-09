@@ -54,7 +54,7 @@ def get_file_transcoder(
     elif os.path.splitext(source)[1].lower() in {'.jpg', '.jpeg'}:
         # if config.jpeg_xl_tools_path is not None:
         jpeg_transcoder = jpeg_source_transcode.JPEGFileTranscode(source, path, filename)
-        if config.preferred_codec == config.PREFERRED_CODEC.AVIF:
+        if config.preferred_codec in {config.PREFERRED_CODEC.AVIF, config.PREFERRED_CODEC.DASH_AVIF}:
             jpeg_transcoder.lossy_encoder_type = encoders.avif_encoder.AVIFEncoder
         elif config.preferred_codec == config.PREFERRED_CODEC.WEBP or config.preferred_codec is None:
             jpeg_transcoder.lossy_encoder_type = encoders.webp_encoder.WEBPEncoder
@@ -128,7 +128,7 @@ def get_memory_transcoder(
         #         return jpeg_xl_transcoder.JPEG_XL_BurrefedSourceTranscoder(source, path, filename, tags)
         # else:
         jpeg_transcoder = jpeg_source_transcode.JPEGInMemoryTranscode(source, path, filename)
-        if config.preferred_codec == config.PREFERRED_CODEC.AVIF:
+        if config.preferred_codec in {config.PREFERRED_CODEC.AVIF, config.PREFERRED_CODEC.DASH_AVIF}:
             jpeg_transcoder.lossy_encoder_type = encoders.avif_encoder.AVIFEncoder
         elif config.preferred_codec == config.PREFERRED_CODEC.WEBP or config.preferred_codec is None:
             jpeg_transcoder.lossy_encoder_type = encoders.webp_encoder.WEBPEncoder

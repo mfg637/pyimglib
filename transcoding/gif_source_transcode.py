@@ -88,6 +88,7 @@ class GIFTranscode(base_transcoder.BaseTranscoder):
             self._output_file = self._lossy_encoder.save(
                 self._lossy_data, pathlib.Path(self._path), self._file_name
             )
+        return self._output_file
 
     @abc.abstractmethod
     def _all_optimisations_failed(self):
