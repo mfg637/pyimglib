@@ -54,7 +54,10 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
             if tmpfile is not None:
                 tmpfile.close()
             try:
-                self._output_size = os.path.getsize(self._anim_output_filename)
+                if isinstance(self.animation_encoder_type, encoders.dash_encoder.DASHEncoder):
+                    self._output_size = encoders.dash_encoder.DASHEncoder.get_file_size(self._anim_output_filename)
+                else:
+                    self._output_size = os.path.getsize(self._anim_output_filename)
             except FileNotFoundError:
                 raise base_transcoder.NotOptimizableSourceException()
             else:
@@ -73,7 +76,10 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
 
     def anim_transcoding_failed(self):
         if isinstance(self._anim_output_filename, pathlib.Path):
-            self._anim_output_filename.unlink(missing_ok=True)
+            if isinstance(self.animation_encoder_type, encoders.dash_encoder.DASHEncoder):
+                encoders.dash_encoder.DASHEncoder.delete_result(self._output_file)
+            else:
+                self._anim_output_filename.unlink(missing_ok=True)
 
     def _encode(self):
         if config.custom_pillow_image_limits != -1:

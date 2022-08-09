@@ -18,7 +18,7 @@ from .. import exceptions
 logger = logging.getLogger(__name__)
 
 
-# derpibooru-dl only
+# derpibooru-dl exclusive
 def check_exists(source, path, filename):
     fname = os.path.join(path, filename)
     if os.path.splitext(source)[1].lower() == '.png':
@@ -36,10 +36,13 @@ def get_file_transcoder(
     ):
     if os.path.splitext(source)[1].lower() == '.png':
         png_transcoder = png_source_transcode.PNGFileTranscode(source, path, filename, force_lossless)
-        if config.preferred_codec == config.PREFERRED_CODEC.AVIF:
+        if config.preferred_codec in {config.PREFERRED_CODEC.AVIF, config.PREFERRED_CODEC.DASH_AVIF}:
             png_transcoder.lossy_encoder_type = encoders.avif_encoder.AVIFEncoder
             png_transcoder.lossless_encoder_type = encoders.avif_encoder.AVIFLosslessEncoder
-            png_transcoder.animation_encoder_type = encoders.webm_encoder.AV1Encoder
+            if config.preferred_codec == config.PREFERRED_CODEC.AVIF:
+                png_transcoder.animation_encoder_type = encoders.webm_encoder.AV1Encoder
+            elif config.preferred_codec == config.PREFERRED_CODEC.DASH_AVIF:
+                png_transcoder.animation_encoder_type = encoders.dash_encoder.DASHLoopEncoder
             return png_transcoder
         elif config.preferred_codec == config.PREFERRED_CODEC.WEBP or config.preferred_codec is None:
             png_transcoder.lossless_encoder_type = encoders.webp_encoder.WEBPLosslessEncoder
@@ -56,9 +59,12 @@ def get_file_transcoder(
         return jpeg_transcoder
     elif os.path.splitext(source)[1].lower() == '.gif':
         gif_transcoder = gif_source_transcode.GIFFileTranscode(source, path, filename)
-        if config.preferred_codec == config.PREFERRED_CODEC.AVIF:
+        if config.preferred_codec in {config.PREFERRED_CODEC.AVIF, config.PREFERRED_CODEC.DASH_AVIF}:
             gif_transcoder.lossy_encoder_type = encoders.avif_encoder.AVIFEncoder
-            gif_transcoder.animation_encoder_type = encoders.webm_encoder.AV1Encoder
+            if config.preferred_codec == config.PREFERRED_CODEC.AVIF:
+                gif_transcoder.animation_encoder_type = encoders.webm_encoder.AV1Encoder
+            elif config.preferred_codec == config.PREFERRED_CODEC.DASH_AVIF:
+                gif_transcoder.animation_encoder_type = encoders.dash_encoder.DASHLoopEncoder
         elif config.preferred_codec == config.PREFERRED_CODEC.WEBP or config.preferred_codec is None:
             gif_transcoder.lossy_encoder_type = encoders.webp_encoder.WEBPEncoder
             gif_transcoder.animation_encoder_type = encoders.webm_encoder.VP9Encoder
@@ -87,10 +93,13 @@ def get_memory_transcoder(
 ):
     if isPNG(source):
         png_transcoder = png_source_transcode.PNGInMemoryTranscode(source, path, filename, force_lossless)
-        if config.preferred_codec == config.PREFERRED_CODEC.AVIF:
+        if config.preferred_codec in {config.PREFERRED_CODEC.AVIF, config.PREFERRED_CODEC.DASH_AVIF}:
             png_transcoder.lossy_encoder_type = encoders.avif_encoder.AVIFEncoder
             png_transcoder.lossless_encoder_type = encoders.avif_encoder.AVIFLosslessEncoder
-            png_transcoder.animation_encoder_type = encoders.webm_encoder.AV1Encoder
+            if config.preferred_codec == config.PREFERRED_CODEC.AVIF:
+                png_transcoder.animation_encoder_type = encoders.webm_encoder.AV1Encoder
+            elif config.preferred_codec == config.PREFERRED_CODEC.DASH_AVIF:
+                png_transcoder.animation_encoder_type = encoders.dash_encoder.DASHLoopEncoder
         elif config.preferred_codec == config.PREFERRED_CODEC.WEBP or config.preferred_codec is None:
             png_transcoder.lossless_encoder_type = encoders.webp_encoder.WEBPLosslessEncoder
             png_transcoder.lossy_encoder_type = encoders.webp_encoder.WEBPEncoder
@@ -115,9 +124,12 @@ def get_memory_transcoder(
         return jpeg_transcoder
     elif isGIF(source):
         gif_transcoder = gif_source_transcode.GIFInMemoryTranscode(source, path, filename)
-        if config.preferred_codec == config.PREFERRED_CODEC.AVIF:
+        if config.preferred_codec in {config.PREFERRED_CODEC.AVIF, config.PREFERRED_CODEC.DASH_AVIF}:
             gif_transcoder.lossy_encoder_type = encoders.avif_encoder.AVIFEncoder
-            gif_transcoder.animation_encoder_type = encoders.webm_encoder.AV1Encoder
+            if config.preferred_codec == config.PREFERRED_CODEC.AVIF:
+                gif_transcoder.animation_encoder_type = encoders.webm_encoder.AV1Encoder
+            elif config.preferred_codec == config.PREFERRED_CODEC.DASH_AVIF:
+                gif_transcoder.animation_encoder_type = encoders.dash_encoder.DASHLoopEncoder
         elif config.preferred_codec == config.PREFERRED_CODEC.WEBP or config.preferred_codec is None:
             gif_transcoder.lossy_encoder_type = encoders.webp_encoder.WEBPEncoder
             gif_transcoder.animation_encoder_type = encoders.webm_encoder.VP9Encoder

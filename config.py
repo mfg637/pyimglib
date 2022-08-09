@@ -6,6 +6,7 @@ custom_pillow_image_limits = -1
 class PREFERRED_CODEC(enum.Enum):
     WEBP = enum.auto()
     AVIF = enum.auto()
+    DASH_AVIF = enum.auto()
 
 
 preferred_codec = PREFERRED_CODEC.WEBP
@@ -66,3 +67,5 @@ allow_rewrite = False
 
 WEBP_QSCALE = 1.375
 SRS_QSCALE = 1.25
+
+dash_low_tier_crf_gap = 4

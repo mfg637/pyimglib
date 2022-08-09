@@ -48,7 +48,10 @@ class GIFTranscode(base_transcoder.BaseTranscoder):
             if tmpfile is not None:
                 tmpfile.close()
             try:
-                self._output_size = os.path.getsize(self._output_file)
+                if isinstance(self.animation_encoder_type, encoders.dash_encoder.DASHEncoder):
+                    self._output_size = encoders.dash_encoder.DASHEncoder.get_file_size(self._output_file)
+                else:
+                    self._output_size = os.path.getsize(self._output_file)
             except FileNotFoundError:
                 raise base_transcoder.NotOptimizableSourceException()
         else:
@@ -104,11 +107,14 @@ class GIFFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRem
         img.close()
 
     def _set_utime(self) -> None:
-        os.utime(self._output_file.with_suffix('.webm'), (self._atime, self._mtime))
+        os.utime(self._output_file, (self._atime, self._mtime))
 
     def _all_optimisations_failed(self):
         logger.warning("save " + self._source)
-        os.remove(self._output_file)
+        if isinstance(self.animation_encoder_type, encoders.dash_encoder.DASHEncoder):
+            encoders.dash_encoder.DASHEncoder.delete_result(self._output_file)
+        else:
+            os.remove(self._output_file)
         return self._source
 
     def _invalid_file_exception_handle(self, e):
@@ -127,6 +133,8 @@ class GIFInMemoryTranscode(base_transcoder.InMemorySource, GIFTranscode):
         img.close()
 
     def _all_optimisations_failed(self):
+        if isinstance(self.animation_encoder_type, encoders.dash_encoder.DASHEncoder):
+            encoders.dash_encoder.DASHEncoder.delete_result(self._output_file)
         self._output_file = self._path.joinpath(self._file_name).with_suffix(".gif")
         outfile = open(self._output_file, "bw")
         outfile.write(self._source)
