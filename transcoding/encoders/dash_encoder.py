@@ -138,6 +138,7 @@ class DASHEncoder(VideoEncoder):
             "-crf:0", str(self._crf),
             "-crf:1", str(self._crf - config.dash_low_tier_crf_gap),
             "-c:v:1", "libx264",
+            '-threads', str(config.dash_encoding_threads),
             "-preset:v:1", "veryslow",
             "-keyint_min", str(gop_size),
             "-g", str(gop_size),

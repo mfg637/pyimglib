@@ -15,6 +15,7 @@ preferred_codec = PREFERRED_CODEC.WEBP
 # if 0 or None, AVIF's multithreading is off
 # or, it's enables row-mt
 encoding_threads = 1
+dash_encoding_threads = 1
 avifdec_workers_count = 1
 
 
@@ -56,9 +57,9 @@ gop_length_seconds = 10
 # Lesser is smaller, but worse quality.
 # Reasonable range: 0.5-1
 cl3_to_orig_ratio = 0.5
-VP9_VIDEO_CRF = 24
+VIDEO_CRF = 24
 GIF_VIDEOLOOP_CRF = 32
-APNG_VIDEOLOOP_CRF = VP9_VIDEO_CRF
+APNG_VIDEOLOOP_CRF = VIDEO_CRF
 VIDEOLOOP_CRF = GIF_VIDEOLOOP_CRF
 
 avifenc_qdeviation = 5

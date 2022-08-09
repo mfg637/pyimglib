@@ -11,7 +11,9 @@ from . import statistics, \
     jpeg_source_transcode, \
     jpeg_xl_transcoder, \
     common, \
+    video_transcoder, \
     encoders
+
 from .. import config
 from .. import exceptions
 
@@ -69,6 +71,14 @@ def get_file_transcoder(
             gif_transcoder.lossy_encoder_type = encoders.webp_encoder.WEBPEncoder
             gif_transcoder.animation_encoder_type = encoders.webm_encoder.VP9Encoder
         return gif_transcoder
+    elif os.path.splitext(source)[1].lower() in {".webm", ".mp4", ".mkv"}:
+        if config.preferred_codec == config.PREFERRED_CODEC.DASH_AVIF:
+            v_transcoder = video_transcoder.VideoTranscoder(source, path, filename)
+            v_transcoder.video_encoder_type = encoders.dash_encoder.DashVideoEncoder
+            return v_transcoder
+        else:
+            v_writer = video_transcoder.VideoWriter(source, path, filename, os.path.splitext(source)[1].lower())
+            return v_writer
 
 
 PNG_HEADER = b'\x89PNG'
@@ -91,6 +101,7 @@ def isGIF(data: bytearray) -> bool:
 def get_memory_transcoder(
         source: bytearray, path: pathlib.Path, filename: str, force_lossless=False
 ):
+    from ..decoders.video import MKV_HEADER
     if isPNG(source):
         png_transcoder = png_source_transcode.PNGInMemoryTranscode(source, path, filename, force_lossless)
         if config.preferred_codec in {config.PREFERRED_CODEC.AVIF, config.PREFERRED_CODEC.DASH_AVIF}:
@@ -134,11 +145,14 @@ def get_memory_transcoder(
             gif_transcoder.lossy_encoder_type = encoders.webp_encoder.WEBPEncoder
             gif_transcoder.animation_encoder_type = encoders.webm_encoder.VP9Encoder
         return gif_transcoder
-    # elif bytes(source[:4]) in decoders.video.MKV_HEADER:
-    #     if config.preferred_codec == config.PREFERRED_CODEC.SRS:
-    #         return srs_video.SRS_WEBM_Converter(source, path, filename, tags, metadata)
-    #     else:
-    #         return srs_video.WEBM_WRITER(source, path, filename, tags)
+    elif bytes(source[:4]) in MKV_HEADER:
+        if config.preferred_codec == config.PREFERRED_CODEC.DASH_AVIF:
+            v_transcoder = video_transcoder.VideoTranscoder(source, path, filename)
+            v_transcoder.video_encoder_type = encoders.dash_encoder.DashVideoEncoder
+            return v_transcoder
+        else:
+            v_writer = video_transcoder.VideoWriter(source, path, filename, ".webm")
+            return v_writer
     else:
         logger.error("NON IDENTIFIED FILE FORMAT", source[:16])
         raise exceptions.NotIdentifiedFileFormat()

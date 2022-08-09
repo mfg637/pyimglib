@@ -32,7 +32,7 @@ class GIFTranscode(base_transcoder.BaseTranscoder):
         img = self._open_image()
         #self._animated = img.is_animated
         if self._animated:
-            self._quality = 100 - config.APNG_VIDEOLOOP_CRF
+            self._quality = 100 - config.GIF_VIDEOLOOP_CRF
             self._output_file = self._path.joinpath(self._file_name)
             self._animation_encoder: encoders.VideoEncoder = self.animation_encoder_type(config.GIF_VIDEOLOOP_CRF)
             tmpfile = None
