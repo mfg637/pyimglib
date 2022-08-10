@@ -20,11 +20,12 @@ avifdec_workers_count = 1
 
 
 class AVIF_DECODING_SPEED(enum.Enum):
-    FAST = enum.auto()
+    # option disabled due incorrect decoding of lossless files
+    # FAST = enum.auto()
     SLOW = enum.auto()
 
 
-avif_decoding_speed = AVIF_DECODING_SPEED.FAST
+avif_decoding_speed = AVIF_DECODING_SPEED.SLOW
 avifenc_encoding_speed = 0
 
 # Max image size
