@@ -137,7 +137,7 @@ class DASHLoopEncoder(DASHEncoder):
             "-f", "lavfi", "-i", f"color=c=white,scale={width_max}:{height_max}",
             "-f", "lavfi", "-i", f"color=c=white,scale={width_small}:{height_small}",
             "-filter_complex",
-            f"[0]scale={width_max}x{height_max}[sv0],[0]scale={width_small}x{height_small}[sv1],[1][sv0]overlay=shortest=1[v1],[2][sv1]overlay=shortest=1[v2]",
+            f"[1]setsar=1[bg1],[2]setsar=1[bg2],[0]scale={width_max}x{height_max}[sv0],[0]scale={width_small}x{height_small}[sv1],[bg1][sv0]overlay=shortest=1[v1],[bg2][sv1]overlay=shortest=1[v2],[v1]setsar=1[v1],[v2]setsar=1[v2]",
             "-map", "[v1]",
             "-map", "[v2]",
             "-pix_fmt:0", self._target_pixel_format,
