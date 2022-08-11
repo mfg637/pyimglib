@@ -58,7 +58,7 @@ class DASHEncoder(VideoEncoder):
         for file in files:
             file.unlink()
 
-    def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
+    def cals_encoding_params(self, input_file: pathlib.Path):
         src_metadata = ffmpeg.probe(input_file)
         video = ffmpeg.parser.find_video_stream(src_metadata)
         fps = ffmpeg.parser.get_fps(video)
@@ -121,6 +121,61 @@ class DASHEncoder(VideoEncoder):
                     height_small = height_max = int(common.bit_round(height_orig, -1))
 
         gop_size = int(round(self._gop_size * fps))
+        return width_max, height_max, width_small, height_small, gop_size
+
+
+class DASHLoopEncoder(DASHEncoder):
+    def __init__(self, crf: int):
+        super().__init__(crf, 0.5, "yuv444p10le", "libaom-av1")
+
+    def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
+        width_max, height_max, width_small, height_small, gop_size = self.cals_encoding_params(input_file)
+
+        commandline = [
+            "ffmpeg",
+            "-i", input_file,
+            "-f", "lavfi", "-i", f"color=c=white,scale={width_max}:{height_max}",
+            "-f", "lavfi", "-i", f"color=c=white,scale={width_small}:{height_small}",
+            "-filter_complex",
+            f"[0]scale={width_max}x{height_max}[sv0],[0]scale={width_small}x{height_small}[sv1],[1][sv0]overlay=shortest=1[v1],[2][sv1]overlay=shortest=1[v2]",
+            "-map", "[v1]",
+            "-map", "[v2]",
+            "-pix_fmt:0", self._target_pixel_format,
+            "-pix_fmt:1", "yuv420p",
+            "-c:v:0", self._target_encoder,
+            "-cpu-used", "4",
+            "-b:v:0", "0",
+            "-crf:0", str(self._crf),
+            "-crf:1", str(self._crf - config.dash_low_tier_crf_gap),
+            "-c:v:1", "libx264",
+            '-threads', str(config.dash_encoding_threads),
+            "-preset:v:1", "veryslow",
+            "-keyint_min", str(gop_size),
+            "-g", str(gop_size),
+            "-sc_threshold", "0",
+            "-c:a", "copy",
+            "-dash_segment_type", "mp4",
+            "-seg_duration", "10",
+            "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
+            "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
+            "-adaptation_sets", "id=0,streams=v id=1,streams=a",
+            "-f", "dash"]
+        output_file = output_file.with_suffix(".mpd")
+        commandline += [
+            output_file
+        ]
+        subprocess.call(
+            commandline
+        )
+        return output_file
+
+
+class DashVideoEncoder(DASHEncoder):
+    def __init__(self, crf: int):
+        super().__init__(crf, 2, "yuv420p10le", "libaom-av1")
+
+    def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
+        width_max, height_max, width_small, height_small, gop_size = self.cals_encoding_params(input_file)
 
         commandline = [
             "ffmpeg",
@@ -158,14 +213,4 @@ class DASHEncoder(VideoEncoder):
             commandline
         )
         return output_file
-
-
-class DASHLoopEncoder(DASHEncoder):
-    def __init__(self, crf: int):
-        super().__init__(crf, 0.5, "yuv444p10le", "libaom-av1")
-
-
-class DashVideoEncoder(DASHEncoder):
-    def __init__(self, crf: int):
-        super().__init__(crf, 2, "yuv420p10le", "libaom-av1")
 
