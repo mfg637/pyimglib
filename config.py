@@ -62,7 +62,7 @@ VIDEO_CRF = 24
 GIF_VIDEOLOOP_CRF = 28
 APNG_VIDEOLOOP_CRF = VIDEO_CRF
 VIDEOLOOP_CRF = GIF_VIDEOLOOP_CRF
-tiers_min_size = [720, 360, 144, 0]
+tiers_min_size = [480, 240, 144, 0]
 
 avifenc_qdeviation = 5
 

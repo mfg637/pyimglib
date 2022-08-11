@@ -139,7 +139,7 @@ class DASHEncoder(VideoEncoder):
 
 class DASHLoopEncoder(DASHEncoder):
     def __init__(self, crf: int):
-        super().__init__(crf, 0.5, "yuv444p10le", "libaom-av1")
+        super().__init__(crf, 2, "yuv444p10le", "libaom-av1")
 
     def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
         width_max, height_max, width_small, height_small, gop_size, crf, lt_gap = self.cals_encoding_params(input_file)
@@ -185,7 +185,7 @@ class DASHLoopEncoder(DASHEncoder):
 
 class DashVideoEncoder(DASHEncoder):
     def __init__(self, crf: int):
-        super().__init__(crf, 2, "yuv420p10le", "libaom-av1")
+        super().__init__(crf, 10, "yuv420p10le", "libaom-av1")
 
     def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
         width_max, height_max, width_small, height_small, gop_size, crf, lt_gap = self.cals_encoding_params(input_file)
