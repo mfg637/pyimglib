@@ -59,9 +59,10 @@ gop_length_seconds = 10
 # Reasonable range: 0.5-1
 cl3_to_orig_ratio = 0.5
 VIDEO_CRF = 24
-GIF_VIDEOLOOP_CRF = 32
+GIF_VIDEOLOOP_CRF = 28
 APNG_VIDEOLOOP_CRF = VIDEO_CRF
 VIDEOLOOP_CRF = GIF_VIDEOLOOP_CRF
+tiers_min_size = [720, 360, 144, 0]
 
 avifenc_qdeviation = 5
 

@@ -64,7 +64,9 @@ class DASHEncoder(VideoEncoder):
         fps = ffmpeg.parser.get_fps(video)
 
         limited_min_size = 720
+        lt_gap = config.dash_low_tier_crf_gap
         if fps > 30:
+            lt_gap = max(int(lt_gap / 2), 1)
             limited_min_size = 360
 
         width_orig = video["width"]
@@ -91,7 +93,17 @@ class DASHEncoder(VideoEncoder):
                 ar_scaled = width_max / height_max
             return width_max, height_max, rounded_scale_coef
 
+        crf = self._crf
+
+        def calc_crf(min_size, crf, lt_gap):
+            tier = 0
+            while height_orig < config.tiers_min_size[tier]:
+                tier += 1
+                crf -= lt_gap
+            return crf
+
         if height_orig <= width_orig:
+            crf = calc_crf(height_orig, crf, lt_gap)
             if height_orig <= limited_min_size:
                 width_small = width_max = int(common.bit_round(width_orig, -1))
                 height_small = height_max = int(common.bit_round(height_orig, -1))
@@ -106,6 +118,7 @@ class DASHEncoder(VideoEncoder):
                     width_small = width_max = int(common.bit_round(width_orig, -1))
                     height_small = height_max = int(common.bit_round(height_orig, -1))
         if height_orig > width_orig:
+            crf = calc_crf(width_orig, crf, lt_gap)
             if width_orig <= limited_min_size:
                 width_small = width_max = int(common.bit_round(width_orig, -1))
                 height_small = height_max = int(common.bit_round(height_orig, -1))
@@ -121,7 +134,7 @@ class DASHEncoder(VideoEncoder):
                     height_small = height_max = int(common.bit_round(height_orig, -1))
 
         gop_size = int(round(self._gop_size * fps))
-        return width_max, height_max, width_small, height_small, gop_size
+        return width_max, height_max, width_small, height_small, gop_size, crf, lt_gap
 
 
 class DASHLoopEncoder(DASHEncoder):
@@ -129,7 +142,7 @@ class DASHLoopEncoder(DASHEncoder):
         super().__init__(crf, 0.5, "yuv444p10le", "libaom-av1")
 
     def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
-        width_max, height_max, width_small, height_small, gop_size = self.cals_encoding_params(input_file)
+        width_max, height_max, width_small, height_small, gop_size, crf, lt_gap = self.cals_encoding_params(input_file)
 
         commandline = [
             "ffmpeg",
@@ -145,8 +158,8 @@ class DASHLoopEncoder(DASHEncoder):
             "-c:v:0", self._target_encoder,
             "-cpu-used", "4",
             "-b:v:0", "0",
-            "-crf:0", str(self._crf),
-            "-crf:1", str(self._crf - config.dash_low_tier_crf_gap),
+            "-crf:0", str(crf),
+            "-crf:1", str(crf - lt_gap),
             "-c:v:1", "libx264",
             '-threads', str(config.dash_encoding_threads),
             "-preset:v:1", "veryslow",
@@ -175,7 +188,7 @@ class DashVideoEncoder(DASHEncoder):
         super().__init__(crf, 2, "yuv420p10le", "libaom-av1")
 
     def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
-        width_max, height_max, width_small, height_small, gop_size = self.cals_encoding_params(input_file)
+        width_max, height_max, width_small, height_small, gop_size, crf, lt_gap = self.cals_encoding_params(input_file)
 
         commandline = [
             "ffmpeg",
@@ -190,8 +203,8 @@ class DashVideoEncoder(DASHEncoder):
             "-c:v:0", self._target_encoder,
             "-cpu-used", "4",
             "-b:v:0", "0",
-            "-crf:0", str(self._crf),
-            "-crf:1", str(self._crf - config.dash_low_tier_crf_gap),
+            "-crf:0", str(crf),
+            "-crf:1", str(crf - lt_gap),
             "-c:v:1", "libx264",
             '-threads', str(config.dash_encoding_threads),
             "-preset:v:1", "veryslow",
