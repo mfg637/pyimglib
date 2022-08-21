@@ -1,3 +1,4 @@
+import logging
 import pathlib
 import subprocess
 import re
@@ -12,6 +13,8 @@ import xml.dom.minidom
 
 file_template_regex = re.compile("\$[\da-zA-Z\-%]+\$")
 
+logger = logging.getLogger(__name__)
+
 
 class DASHEncoder(VideoEncoder):
     def __init__(self, crf: int, gop_size, pix_fmt, high_tier_encoder):
@@ -19,6 +22,61 @@ class DASHEncoder(VideoEncoder):
         self._target_pixel_format = pix_fmt
         self._target_encoder = high_tier_encoder
         self._gop_size = gop_size
+
+    @staticmethod
+    def calc_size(width_orig, height_orig, min_size):
+        width_max = 2
+        height_max = 2
+        width_small = 2
+        height_small = 2
+        scale_coef = 1
+
+        def get_rounded_size(width_small, height_small, scale_coef):
+            def scale_size(width, height, scale):
+                scaled_width = int(round(width * scale))
+                scaled_height = int(round(height * scale))
+                return scaled_width, scaled_height
+
+            scale_precission = 6
+            rounded_scale_coef = scale_coef
+            width_max, height_max = scale_size(width_small, height_small, rounded_scale_coef)
+            ar_scaled = width_max / height_max
+            while ar_scaled != aspect_ratio:
+                scale_precission -= 1
+                rounded_scale_coef = common.bit_round(scale_coef, scale_precission)
+                logger.debug("scale precission = {}, scale_coef = {}".format(scale_precission, rounded_scale_coef))
+                width_max, height_max = scale_size(width_small, height_small, rounded_scale_coef)
+                ar_scaled = width_max / height_max
+            return width_max, height_max, rounded_scale_coef
+
+        if height_orig <= width_orig:
+            logging.debug("width > height or width = height")
+            if height_orig <= min_size:
+                width_small = width_max = int(common.bit_round(width_orig, -1))
+                height_small = height_max = int(common.bit_round(height_orig, -1))
+            else:
+                height_small = min_size
+                scale_coef = height_orig / min_size
+                width_small = int(common.bit_round(width_orig / scale_coef, -1))
+        elif height_orig > width_orig:
+            logging.debug("height > width")
+            if width_orig <= min_size:
+                width_small = width_max = int(common.bit_round(width_orig, -1))
+                height_small = height_max = int(common.bit_round(height_orig, -1))
+            else:
+                width_small = min_size
+                scale_coef = width_orig / min_size
+                height_small = common.bit_round(height_orig / scale_coef, -1)
+
+        logger.debug("width small = {}, height small = {}".format(width_small, height_small))
+
+        if width_small != width_max or height_small != height_max:
+            aspect_ratio = width_small / height_small
+            width_max, height_max, rounded_scale_coef = get_rounded_size(width_small, height_small, scale_coef)
+            if rounded_scale_coef == 1:
+                width_small = width_max = int(common.bit_round(width_orig, -1))
+                height_small = height_max = int(common.bit_round(height_orig, -1))
+        return width_small, height_small, width_max, height_max
 
     @staticmethod
     def get_files(mpd_file: pathlib.Path):
@@ -71,27 +129,6 @@ class DASHEncoder(VideoEncoder):
 
         width_orig = video["width"]
         height_orig = video["height"]
-        width_max = 2
-        height_max = 2
-        width_small = 2
-        height_small = 2
-
-        def scale_size(width, height, scale):
-            scaled_width = int(round(width * scale))
-            scaled_height = int(round(height * scale))
-            return scaled_width, scaled_height
-
-        def get_rounded_size(width_small, height_small, scale_coef):
-            scale_precission = 6
-            rounded_scale_coef = scale_coef
-            width_max, height_max = scale_size(width_small, height_small, rounded_scale_coef)
-            ar_scaled = width_max / height_max
-            while ar_scaled != aspect_ratio:
-                scale_precission -= 1
-                rounded_scale_coef = common.bit_round(scale_coef, scale_precission)
-                width_max, height_max = scale_size(width_small, height_small, rounded_scale_coef)
-                ar_scaled = width_max / height_max
-            return width_max, height_max, rounded_scale_coef
 
         crf = self._crf
 
@@ -104,34 +141,12 @@ class DASHEncoder(VideoEncoder):
 
         if height_orig <= width_orig:
             crf = calc_crf(height_orig, crf, lt_gap)
-            if height_orig <= limited_min_size:
-                width_small = width_max = int(common.bit_round(width_orig, -1))
-                height_small = height_max = int(common.bit_round(height_orig, -1))
-            else:
-                height_small = limited_min_size
-                scale_coef = height_orig / limited_min_size
-                width_small = int(common.bit_round(width_orig / scale_coef, -1))
-                aspect_ratio = width_small / height_small
-
-                width_max, height_max, rounded_scale_coef = get_rounded_size(width_small, height_small, scale_coef)
-                if rounded_scale_coef == 1:
-                    width_small = width_max = int(common.bit_round(width_orig, -1))
-                    height_small = height_max = int(common.bit_round(height_orig, -1))
-        if height_orig > width_orig:
+        elif height_orig > width_orig:
             crf = calc_crf(width_orig, crf, lt_gap)
-            if width_orig <= limited_min_size:
-                width_small = width_max = int(common.bit_round(width_orig, -1))
-                height_small = height_max = int(common.bit_round(height_orig, -1))
-            else:
-                width_small = limited_min_size
-                scale_coef = width_orig / limited_min_size
-                height_small = common.bit_round(width_orig / scale_coef, -1)
-                aspect_ratio = width_small / height_small
 
-                width_max, height_max, rounded_scale_coef = get_rounded_size(width_small, height_small, scale_coef)
-                if rounded_scale_coef == 1:
-                    width_small = width_max = int(common.bit_round(width_orig, -1))
-                    height_small = height_max = int(common.bit_round(height_orig, -1))
+        width_small, height_small, width_max, height_max = DASHEncoder.calc_size(
+            width_orig, height_orig, limited_min_size
+        )
 
         gop_size = int(round(self._gop_size * fps))
         return width_max, height_max, width_small, height_small, gop_size, crf, lt_gap
