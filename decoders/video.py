@@ -17,6 +17,9 @@ def mpd_check(file_path):
     try:
         line = file.readline()
         if "<?xml" in line:
+            if "<MPD" in line:
+                file.close()
+                return True
             line = file.readline()
             if "<MPD" in line:
                 file.close()
