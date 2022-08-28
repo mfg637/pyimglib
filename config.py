@@ -17,6 +17,7 @@ preferred_codec = PREFERRED_CODEC.WEBP
 encoding_threads = 1
 dash_encoding_threads = 1
 avifdec_workers_count = 1
+av1an_aomenc_threads = 1
 
 
 class AVIF_DECODING_SPEED(enum.Enum):
@@ -63,6 +64,7 @@ GIF_VIDEOLOOP_CRF = 28
 APNG_VIDEOLOOP_CRF = VIDEO_CRF
 VIDEOLOOP_CRF = GIF_VIDEOLOOP_CRF
 tiers_min_size = [480, 240, 144, 0]
+opus_stereo_bitrate_kbps = 96
 
 avifenc_qdeviation = 5
 

@@ -3,6 +3,7 @@
 
 import json
 import subprocess
+import logging
 from platform import system
 
 from . import exceptions, parser
@@ -26,8 +27,27 @@ def get_output(commandline):
 
 def probe(source):
     try:
-        commandline = ['ffprobe', '-loglevel', '24', '-hide_banner', '-print_format', 'json',
-                       '-show_format', '-show_streams', '-show_chapters', source]
+        commandline = ['ffprobe']
+        commandline += set_loglevel(logging.root.level)
+        commandline += ['-print_format', 'json', '-show_format', '-show_streams', '-show_chapters', source]
         return json.loads(str(get_output(commandline), 'utf-8'))
     except UnicodeEncodeError:
         raise exceptions.InvalidFilename(source)
+
+
+def set_loglevel(loglevel):
+    commandline = ["-loglevel"]
+    match loglevel:
+        case logging.DEBUG:
+            commandline += ["debug"]
+        case logging.INFO:
+            commandline += ["info"]
+        case logging.WARNING:
+            commandline += ["warning", '-hide_banner']
+        case logging.ERROR:
+            commandline += ["error", '-hide_banner']
+        case logging.CRITICAL:
+            commandline += ["fatal", '-hide_banner']
+        case _:
+            commandline += ["quite", '-hide_banner']
+    return commandline

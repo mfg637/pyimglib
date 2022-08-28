@@ -1,8 +1,14 @@
+import io
+import json
 import logging
 import pathlib
+import random
+import shlex
+import string
 import subprocess
 import re
-from typing import Iterable
+import tempfile
+from typing import Iterable, Final
 
 from .encoder import VideoEncoder
 from .. import common
@@ -89,7 +95,7 @@ class DASHEncoder(VideoEncoder):
         for template in segment_templates:
             file_templates.add(file_template_regex.sub("*", template.getAttribute("initialization")))
             file_templates.add(file_template_regex.sub("*", template.getAttribute("media")))
-        print(file_templates)
+        logger.debug(file_templates.__repr__())
 
         file_templates_iterable: tuple[str] = tuple(file_templates)
         for file_template in file_templates_iterable:
@@ -123,7 +129,7 @@ class DASHEncoder(VideoEncoder):
 
         limited_min_size = 720
         lt_gap = config.dash_low_tier_crf_gap
-        if fps > 30:
+        if fps > 31:
             lt_gap = max(int(lt_gap / 2), 1)
             limited_min_size = 360
 
@@ -149,7 +155,7 @@ class DASHEncoder(VideoEncoder):
         )
 
         gop_size = int(round(self._gop_size * fps))
-        return width_max, height_max, width_small, height_small, gop_size, crf, lt_gap
+        return width_max, height_max, width_small, height_small, gop_size, crf, lt_gap, fps
 
 
 class DASHLoopEncoder(DASHEncoder):
@@ -157,7 +163,8 @@ class DASHLoopEncoder(DASHEncoder):
         super().__init__(crf, 2, "yuv444p10le", "libaom-av1")
 
     def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
-        width_max, height_max, width_small, height_small, gop_size, crf, lt_gap = self.cals_encoding_params(input_file)
+        width_max, height_max, width_small, height_small, gop_size, crf, lt_gap, fps = \
+            self.cals_encoding_params(input_file)
 
         commandline = [
             "ffmpeg",
@@ -178,16 +185,18 @@ class DASHLoopEncoder(DASHEncoder):
             "-c:v:1", "libx264",
             '-threads', str(config.dash_encoding_threads),
             "-preset:v:1", "veryslow",
+            "-level:v:1", "3.1",
             "-keyint_min", str(gop_size),
             "-g", str(gop_size),
             "-sc_threshold", "0",
             "-c:a", "copy",
-            "-dash_segment_type", "mp4",
+            "-dash_segment_type", "auto",
             "-seg_duration", "10",
             "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
             "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
             "-adaptation_sets", "id=0,streams=v id=1,streams=a",
-            "-f", "dash"]
+            "-f", "dash"
+        ]
         output_file = output_file.with_suffix(".mpd")
         commandline += [
             output_file
@@ -202,37 +211,144 @@ class DashVideoEncoder(DASHEncoder):
     def __init__(self, crf: int):
         super().__init__(crf, 10, "yuv420p10le", "libaom-av1")
 
-    def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
-        width_max, height_max, width_small, height_small, gop_size, crf, lt_gap = self.cals_encoding_params(input_file)
+    @staticmethod
+    def get_keyframes(ffprobe_json_output):
+        key_frames = []
 
-        commandline = [
-            "ffmpeg",
+        frames = json.loads(str(ffprobe_json_output, "utf-8"))["frames"]
+        for frame_num, frame in enumerate(frames):
+            if frame["key_frame"] == 1:
+                key_frames.append(frame_num)
+
+        return key_frames
+
+    def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
+        width_max, height_max, width_small, height_small, gop_size, crf, lt_gap, fps = \
+            self.cals_encoding_params(input_file)
+
+        lt_video_file = tempfile.NamedTemporaryFile(suffix=".mp4")
+
+        low_tier_transcoding_commandline = [
+            "ffmpeg"]
+        low_tier_transcoding_commandline += ffmpeg.set_loglevel(logging.root.level)
+        low_tier_transcoding_commandline += [
+            "-y",
             "-i", input_file,
             "-map", "0:v",
-            "-map", "0:v",
-            "-map", "0:a?",
-            "-s:v:0", f"{width_max}x{height_max}",
-            "-s:v:1", f"{width_small}x{height_small}",
-            "-pix_fmt:0", self._target_pixel_format,
-            "-pix_fmt:1", "yuv420p",
-            "-c:v:0", self._target_encoder,
-            "-cpu-used", "4",
-            "-b:v:0", "0",
-            "-crf:0", str(crf),
-            "-crf:1", str(crf - lt_gap),
-            "-c:v:1", "libx264",
-            '-threads', str(config.dash_encoding_threads),
-            "-preset:v:1", "veryslow",
-            "-keyint_min", str(gop_size),
+            "-s", f"{width_small}x{height_small}",
+            "-pix_fmt", "yuv420p",
+            "-crf", str(crf),
+            "-c:v", "libx264",
+            "-level:v:0", "4.1",
+            '-threads', str(config.encoding_threads),
+            "-preset:v:0", "veryslow",
             "-g", str(gop_size),
-            "-sc_threshold", "0",
-            "-c:a", "copy",
-            "-dash_segment_type", "mp4",
+            "-keyint_min", str(int(round(fps * 0.5))),
+            lt_video_file.name
+        ]
+
+        ht_video_file = None
+        av1an_scenes_file = None
+        commandline = [
+            "ffmpeg",
+        ]
+        commandline += ffmpeg.set_loglevel(logging.root.level)
+
+        av1_rfc_codec_string = None
+
+        if width_max <= 720 or height_max <= 720:
+            commandline += [
+                "-i", lt_video_file.name,
+                "-i", input_file,
+                "-map", "0:v",
+                "-map", "2:a:0?",
+                "-c:v", "copy"
+            ]
+        else:
+            subprocess.run(low_tier_transcoding_commandline)
+
+            lt_keyframes_json = subprocess.check_output(
+                ["ffprobe"] + ffmpeg.set_loglevel(logging.root.level) + [
+                    "-print_format", "json",
+                    "-show_frames",
+                    "-show_entries", "frame=key_frame",
+                    lt_video_file.name
+                ]
+            )
+
+            scenes = DashVideoEncoder.get_keyframes(lt_keyframes_json)
+
+            logger.info("SCENES: {}".format(", ".join(str(scene) for scene in scenes)))
+
+            orig_keyframes_json = subprocess.check_output(
+                ["ffprobe"] + ffmpeg.set_loglevel(logging.root.level) + [
+                    "-print_format", "json",
+                    "-show_frames",
+                    "-show_entries", "frame=stream_index",
+                    str(input_file)
+                ]
+            )
+
+            origin_frames = json.loads(str(orig_keyframes_json, "utf-8"))['frames']
+            frames_count = 0
+            for frame in origin_frames:
+                if frame["stream_index"] == 0:
+                    frames_count += 1
+
+            av1an_scenes = {"scenes": scenes, "frames": frames_count}
+
+            ht_video_file = pathlib.Path(
+                ''.join(random.choice(string.ascii_lowercase) for i in range(16))
+            ).with_suffix(".mkv")
+
+            av1an_scenes_file = pathlib.Path(
+                ''.join(random.choice(string.ascii_lowercase) for i in range(16))
+            ).with_suffix(".json")
+            with av1an_scenes_file.open("w") as f:
+                json.dump(av1an_scenes, f)
+
+            av1an_commandline = "av1an -i \"{}\" -o \"{}\" -v \"--cpu-used=4 --kf-max-dist={} --kf-min-dist={} ".format(
+                input_file, ht_video_file.name, str(gop_size), str(gop_size)
+            )
+
+            if width_max <= 1920 and height_max <= 1920:
+                av1an_commandline += "--sb-size=64 "
+            if config.av1an_aomenc_threads >= 2 and 1024 <= width_max <= 1920:
+                av1an_commandline += "--tile-columns=1 "
+
+            av1an_commandline += "--threads={} --end-usage=q --cq-level={} --lag-in-frames=48 --enable-qm=1 --enable-fwd-kf=0 --enable-chroma-deltaq=0 --enable-keyframe-filtering=1 --arnr-strength=1\" -w {} -s {} -a=\"-an\" --passes=1".format(
+                config.av1an_aomenc_threads, crf, config.dash_encoding_threads, av1an_scenes_file.name
+            )
+            if logging.root.level >= logging.ERROR:
+                av1an_commandline += " --quiet"
+            av1an_commandline = shlex.split(av1an_commandline)
+            logger.debug(av1an_commandline.__repr__())
+            subprocess.run(av1an_commandline)
+
+            commandline += [
+                "-i", ht_video_file.name,
+                "-i", lt_video_file.name,
+                "-i", input_file,
+                "-map", "0:v",
+                "-map", "1:v",
+                "-map", "2:a:0?",
+                "-c:v", "copy"
+            ]
+        source_data = ffmpeg.probe(input_file)
+        audio = ffmpeg.parser.find_audio_streams(source_data)
+        if len(audio) and audio[0]["codec_name"] in {"aac", "vorbis", "opus"} and audio[0]["channels"] <= 2:
+            commandline += ["-c:a", "copy"]
+        elif len(audio):
+            commandline += ["-a:c", "2", "-c:a", "libopus", "-b:a", "{}k".format(config.opus_stereo_bitrate_kbps)]
+        commandline += [
+            "-dash_segment_type", "auto",
             "-seg_duration", "10",
             "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
             "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
             "-adaptation_sets", "id=0,streams=v id=1,streams=a",
-            "-f", "dash"]
+            "-f", "dash"
+        ]
+        ht_init = output_file.with_name("{}-init-0.m4s".format(output_file.name))
         output_file = output_file.with_suffix(".mpd")
         commandline += [
             output_file
@@ -240,5 +356,23 @@ class DashVideoEncoder(DASHEncoder):
         subprocess.call(
             commandline
         )
+        lt_video_file.close()
+        if ht_video_file is not None:
+            mp4box_info_process = subprocess.run(["MP4Box", "-info", ht_init], stderr=subprocess.PIPE)
+            mp4box_output = io.StringIO(str(mp4box_info_process.stderr, "utf-8"))
+            rfc_codec_params_label: Final[str] = "RFC6381 Codec Parameters: "
+            for line in mp4box_output:
+                if rfc_codec_params_label in line:
+                    av1_rfc_codec_string = line.strip()[len(rfc_codec_params_label):]
+
+            ht_video_file.unlink()
+        if av1an_scenes_file is not None:
+            av1an_scenes_file.unlink()
+        if av1_rfc_codec_string is not None:
+            mpd_document: xml.dom.minidom.Document = xml.dom.minidom.parse(str(output_file))
+            av1_representation_element: xml.dom.minidom.Element = mpd_document.getElementsByTagName("Representation")[0]
+            av1_representation_element.setAttribute("codecs", av1_rfc_codec_string)
+            with output_file.open(mode="w") as f:
+                mpd_document.writexml(f)
         return output_file
 
