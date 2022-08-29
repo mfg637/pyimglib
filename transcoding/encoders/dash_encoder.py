@@ -339,7 +339,7 @@ class DashVideoEncoder(DASHEncoder):
         if len(audio) and audio[0]["codec_name"] in {"aac", "vorbis", "opus"} and audio[0]["channels"] <= 2:
             commandline += ["-c:a", "copy"]
         elif len(audio):
-            commandline += ["-a:c", "2", "-c:a", "libopus", "-b:a", "{}k".format(config.opus_stereo_bitrate_kbps)]
+            commandline += ["-ac", "2", "-c:a", "libopus", "-b:a", "{}k".format(config.opus_stereo_bitrate_kbps)]
         commandline += [
             "-dash_segment_type", "auto",
             "-seg_duration", "10",
