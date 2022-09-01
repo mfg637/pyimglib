@@ -170,13 +170,13 @@ class PNGFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRem
     def _optimisations_failed(self):
         if self._animated:
             self.anim_transcoding_failed()
-        logging.warning("save " + self._source)
+        logging.warning("save {}".format(self._source))
         if self._output_file is not None:
             self._output_file.unlink(missing_ok=True)
         return self._source
 
     def _all_optimisations_failed(self):
-        logging.warning("save " + self._source)
+        logging.warning("save {}".format(self._source))
         if self._output_file is not None:
             self._output_file.unlink(missing_ok=True)
 
