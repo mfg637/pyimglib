@@ -53,7 +53,7 @@ class GIFTranscode(base_transcoder.BaseTranscoder):
                 else:
                     self._output_size = os.path.getsize(self._output_file)
             except FileNotFoundError:
-                raise base_transcoder.NotOptimizableSourceException()
+                raise base_transcoder.NotSupportedSourceException()
         else:
             self._lossy_encoder: encoders.Encoder = self.lossy_encoder_type(self._source, img)
 
@@ -69,7 +69,7 @@ class GIFTranscode(base_transcoder.BaseTranscoder):
                     img.load()
             except OSError as e:
                 self._invalid_file_exception_handle(e)
-                raise base_transcoder.NotOptimizableSourceException()
+                raise base_transcoder.NotSupportedSourceException()
             ratio = 80
             self._lossy_data = self._lossy_encoder.encode(self._quality)
             self._output_size = len(self._lossy_data)

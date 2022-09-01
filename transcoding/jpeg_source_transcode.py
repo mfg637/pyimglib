@@ -82,7 +82,7 @@ class JPEGTranscode(base_transcoder.BaseTranscoder):
                     img.load()
             except OSError as e:
                 self._invalid_file_exception_handle(e)
-                raise base_transcoder.NotOptimizableSourceException()
+                raise base_transcoder.NotSupportedSourceException()
             ratio = 80
             self._lossy_data = self._lossy_encoder.encode(self._quality)
             self._output_size = len(self._lossy_data)
@@ -162,7 +162,7 @@ class JPEGFileTranscode(base_transcoder.FilePathSource, base_transcoder.Unremova
             if is_arithmetic_jpg(self._source):
                 raise base_transcoder.AlreadyOptimizedSourceException()
         except OSError:
-            raise base_transcoder.NotOptimizableSourceException()
+            raise base_transcoder.NotSupportedSourceException()
 
     def _get_source_data(self):
         source_file = open(self._source, 'br')

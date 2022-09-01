@@ -60,7 +60,7 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
                 else:
                     self._output_size = os.path.getsize(self._anim_output_filename)
             except FileNotFoundError:
-                raise base_transcoder.NotOptimizableSourceException()
+                raise base_transcoder.NotSupportedSourceException()
             else:
                 self._output_file = self._anim_output_filename
             img.close()
@@ -96,7 +96,7 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
         if self._animated:
             return
         if img.mode in {'1', 'P', 'PA'}:
-            raise base_transcoder.NotOptimizableSourceException()
+            raise base_transcoder.NotSupportedSourceException()
         self._lossless = True \
             if noise_detection.noise_detection(img) == noise_detection.NoisyImageEnum.NOISELESS else False
         try:
@@ -110,7 +110,7 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
                 img.load()
         except OSError as e:
             self._invalid_file_exception_handle(e)
-            raise base_transcoder.NotOptimizableSourceException()
+            raise base_transcoder.NotSupportedSourceException()
         ratio = 80
         if self._force_lossless:
             self._quality = 100
