@@ -259,6 +259,8 @@ class DashVideoEncoder(DASHEncoder):
 
         av1_rfc_codec_string = None
 
+        subprocess.run(low_tier_transcoding_commandline)
+
         if width_max <= 720 or height_max <= 720:
             commandline += [
                 "-i", lt_video_file.name,
@@ -268,8 +270,6 @@ class DashVideoEncoder(DASHEncoder):
                 "-c:v", "copy"
             ]
         else:
-            subprocess.run(low_tier_transcoding_commandline)
-
             lt_keyframes_json = subprocess.check_output(
                 ["ffprobe"] + ffmpeg.set_loglevel(logging.root.level) + [
                     "-print_format", "json",
