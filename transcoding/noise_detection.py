@@ -25,5 +25,5 @@ def noise_detection(img:Image.Image) -> NoisyImageEnum:
     )
     pixels = img.size[0] * img.size[1]
     noise_ratio = 1 - (img2.convert('L').histogram()[0] / pixels)
-    logging.debug("noise ratio", noise_ratio)
+    logging.debug("noise ratio: {}".format(noise_ratio))
     return NoisyImageEnum.NOISELESS if noise_ratio < 0.2 else NoisyImageEnum.NOISY

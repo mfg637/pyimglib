@@ -16,7 +16,7 @@ class AlreadyOptimizedSourceException(Exception):
     pass
 
 
-class NotOptimizableSourceException(Exception):
+class NotSupportedSourceException(Exception):
     pass
 
 
@@ -76,14 +76,12 @@ class BaseTranscoder:
         self._size = self._get_source_size()
         try:
             self._encode()
-        except NotOptimizableSourceException:
-            self._optimisations_failed()
-            return 0, 0, 0, 0
         except (
-            AlreadyOptimizedSourceException,
-            NotOptimizableSourceException
+                AlreadyOptimizedSourceException,
+                NotSupportedSourceException
         ):
-            return 0, 0, 0, 0
+            output_file = self._optimisations_failed()
+            return 0, 0, 0, 0, output_file
         self._record_timestamps()
         if (self._size > self._output_size) and (self._output_size > 0):
             output_file = self._save()

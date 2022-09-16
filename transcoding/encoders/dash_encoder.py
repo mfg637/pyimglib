@@ -122,14 +122,17 @@ class DASHEncoder(VideoEncoder):
         for file in files:
             file.unlink()
 
-    def cals_encoding_params(self, input_file: pathlib.Path):
+    def calc_encoding_params(self, input_file: pathlib.Path, strict=False):
         src_metadata = ffmpeg.probe(input_file)
         video = ffmpeg.parser.find_video_stream(src_metadata)
         fps = ffmpeg.parser.get_fps(video)
 
         limited_min_size = 720
         lt_gap = config.dash_low_tier_crf_gap
-        if fps > 31:
+        max_lt_fps = 31
+        if strict:
+            max_lt_fps = 30
+        if fps > max_lt_fps:
             lt_gap = max(int(lt_gap / 2), 1)
             limited_min_size = 360
 
@@ -164,7 +167,7 @@ class DASHLoopEncoder(DASHEncoder):
 
     def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
         width_max, height_max, width_small, height_small, gop_size, crf, lt_gap, fps = \
-            self.cals_encoding_params(input_file)
+            self.calc_encoding_params(input_file, strict=True)
 
         commandline = [
             "ffmpeg",
@@ -224,7 +227,7 @@ class DashVideoEncoder(DASHEncoder):
 
     def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
         width_max, height_max, width_small, height_small, gop_size, crf, lt_gap, fps = \
-            self.cals_encoding_params(input_file)
+            self.calc_encoding_params(input_file)
 
         lt_video_file = tempfile.NamedTemporaryFile(suffix=".mp4")
 
@@ -256,6 +259,8 @@ class DashVideoEncoder(DASHEncoder):
 
         av1_rfc_codec_string = None
 
+        subprocess.run(low_tier_transcoding_commandline)
+
         if width_max <= 720 or height_max <= 720:
             commandline += [
                 "-i", lt_video_file.name,
@@ -265,8 +270,6 @@ class DashVideoEncoder(DASHEncoder):
                 "-c:v", "copy"
             ]
         else:
-            subprocess.run(low_tier_transcoding_commandline)
-
             lt_keyframes_json = subprocess.check_output(
                 ["ffprobe"] + ffmpeg.set_loglevel(logging.root.level) + [
                     "-print_format", "json",

@@ -60,7 +60,7 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
                 else:
                     self._output_size = os.path.getsize(self._anim_output_filename)
             except FileNotFoundError:
-                raise base_transcoder.NotOptimizableSourceException()
+                raise base_transcoder.NotSupportedSourceException()
             else:
                 self._output_file = self._anim_output_filename
             img.close()
@@ -96,7 +96,7 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
         if self._animated:
             return
         if img.mode in {'1', 'P', 'PA'}:
-            raise base_transcoder.NotOptimizableSourceException()
+            raise base_transcoder.NotSupportedSourceException()
         self._lossless = True \
             if noise_detection.noise_detection(img) == noise_detection.NoisyImageEnum.NOISELESS else False
         try:
@@ -110,7 +110,7 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
                 img.load()
         except OSError as e:
             self._invalid_file_exception_handle(e)
-            raise base_transcoder.NotOptimizableSourceException()
+            raise base_transcoder.NotSupportedSourceException()
         ratio = 80
         if self._force_lossless:
             self._quality = 100
@@ -121,10 +121,10 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
             if self._lossless:
                 ratio = 40
                 self._lossless_data = self._lossless_encoder.encode(100)
-                logging.debug("lossless size", len(self._lossless_data))
+                logging.debug("lossless size {}".format(len(self._lossless_data)))
             self._lossy_data = self._lossy_encoder.encode(self._quality)
             if self._lossless:
-                logging.debug("lossy size", len(self._lossy_data), "quality", self._quality)
+                logging.debug("lossy size {} quality {}".format(len(self._lossy_data), self._quality))
             if self._lossless and len(self._lossless_data) < len(self._lossy_data):
                 self._lossless = True
                 self._lossy_data = None
@@ -170,13 +170,13 @@ class PNGFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRem
     def _optimisations_failed(self):
         if self._animated:
             self.anim_transcoding_failed()
-        logging.warning("save " + self._source)
+        logging.warning("save {}".format(self._source))
         if self._output_file is not None:
             self._output_file.unlink(missing_ok=True)
         return self._source
 
     def _all_optimisations_failed(self):
-        logging.warning("save " + self._source)
+        logging.warning("save {}".format(self._source))
         if self._output_file is not None:
             self._output_file.unlink(missing_ok=True)
 
