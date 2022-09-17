@@ -115,7 +115,7 @@ class UnremovableSource(BaseTranscoder):
 class FilePathSource(BaseTranscoder):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, source: str, path: pathlib.Path, file_name: str):
+    def __init__(self, source: pathlib.Path, path: pathlib.Path, file_name: str):
         BaseTranscoder.__init__(self, source, path, file_name)
         self._tmp_src = None
 

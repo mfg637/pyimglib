@@ -156,7 +156,7 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
 
 
 class PNGFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRemovable, PNGTranscode):
-    def __init__(self, source: str, path: pathlib.Path, file_name: str, force_lossless):
+    def __init__(self, source: pathlib.Path, path: pathlib.Path, file_name: str, force_lossless):
         base_transcoder.FilePathSource.__init__(self, source, path, file_name)
         PNGTranscode.__init__(self, source, path, file_name, force_lossless)
 

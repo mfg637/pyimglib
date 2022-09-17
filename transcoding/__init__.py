@@ -21,22 +21,20 @@ logger = logging.getLogger(__name__)
 
 
 # derpibooru-dl exclusive
-def check_exists(source, path, filename):
-    fname = os.path.join(path, filename)
-    if os.path.splitext(source)[1].lower() == '.png':
-        return os.path.isfile(fname + '.webp') \
-               or os.path.isfile(fname + '.webm') \
-               or os.path.isfile(fname + '.avif')
-    elif os.path.splitext(source)[1].lower() in {'.jpg', '.jpeg'}:
-        return os.path.isfile(fname + '.webp')
-    elif os.path.splitext(source)[1].lower() == '.gif':
-        return os.path.isfile(fname + '.webp') or os.path.isfile(fname+'.webm')
+def get_trancoded_file(source: pathlib.Path, path: pathlib.Path, filename: str):
+    fname = path.joinpath(filename)
+    suffixes: list[str] = ['.webp', '.webm', '.avif', '.mpd', '.srs']
+    for suffix in suffixes:
+        filepath = fname.with_suffix(suffix)
+        if filepath.is_file():
+            return filepath
+    return None
 
 
 def get_file_transcoder(
-        source: str, path: pathlib.Path, filename: str, force_lossless=False
+        source: pathlib.Path, path: pathlib.Path, filename: str, force_lossless=False
     ):
-    if os.path.splitext(source)[1].lower() == '.png':
+    if source.suffix.lower() == '.png':
         png_transcoder = png_source_transcode.PNGFileTranscode(source, path, filename, force_lossless)
         if config.preferred_codec in {config.PREFERRED_CODEC.AVIF, config.PREFERRED_CODEC.DASH_AVIF}:
             png_transcoder.lossy_encoder_type = encoders.avif_encoder.AVIFEncoder
@@ -51,7 +49,7 @@ def get_file_transcoder(
             png_transcoder.lossy_encoder_type = encoders.webp_encoder.WEBPEncoder
             png_transcoder.animation_encoder_type = encoders.webm_encoder.VP9Encoder
             return png_transcoder
-    elif os.path.splitext(source)[1].lower() in {'.jpg', '.jpeg'}:
+    elif source.suffix.lower() in {'.jpg', '.jpeg'}:
         # if config.jpeg_xl_tools_path is not None:
         jpeg_transcoder = jpeg_source_transcode.JPEGFileTranscode(source, path, filename)
         if config.preferred_codec in {config.PREFERRED_CODEC.AVIF, config.PREFERRED_CODEC.DASH_AVIF}:
@@ -59,7 +57,7 @@ def get_file_transcoder(
         elif config.preferred_codec == config.PREFERRED_CODEC.WEBP or config.preferred_codec is None:
             jpeg_transcoder.lossy_encoder_type = encoders.webp_encoder.WEBPEncoder
         return jpeg_transcoder
-    elif os.path.splitext(source)[1].lower() == '.gif':
+    elif source.suffix.lower() == '.gif':
         gif_transcoder = gif_source_transcode.GIFFileTranscode(source, path, filename)
         if config.preferred_codec in {config.PREFERRED_CODEC.AVIF, config.PREFERRED_CODEC.DASH_AVIF}:
             gif_transcoder.lossy_encoder_type = encoders.avif_encoder.AVIFEncoder
