@@ -266,7 +266,7 @@ class DashVideoEncoder(DASHEncoder):
                 "-i", lt_video_file.name,
                 "-i", input_file,
                 "-map", "0:v",
-                "-map", "2:a:0?",
+                "-map", "1:a:0?",
                 "-c:v", "copy"
             ]
         else:
