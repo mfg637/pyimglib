@@ -239,6 +239,7 @@ class DashVideoEncoder(DASHEncoder):
             "-i", input_file,
             "-map", "0:v",
             "-s", f"{width_small}x{height_small}",
+            "-vf", "setsar=1",
             "-pix_fmt", "yuv420p",
             "-crf", str(crf),
             "-c:v", "libx264",
