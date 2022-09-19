@@ -118,9 +118,11 @@ class DASHEncoder(VideoEncoder):
 
     @staticmethod
     def delete_result(mpd_file: pathlib.Path):
-        files = DASHEncoder.get_files(mpd_file)
-        for file in files:
-            file.unlink()
+        if mpd_file.is_file():
+            print(mpd_file)
+            files = DASHEncoder.get_files(mpd_file)
+            for file in files:
+                file.unlink()
 
     def calc_encoding_params(self, input_file: pathlib.Path, strict=False):
         src_metadata = ffmpeg.probe(input_file)
