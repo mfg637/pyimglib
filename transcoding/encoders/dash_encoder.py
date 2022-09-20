@@ -342,7 +342,8 @@ class DashVideoEncoder(DASHEncoder):
             ]
         source_data = ffmpeg.probe(input_file)
         audio = ffmpeg.parser.find_audio_streams(source_data)
-        if len(audio) and audio[0]["codec_name"] in {"aac", "vorbis", "opus"} and audio[0]["channels"] <= 2:
+        if not config.force_audio_transcode and \
+                len(audio) and audio[0]["codec_name"] in {"aac", "vorbis", "opus"} and audio[0]["channels"] <= 2:
             commandline += ["-c:a", "copy"]
         elif len(audio):
             commandline += ["-ac", "2", "-c:a", "libopus", "-b:a", "{}k".format(config.opus_stereo_bitrate_kbps)]

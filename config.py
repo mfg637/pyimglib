@@ -69,6 +69,7 @@ opus_stereo_bitrate_kbps = 96
 avifenc_qdeviation = 5
 
 allow_rewrite = False
+force_audio_transcode = False
 
 WEBP_QSCALE = 1.375
 SRS_QSCALE = 1.25
