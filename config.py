@@ -27,7 +27,8 @@ class AVIF_DECODING_SPEED(enum.Enum):
 
 
 avif_decoding_speed = AVIF_DECODING_SPEED.SLOW
-avifenc_encoding_speed = 0
+avifenc_encoding_speed = 2
+aomenc_cpu_usage = 4
 
 # Max image size
 # works if image optimisations is enabled

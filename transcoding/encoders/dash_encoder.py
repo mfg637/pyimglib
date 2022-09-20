@@ -183,7 +183,7 @@ class DASHLoopEncoder(DASHEncoder):
             "-pix_fmt:0", self._target_pixel_format,
             "-pix_fmt:1", "yuv420p",
             "-c:v:0", self._target_encoder,
-            "-cpu-used", "4",
+            "-cpu-used", str(config.aomenc_cpu_usage),
             "-b:v:0", "0",
             "-crf:0", str(crf),
             "-crf:1", str(crf - lt_gap),
@@ -313,8 +313,8 @@ class DashVideoEncoder(DASHEncoder):
             with av1an_scenes_file.open("w") as f:
                 json.dump(av1an_scenes, f)
 
-            av1an_commandline = "av1an -i \"{}\" -o \"{}\" -v \"--cpu-used=4 --kf-max-dist={} --kf-min-dist={} ".format(
-                input_file, ht_video_file.name, str(gop_size), str(gop_size)
+            av1an_commandline = "av1an -i \"{}\" -o \"{}\" -v \"--cpu-used={} --kf-max-dist={} --kf-min-dist={} ".format(
+                input_file, ht_video_file.name, config.aomenc_cpu_usage, gop_size, gop_size
             )
 
             if width_max <= 1920 and height_max <= 1920:
