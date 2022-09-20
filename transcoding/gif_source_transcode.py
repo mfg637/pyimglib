@@ -100,7 +100,7 @@ class GIFTranscode(base_transcoder.BaseTranscoder):
 
 class GIFFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRemovable, GIFTranscode):
 
-    def __init__(self, source: str, path: pathlib.Path, file_name: str):
+    def __init__(self, source: pathlib.Path, path: pathlib.Path, file_name: str):
         GIFTranscode.__init__(self, source, path, file_name)
         base_transcoder.FilePathSource.__init__(self, source, path, file_name)
         img = Image.open(source)

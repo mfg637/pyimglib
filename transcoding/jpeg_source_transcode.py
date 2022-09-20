@@ -146,7 +146,7 @@ class JPEGTranscode(base_transcoder.BaseTranscoder):
 
 
 class JPEGFileTranscode(base_transcoder.FilePathSource, base_transcoder.UnremovableSource, JPEGTranscode):
-    def __init__(self, source: str, path: pathlib.Path, file_name: str):
+    def __init__(self, source: pathlib.Path, path: pathlib.Path, file_name: str):
         base_transcoder.FilePathSource.__init__(self, source, path, file_name)
         base_transcoder.UnremovableSource.__init__(self, source, path, file_name)
         JPEGTranscode.__init__(self, source, path, file_name)

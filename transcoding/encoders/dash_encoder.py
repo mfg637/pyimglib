@@ -118,9 +118,11 @@ class DASHEncoder(VideoEncoder):
 
     @staticmethod
     def delete_result(mpd_file: pathlib.Path):
-        files = DASHEncoder.get_files(mpd_file)
-        for file in files:
-            file.unlink()
+        if mpd_file.is_file():
+            print(mpd_file)
+            files = DASHEncoder.get_files(mpd_file)
+            for file in files:
+                file.unlink()
 
     def calc_encoding_params(self, input_file: pathlib.Path, strict=False):
         src_metadata = ffmpeg.probe(input_file)
@@ -239,6 +241,7 @@ class DashVideoEncoder(DASHEncoder):
             "-i", input_file,
             "-map", "0:v",
             "-s", f"{width_small}x{height_small}",
+            "-vf", "setsar=1",
             "-pix_fmt", "yuv420p",
             "-crf", str(crf),
             "-c:v", "libx264",
@@ -266,7 +269,7 @@ class DashVideoEncoder(DASHEncoder):
                 "-i", lt_video_file.name,
                 "-i", input_file,
                 "-map", "0:v",
-                "-map", "2:a:0?",
+                "-map", "1:a:0?",
                 "-c:v", "copy"
             ]
         else:
