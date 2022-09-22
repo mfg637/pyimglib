@@ -183,7 +183,7 @@ class DASHLoopEncoder(DASHEncoder):
             "-pix_fmt:0", self._target_pixel_format,
             "-pix_fmt:1", "yuv420p",
             "-c:v:0", self._target_encoder,
-            "-cpu-used", str(config.aomenc_cpu_usage),
+            "-cpu-used", str(config.av1_cpu_usage),
             "-b:v:0", "0",
             "-crf:0", str(crf),
             "-crf:1", str(crf - lt_gap),
@@ -215,6 +215,7 @@ class DASHLoopEncoder(DASHEncoder):
 class DashVideoEncoder(DASHEncoder):
     def __init__(self, crf: int):
         super().__init__(crf, 10, "yuv420p10le", "libaom-av1")
+        self.av1an_workers = config.dash_encoding_threads
 
     @staticmethod
     def get_keyframes(ffprobe_json_output):
@@ -226,6 +227,28 @@ class DashVideoEncoder(DASHEncoder):
                 key_frames.append(frame_num)
 
         return key_frames
+
+    def get_av1an_commandline(self, input_file, ht_video_file, gop_size, width_max, height_max, crf, av1an_scenes_file):
+        av1an_commandline = "av1an -i \"{}\" -o \"{}\" -v \"--cpu-used={} --kf-max-dist={} --kf-min-dist={} ".format(
+            input_file, ht_video_file.name, config.av1_cpu_usage, gop_size, gop_size
+        )
+
+        if width_max <= 1920 and height_max <= 1920:
+            av1an_commandline += "--sb-size=64 "
+        if config.av1an_aomenc_threads >= 2 and 1024 <= width_max <= 1920:
+            av1an_commandline += "--tile-columns=1 "
+
+        av1an_commandline += "--threads={} --end-usage=q --cq-level={}".format(
+            config.av1an_aomenc_threads, crf
+        )
+        if config.av1_cpu_usage <= 4:
+            av1an_commandline += " --lag-in-frames=48 --enable-qm=1 --enable-fwd-kf=0 --enable-chroma-deltaq=0 --enable-keyframe-filtering=1 --arnr-strength=1"
+        av1an_commandline += "\" -w {} -s {} -a=\"-an\" --passes=1".format(
+            self.av1an_workers, av1an_scenes_file.name
+        )
+        if logging.root.level >= logging.ERROR:
+            av1an_commandline += " --quiet"
+        return shlex.split(av1an_commandline)
 
     def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
         width_max, height_max, width_small, height_small, gop_size, crf, lt_gap, fps = \
@@ -313,21 +336,9 @@ class DashVideoEncoder(DASHEncoder):
             with av1an_scenes_file.open("w") as f:
                 json.dump(av1an_scenes, f)
 
-            av1an_commandline = "av1an -i \"{}\" -o \"{}\" -v \"--cpu-used={} --kf-max-dist={} --kf-min-dist={} ".format(
-                input_file, ht_video_file.name, config.aomenc_cpu_usage, gop_size, gop_size
+            av1an_commandline = self.get_av1an_commandline(
+                input_file, ht_video_file, gop_size, width_max, height_max, crf, av1an_scenes_file
             )
-
-            if width_max <= 1920 and height_max <= 1920:
-                av1an_commandline += "--sb-size=64 "
-            if config.av1an_aomenc_threads >= 2 and 1024 <= width_max <= 1920:
-                av1an_commandline += "--tile-columns=1 "
-
-            av1an_commandline += "--threads={} --end-usage=q --cq-level={} --lag-in-frames=48 --enable-qm=1 --enable-fwd-kf=0 --enable-chroma-deltaq=0 --enable-keyframe-filtering=1 --arnr-strength=1\" -w {} -s {} -a=\"-an\" --passes=1".format(
-                config.av1an_aomenc_threads, crf, config.dash_encoding_threads, av1an_scenes_file.name
-            )
-            if logging.root.level >= logging.ERROR:
-                av1an_commandline += " --quiet"
-            av1an_commandline = shlex.split(av1an_commandline)
             logger.debug(av1an_commandline.__repr__())
             subprocess.run(av1an_commandline)
 
@@ -382,4 +393,24 @@ class DashVideoEncoder(DASHEncoder):
             with output_file.open(mode="w") as f:
                 mpd_document.writexml(f)
         return output_file
+
+
+class SVTAV1DashVideoEncoder(DashVideoEncoder):
+    def __init__(self, crf: int):
+        super().__init__(crf)
+        self.av1an_workers = 1
+
+    def get_av1an_commandline(self, input_file, ht_video_file, gop_size, width_max, height_max, crf, av1an_scenes_file):
+        av1an_commandline = \
+            "av1an -i \"{}\" -o \"{}\" --encoder svt_av1 -v \"--preset {} --keyint 10s --crf {}\"".format(
+                input_file, ht_video_file.name, config.av1_cpu_usage, crf
+            )
+
+        av1an_commandline += " -w 1 -s {} -a=\"-an\" --passes=1".format(
+            config.dash_encoding_threads, av1an_scenes_file.name
+        )
+        if logging.root.level >= logging.ERROR:
+            av1an_commandline += " --quiet"
+
+        return shlex.split(av1an_commandline)
 
