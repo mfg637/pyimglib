@@ -6,6 +6,7 @@ import tempfile
 import PIL.Image
 
 from .encoder import Encoder
+from ..common import run_subprocess
 from ... import config
 
 
@@ -76,7 +77,8 @@ class AVIFEncoder(Encoder):
                 src_tmp_file_name,
                 output_tmp_file.name
             ]
-        subprocess.run(commandline)
+
+        run_subprocess(commandline, log_stdout=True)
         if src_tmp_file is not None:
             src_tmp_file.close()
         encoded_data = output_tmp_file.read()

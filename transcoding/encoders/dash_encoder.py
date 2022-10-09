@@ -206,9 +206,7 @@ class DASHLoopEncoder(DASHEncoder):
         commandline += [
             output_file
         ]
-        subprocess.call(
-            commandline
-        )
+        common.run_subprocess(commandline)
         return output_file
 
 
@@ -235,7 +233,7 @@ class DashVideoEncoder(DASHEncoder):
 
         low_tier_transcoding_commandline = [
             "ffmpeg"]
-        low_tier_transcoding_commandline += ffmpeg.set_loglevel(logging.root.level)
+        low_tier_transcoding_commandline += ['-loglevel', 'info']
         low_tier_transcoding_commandline += [
             "-y",
             "-i", input_file,
@@ -258,11 +256,11 @@ class DashVideoEncoder(DASHEncoder):
         commandline = [
             "ffmpeg",
         ]
-        commandline += ffmpeg.set_loglevel(logging.root.level)
+        commandline += ['-loglevel', 'info']
 
         av1_rfc_codec_string = None
 
-        subprocess.run(low_tier_transcoding_commandline)
+        common.run_subprocess(low_tier_transcoding_commandline)
 
         if width_max <= 720 or height_max <= 720:
             commandline += [
@@ -360,7 +358,7 @@ class DashVideoEncoder(DASHEncoder):
         commandline += [
             output_file
         ]
-        subprocess.call(
+        common.run_subprocess(
             commandline
         )
         lt_video_file.close()

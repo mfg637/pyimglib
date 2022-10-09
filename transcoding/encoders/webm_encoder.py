@@ -2,6 +2,7 @@ import pathlib
 import subprocess
 
 from ... import config
+from ..common import run_subprocess
 
 from .encoder import VideoEncoder
 
@@ -33,9 +34,7 @@ class WEBMEncoder(VideoEncoder):
                 '-f', 'webm',
                 output_file
             ]
-        subprocess.call(
-            commandline
-        )
+        run_subprocess(commandline)
         return output_file
 
 
