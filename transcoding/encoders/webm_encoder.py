@@ -8,8 +8,9 @@ from .encoder import BytesEncoder
 
 
 class WEBMEncoder(BytesEncoder):
+    SUFFIX = ".webm"
     def __init__(self, encoder: str, pixel_format: str, source: bytearray | pathlib.Path):
-        BytesEncoder.__init__(self, ".webm")
+        BytesEncoder.__init__(self, self.SUFFIX)
         self._encoder = encoder
         self._pixel_format = pixel_format
         self.source: bytearray | pathlib.Path = source

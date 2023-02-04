@@ -9,8 +9,9 @@ MAX_SIZE = 16383
 
 
 class WEBPEncoder(BytesEncoder):
+    SUFFIX = ".webp"
     def __init__(self, source, img: PIL.Image.Image):
-        BytesEncoder.__init__(self, ".webp")
+        BytesEncoder.__init__(self, self.SUFFIX)
         self.source = img
 
     def encode(self, quality, lossless=False) -> bytes:

@@ -31,7 +31,7 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
         self._lossy_data = b''
         self._force_lossless = force_lossless
         self._lossless_encoder = None
-        self._lossy_encoder = None
+        self.lossy_encoder = None
         self._animation_encoder = None
         self._anim_output_filename = None
 
@@ -86,9 +86,7 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
         if config.custom_pillow_image_limits != -1:
             PIL.Image.MAX_IMAGE_PIXELS = config.custom_pillow_image_limits
         img = self._open_image()
-        #self._core_encoder(img)
         self._lossless_encoder: encoders.BytesEncoder = self.lossless_encoder_type(self._source, img)
-        self._lossy_encoder: encoders.BytesEncoder = self.lossy_encoder_type(self._source, img)
 
         self._lossless = False
         self._animated = False
@@ -122,23 +120,45 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
                 ratio = 40
                 self._lossless_data = self._lossless_encoder.encode(100)
                 logging.debug("lossless size {}".format(len(self._lossless_data)))
-            self._lossy_data = self._lossy_encoder.encode(self._quality)
-            if self._lossless:
-                logging.debug("lossy size {} quality {}".format(len(self._lossy_data), self._quality))
-            if self._lossless and len(self._lossless_data) < len(self._lossy_data):
-                self._lossless = True
-                self._lossy_data = None
-                self._output_size = len(self._lossless_data)
-                self._quality = 100
+            if issubclass(self.lossy_encoder_type, encoders.encoder.FilesEncoder):
+                self.lossy_encoder: encoders.FilesEncoder = self.lossy_encoder_type(
+                    self._quality, self._get_source_size(), ratio
+                )
+
+                tmpfile = None
+                if type(self._source) is str:
+                    input_file = pathlib.Path(self._source)
+                elif isinstance(self._source, pathlib.Path):
+                    input_file = self._source
+                else:
+                    tmpfile = tempfile.NamedTemporaryFile(delete=True)
+                    input_file = pathlib.Path(tmpfile.name)
+                    tmpfile.write(self._source)
+
+                self._output_file = self._path.joinpath(self._file_name)
+                self._output_file = self.lossy_encoder.encode(input_file, self._output_file)
+                if tmpfile is not None:
+                    tmpfile.close()
+                self._output_size = self.lossy_encoder.calc_file_size()
             else:
-                self._lossless_data = None
-                self._lossless = False
-                self._output_size = len(self._lossy_data)
-                while ((self._output_size / self._get_source_size()) > ((100 - ratio) * 0.01)) and (self._quality >= 60):
-                    self._quality -= 5
-                    self._lossy_data = self._lossy_encoder.encode(self._quality)
+                self.lossy_encoder: encoders.BytesEncoder = self.lossy_encoder_type(self._source, img)
+                self._lossy_data = self.lossy_encoder.encode(self._quality)
+                if self._lossless:
+                    logging.debug("lossy size {} quality {}".format(len(self._lossy_data), self._quality))
+                if self._lossless and len(self._lossless_data) < len(self._lossy_data):
+                    self._lossless = True
+                    self._lossy_data = None
+                    self._output_size = len(self._lossless_data)
+                    self._quality = 100
+                else:
+                    self._lossless_data = None
+                    self._lossless = False
                     self._output_size = len(self._lossy_data)
-                    ratio = math.ceil(ratio // config.WEBP_QSCALE)
+                    while ((self._output_size / self._get_source_size()) > ((100 - ratio) * 0.01)) and (self._quality >= 60):
+                        self._quality -= 5
+                        self._lossy_data = self.lossy_encoder.encode(self._quality)
+                        self._output_size = len(self._lossy_data)
+                        ratio = math.ceil(ratio // config.WEBP_QSCALE)
         img.close()
 
     def _save(self):
@@ -149,7 +169,9 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
                 self._lossless_data, pathlib.Path(self._path), self._file_name
             )
         else:
-            self._output_file = self._lossy_encoder.save(
+            if issubclass(self.lossy_encoder_type, encoders.encoder.FilesEncoder):
+                return self._output_file
+            self._output_file = self.lossy_encoder.save(
                 self._lossy_data, pathlib.Path(self._path), self._file_name
             )
         return self._output_file
@@ -171,7 +193,9 @@ class PNGFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRem
         if self._animated:
             self.anim_transcoding_failed()
         logging.warning("save {}".format(self._source))
-        if self._output_file is not None:
+        if issubclass(self.lossy_encoder_type, encoders.encoder.FilesEncoder):
+            self.lossy_encoder.delete_result()
+        elif self._output_file is not None:
             self._output_file.unlink(missing_ok=True)
         return self._source
 
@@ -194,6 +218,8 @@ class PNGInMemoryTranscode(base_transcoder.InMemorySource, PNGTranscode):
         if self._animated:
             return self.anim_transcoding_failed()
         else:
+            if not self._lossless and issubclass(self.lossy_encoder_type, encoders.encoder.FilesEncoder):
+                self.lossy_encoder.delete_result()
             self._output_file = self._output_file.with_suffix(".png")
             outfile = open(self._output_file, "bw")
             outfile.write(self._source)

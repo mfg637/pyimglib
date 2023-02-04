@@ -11,8 +11,9 @@ from ... import config
 
 
 class AVIFEncoder(BytesEncoder):
+    SUFFIX = ".avif"
     def __init__(self, source, img: PIL.Image.Image):
-        BytesEncoder.__init__(self, ".avif")
+        BytesEncoder.__init__(self, self.SUFFIX)
         self._source = source
         self._img = img
 

@@ -7,6 +7,7 @@ class PREFERRED_CODEC(enum.Enum):
     WEBP = enum.auto()
     AVIF = enum.auto()
     DASH_AVIF = enum.auto()
+    DASH_SRS = enum.auto()
 
 
 preferred_codec = PREFERRED_CODEC.WEBP
@@ -48,7 +49,7 @@ class YUV4MPEG2_LIMITED_RANGE_CORRENTION_MODES(enum.Enum):
 
 yuv4mpeg2_limited_range_correction = YUV4MPEG2_LIMITED_RANGE_CORRENTION_MODES.CLIPPING
 
-srs_webp_size_limit = 2048
+srs_cl3_size_limit = 2048
 srs_avif_trigger_size = 2560
 srs_thumbnail_for_lossless_trigger_size = 4096
 

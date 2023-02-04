@@ -5,6 +5,7 @@ import math
 import os
 import pathlib
 import subprocess
+import tempfile
 
 import PIL.Image
 
@@ -70,35 +71,58 @@ class JPEGTranscode(base_transcoder.BaseTranscoder):
         img = self._open_image()
         if self.size_treshold(img):
             self._lossy_output = True
-            self._lossy_encoder: encoders.BytesEncoder = self.lossy_encoder_type(self._source, img)
-            try:
-                if isinstance(self.lossy_encoder_type, encoders.webp_encoder.WEBPEncoder) and \
-                        (img.width > encoders.webp_encoder.MAX_SIZE) | (img.height > encoders.webp_encoder.MAX_SIZE):
-                    img.thumbnail(
-                        (encoders.webp_encoder.MAX_SIZE, encoders.webp_encoder.MAX_SIZE),
-                        PIL.Image.Resampling.LANCZOS
-                    )
+            if issubclass(self.lossy_encoder_type, encoders.encoder.FilesEncoder):
+                self._lossy_encoder: encoders.FilesEncoder = self.lossy_encoder_type(
+                    self._quality, self._get_source_size(), 80
+                )
+
+                tmpfile = None
+                if type(self._source) is str:
+                    input_file = pathlib.Path(self._source)
+                elif isinstance(self._source, pathlib.Path):
+                    input_file = self._source
                 else:
-                    img.load()
-            except OSError as e:
-                self._invalid_file_exception_handle(e)
-                raise base_transcoder.NotSupportedSourceException()
-            ratio = 80
-            self._lossy_data = self._lossy_encoder.encode(self._quality)
-            self._output_size = len(self._lossy_data)
-            while ((self._output_size / self._get_source_size()) > ((100 - ratio) * 0.01)) \
-                    and (self._quality >= 60):
-                self._quality -= 5
+                    tmpfile = tempfile.NamedTemporaryFile(delete=True)
+                    input_file = pathlib.Path(tmpfile.name)
+                    tmpfile.write(self._source)
+
+                self._output_file = self._path.joinpath(self._file_name)
+                self._output_file = self._lossy_encoder.encode(input_file, self._output_file)
+                if tmpfile is not None:
+                    tmpfile.close()
+                self._output_size = self._lossy_encoder.calc_file_size()
+            else:
+                self._lossy_encoder: encoders.BytesEncoder = self.lossy_encoder_type(self._source, img)
+                try:
+                    if isinstance(self.lossy_encoder_type, encoders.webp_encoder.WEBPEncoder) and \
+                            (img.width > encoders.webp_encoder.MAX_SIZE) | (img.height > encoders.webp_encoder.MAX_SIZE):
+                        img.thumbnail(
+                            (encoders.webp_encoder.MAX_SIZE, encoders.webp_encoder.MAX_SIZE),
+                            PIL.Image.Resampling.LANCZOS
+                        )
+                    else:
+                        img.load()
+                except OSError as e:
+                    self._invalid_file_exception_handle(e)
+                    raise base_transcoder.NotSupportedSourceException()
+                ratio = 80
                 self._lossy_data = self._lossy_encoder.encode(self._quality)
                 self._output_size = len(self._lossy_data)
-                ratio = math.ceil(ratio // config.WEBP_QSCALE)
-            img.close()
+                while ((self._output_size / self._get_source_size()) > ((100 - ratio) * 0.01)) \
+                        and (self._quality >= 60):
+                    self._quality -= 5
+                    self._lossy_data = self._lossy_encoder.encode(self._quality)
+                    self._output_size = len(self._lossy_data)
+                    ratio = math.ceil(ratio // config.WEBP_QSCALE)
+                img.close()
         else:
             img.close()
             self.lossless_encode()
 
     def _save(self):
         if self._lossy_output:
+            if issubclass(self.lossy_encoder_type, encoders.encoder.FilesEncoder):
+                return self._output_file
             self._output_file = self._lossy_encoder.save(self._lossy_data, self._path, self._file_name)
             return self._output_file
         else:
@@ -107,42 +131,6 @@ class JPEGTranscode(base_transcoder.BaseTranscoder):
             outfile.write(self._optimized_data)
             outfile.close()
             return fname
-
-
-# class AVIF_JPEG_Transcoder(JPEGTranscode, avif_transcoder.AVIF_WEBP_output):
-#     __metaclass__ = abc.ABCMeta
-#
-#     def get_color_profile(self):
-#         subsampling = decoders.jpeg.read_frame_data(self._get_source_data())[1]
-#         return self.get_color_profile_by_subsampling(subsampling)
-#
-#     def __init__(self, source, path: str, file_name: str, item_data: dict):
-#         JPEGTranscode.__init__(self, source, path, file_name, item_data)
-#         avif_transcoder.AVIF_WEBP_output.__init__(self, source, path, file_name, item_data)
-#
-#     def _transparency_check(self, img):
-#         return False
-
-
-# class SRS_JPEG_Transcoder(JPEGTranscode, srs_transcoder.SrsTranscoder):
-#     __metaclass__ = abc.ABCMeta
-#
-#     def get_color_profile(self):
-#         subsampling = decoders.jpeg.read_frame_data(self._get_source_data())[1]
-#         return self.get_color_profile_by_subsampling(subsampling)
-#
-#     def __init__(self, source, path: str, file_name: str, item_data: dict, metadata):
-#         JPEGTranscode.__init__(self, source, path, file_name, item_data)
-#         srs_transcoder.SrsTranscoder.__init__(self, source, path, file_name, item_data, metadata)
-#
-#     def _transparency_check(self, img):
-#         return False
-#
-#     def _encode(self):
-#         img = self._open_image()
-#         # disable arithmetic encoding for the wide compatibility (compatibility level 4 limitations)
-#         self._webp_output = True
-#         self._core_encoder(img)
 
 
 class JPEGFileTranscode(base_transcoder.FilePathSource, base_transcoder.UnremovableSource, JPEGTranscode):
@@ -207,41 +195,3 @@ class JPEGInMemoryTranscode(base_transcoder.InMemorySource, JPEGTranscode):
 
     def _invalid_file_exception_handle(self, e):
         logging.exception('invalid jpeg data')
-
-
-# class AVIF_JPEGFileTranscode(AVIF_JPEG_Transcoder, JPEGFileTranscode):
-#     def __init__(self, source: str, path: str, file_name: str, item_data: dict):
-#         JPEGFileTranscode.__init__(self, source, path, file_name)
-#         AVIF_JPEG_Transcoder.__init__(self, source, path, file_name, item_data)
-#
-#
-# class AVIF_JPEGInMemoryTranscode(AVIF_JPEG_Transcoder, JPEGInMemoryTranscode):
-#     def __init__(self, source: bytearray, path: str, file_name: str, item_data: dict):
-#         JPEGInMemoryTranscode.__init__(self, source, path, file_name)
-#         AVIF_JPEG_Transcoder.__init__(self, source, path, file_name, item_data)
-#
-#
-# class SRS_JPEGFileTranscode(SRS_JPEG_Transcoder, JPEGFileTranscode):
-#     def __init__(self, source: str, path: str, file_name: str, item_data: dict, metadata):
-#         JPEGFileTranscode.__init__(self, source, path, file_name)
-#         SRS_JPEG_Transcoder.__init__(self, source, path, file_name, item_data, metadata)
-#
-#
-# class SRS_JPEGInMemoryTranscode(SRS_JPEG_Transcoder, JPEGInMemoryTranscode):
-#     def __init__(self, source: bytearray, path: str, file_name: str, item_data: dict, metadata):
-#         JPEGInMemoryTranscode.__init__(self, source, path, file_name)
-#         SRS_JPEG_Transcoder.__init__(self, source, path, file_name, item_data, metadata)
-#
-#     def _optimisations_failed(self):
-#         JPEGInMemoryTranscode._optimisations_failed(self)
-#         srs_data = {
-#             "ftype": "CLSRS",
-#             "content": {
-#                 "media-type": 0,
-#                 "tags": dict()
-#             },
-#             "streams": {
-#                 "image": {"levels": {"4": self._file_name + ".jpg"}}
-#             }
-#         }
-#         return self._srs_write_srs(srs_data)
