@@ -41,7 +41,7 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
             #self._fext = 'webm'
             self._quality = 100 - config.APNG_VIDEOLOOP_CRF
             self._anim_output_filename = self._path.joinpath(self._file_name)
-            self._animation_encoder: encoders.VideoEncoder = self.animation_encoder_type(config.APNG_VIDEOLOOP_CRF)
+            self._animation_encoder: encoders.FilesEncoder = self.animation_encoder_type(config.APNG_VIDEOLOOP_CRF)
             tmpfile = None
             if type(self._source) is str:
                 input_file = pathlib.Path(self._source)
@@ -87,8 +87,8 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
             PIL.Image.MAX_IMAGE_PIXELS = config.custom_pillow_image_limits
         img = self._open_image()
         #self._core_encoder(img)
-        self._lossless_encoder: encoders.Encoder = self.lossless_encoder_type(self._source, img)
-        self._lossy_encoder: encoders.Encoder = self.lossy_encoder_type(self._source, img)
+        self._lossless_encoder: encoders.BytesEncoder = self.lossless_encoder_type(self._source, img)
+        self._lossy_encoder: encoders.BytesEncoder = self.lossy_encoder_type(self._source, img)
 
         self._lossless = False
         self._animated = False

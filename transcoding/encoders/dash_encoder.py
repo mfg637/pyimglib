@@ -10,7 +10,7 @@ import re
 import tempfile
 from typing import Iterable, Final
 
-from .encoder import VideoEncoder
+from .encoder import FilesEncoder
 from .. import common
 from ...decoders import ffmpeg
 from ... import config
@@ -22,12 +22,13 @@ file_template_regex = re.compile("\$[\da-zA-Z\-%]+\$")
 logger = logging.getLogger(__name__)
 
 
-class DASHEncoder(VideoEncoder):
+class DASHEncoder(FilesEncoder):
     def __init__(self, crf: int, gop_size, pix_fmt, high_tier_encoder):
         self._crf = crf
         self._target_pixel_format = pix_fmt
         self._target_encoder = high_tier_encoder
         self._gop_size = gop_size
+        self.mpd_manifest_file: pathlib.Path | None = None
 
     @staticmethod
     def calc_size(width_orig, height_orig, min_size):
@@ -84,13 +85,15 @@ class DASHEncoder(VideoEncoder):
                 height_small = height_max = int(common.bit_round(height_orig, -1))
         return width_small, height_small, width_max, height_max
 
-    @staticmethod
-    def get_files(mpd_file: pathlib.Path):
+    def get_files(self):
+        if self.mpd_manifest_file is None:
+            return []
+
         list_files = []
 
         file_templates = set()
-        parent_dir = mpd_file.parent
-        mpd_document: xml.dom.minidom.Document = xml.dom.minidom.parse(str(mpd_file))
+        parent_dir = self.mpd_manifest_file.parent
+        mpd_document: xml.dom.minidom.Document = xml.dom.minidom.parse(str(self.mpd_manifest_file))
         segment_templates: Iterable[xml.dom.minidom.Element] = mpd_document.getElementsByTagName("SegmentTemplate")
         for template in segment_templates:
             file_templates.add(file_template_regex.sub("*", template.getAttribute("initialization")))
@@ -103,26 +106,8 @@ class DASHEncoder(VideoEncoder):
                 if file.is_file():
                     list_files.append(file)
 
-        list_files.append(mpd_file)
+        list_files.append(self.mpd_manifest_file)
         return list_files
-
-    @staticmethod
-    def get_file_size(mpd_file: pathlib.Path):
-        files = DASHEncoder.get_files(mpd_file)
-        size = 0
-
-        for file in files:
-            size += file.stat().st_size
-
-        return size
-
-    @staticmethod
-    def delete_result(mpd_file: pathlib.Path):
-        if mpd_file.is_file():
-            print(mpd_file)
-            files = DASHEncoder.get_files(mpd_file)
-            for file in files:
-                file.unlink()
 
     def calc_encoding_params(self, input_file: pathlib.Path, strict=False):
         src_metadata = ffmpeg.probe(input_file)
@@ -207,6 +192,7 @@ class DASHLoopEncoder(DASHEncoder):
             output_file
         ]
         common.run_subprocess(commandline)
+        self.mpd_manifest_file = output_file
         return output_file
 
 
@@ -379,5 +365,7 @@ class DashVideoEncoder(DASHEncoder):
             av1_representation_element.setAttribute("codecs", av1_rfc_codec_string)
             with output_file.open(mode="w") as f:
                 mpd_document.writexml(f)
+
+        self.mpd_manifest_file = output_file
         return output_file
 

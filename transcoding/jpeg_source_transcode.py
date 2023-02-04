@@ -26,7 +26,7 @@ class JPEGTranscode(base_transcoder.BaseTranscoder):
 
     def __init__(self, source, path: pathlib.Path, file_name: str):
         super().__init__(source, path, file_name)
-        self._lossy_encoder: encoders.Encoder = None
+        self._lossy_encoder: encoders.BytesEncoder = None
 
     @abc.abstractmethod
     def _arithmetic_check(self):
@@ -70,7 +70,7 @@ class JPEGTranscode(base_transcoder.BaseTranscoder):
         img = self._open_image()
         if self.size_treshold(img):
             self._lossy_output = True
-            self._lossy_encoder: encoders.Encoder = self.lossy_encoder_type(self._source, img)
+            self._lossy_encoder: encoders.BytesEncoder = self.lossy_encoder_type(self._source, img)
             try:
                 if isinstance(self.lossy_encoder_type, encoders.webp_encoder.WEBPEncoder) and \
                         (img.width > encoders.webp_encoder.MAX_SIZE) | (img.height > encoders.webp_encoder.MAX_SIZE):
