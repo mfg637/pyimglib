@@ -9,7 +9,6 @@ from . import statistics, \
     gif_source_transcode, \
     png_source_transcode, \
     jpeg_source_transcode, \
-    jpeg_xl_transcoder, \
     common, \
     video_transcoder, \
     encoders
@@ -40,11 +39,11 @@ def get_file_transcoder(
         png_transcoder = png_source_transcode.PNGFileTranscode(source, path, filename, force_lossless)
         if config.preferred_codec == config.PREFERRED_CODEC.DASH_SRS:
             png_transcoder.animation_encoder_type = encoders.dash_encoder.DASHLoopEncoder
-            png_transcoder.lossless_encoder_type = encoders.avif_encoder.AVIFLosslessEncoder
+            png_transcoder.lossless_encoder_type = encoders.jpeg_xl_encoder.JpegXlLosslessEncoder
             png_transcoder.lossy_encoder_type = encoders.srs_image_encoder.SrsImageEncoder
         elif config.preferred_codec in {config.PREFERRED_CODEC.AVIF, config.PREFERRED_CODEC.DASH_AVIF}:
             png_transcoder.lossy_encoder_type = encoders.avif_encoder.AVIFEncoder
-            png_transcoder.lossless_encoder_type = encoders.avif_encoder.AVIFLosslessEncoder
+            png_transcoder.lossless_encoder_type = encoders.jpeg_xl_encoder.JpegXlLosslessEncoder
             if config.preferred_codec == config.PREFERRED_CODEC.AVIF:
                 png_transcoder.animation_encoder_type = encoders.webm_encoder.AV1Encoder
             elif config.preferred_codec == config.PREFERRED_CODEC.DASH_AVIF:
@@ -114,11 +113,11 @@ def get_memory_transcoder(
         png_transcoder = png_source_transcode.PNGInMemoryTranscode(source, path, filename, force_lossless)
         if config.preferred_codec is config.PREFERRED_CODEC.DASH_SRS:
             png_transcoder.animation_encoder_type = encoders.dash_encoder.DASHLoopEncoder
-            png_transcoder.lossless_encoder_type = encoders.avif_encoder.AVIFLosslessEncoder
+            png_transcoder.lossless_encoder_type = encoders.jpeg_xl_encoder.JpegXlLosslessEncoder
             png_transcoder.lossy_encoder_type = encoders.srs_image_encoder.SrsImageEncoder
         elif config.preferred_codec in {config.PREFERRED_CODEC.AVIF, config.PREFERRED_CODEC.DASH_AVIF}:
             png_transcoder.lossy_encoder_type = encoders.avif_encoder.AVIFEncoder
-            png_transcoder.lossless_encoder_type = encoders.avif_encoder.AVIFLosslessEncoder
+            png_transcoder.lossless_encoder_type = encoders.jpeg_xl_encoder.JpegXlLosslessEncoder
             if config.preferred_codec == config.PREFERRED_CODEC.AVIF:
                 png_transcoder.animation_encoder_type = encoders.webm_encoder.AV1Encoder
             elif config.preferred_codec == config.PREFERRED_CODEC.DASH_AVIF:
