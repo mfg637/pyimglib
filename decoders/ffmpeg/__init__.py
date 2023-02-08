@@ -49,5 +49,5 @@ def set_loglevel(loglevel):
         case logging.CRITICAL:
             commandline += ["fatal", '-hide_banner']
         case _:
-            commandline += ["quite", '-hide_banner']
+            commandline += ["quiet", '-hide_banner']
     return commandline
