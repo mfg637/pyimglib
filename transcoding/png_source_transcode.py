@@ -38,7 +38,7 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
     def _apng_test_convert(self, img):
         if img.custom_mimetype == "image/apng":
             self._animated = True
-            #self._fext = 'webm'
+            # self._fext = 'webm'
             self._quality = 100 - config.APNG_VIDEOLOOP_CRF
             self._anim_output_filename = self._path.joinpath(self._file_name)
             self._animation_encoder: encoders.FilesEncoder = self.animation_encoder_type(config.APNG_VIDEOLOOP_CRF)
@@ -154,7 +154,8 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
                     self._lossless_data = None
                     self._lossless = False
                     self._output_size = len(self._lossy_data)
-                    while ((self._output_size / self._get_source_size()) > ((100 - ratio) * 0.01)) and (self._quality >= 60):
+                    while ((self._output_size / self._get_source_size()) > ((100 - ratio) * 0.01)) and (
+                            self._quality >= 60):
                         self._quality -= 5
                         self._lossy_data = self.lossy_encoder.encode(self._quality)
                         self._output_size = len(self._lossy_data)
@@ -218,7 +219,8 @@ class PNGInMemoryTranscode(base_transcoder.InMemorySource, PNGTranscode):
         if self._animated:
             return self.anim_transcoding_failed()
         else:
-            if not self._lossless and issubclass(self.lossy_encoder_type, encoders.encoder.FilesEncoder):
+            if not self._lossless and issubclass(self.lossy_encoder_type, encoders.encoder.FilesEncoder) and \
+                    self.lossy_encoder is not None:
                 self.lossy_encoder.delete_result()
             self._output_file = self._output_file.with_suffix(".png")
             outfile = open(self._output_file, "bw")
@@ -230,4 +232,3 @@ class PNGInMemoryTranscode(base_transcoder.InMemorySource, PNGTranscode):
     def _all_optimisations_failed(self):
         self._animated = False
         self._optimisations_failed()
-
