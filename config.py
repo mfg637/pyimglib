@@ -9,6 +9,8 @@ class PREFERRED_CODEC(enum.Enum):
     DASH_AVIF = enum.auto()
     DASH_SRS = enum.auto()
 
+use_svtav1 = False
+
 
 preferred_codec = PREFERRED_CODEC.WEBP
 
@@ -29,7 +31,7 @@ class AVIF_DECODING_SPEED(enum.Enum):
 
 avif_decoding_speed = AVIF_DECODING_SPEED.SLOW
 avifenc_encoding_speed = 2
-aomenc_cpu_usage = 4
+av1_cpu_usage = 4
 
 # Max image size
 # works if image optimisations is enabled

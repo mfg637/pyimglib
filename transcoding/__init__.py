@@ -81,7 +81,10 @@ def get_file_transcoder(
     elif os.path.splitext(source)[1].lower() in {".webm", ".mp4", ".mkv"}:
         if config.preferred_codec in (config.PREFERRED_CODEC.DASH_AVIF, config.PREFERRED_CODEC.DASH_SRS):
             v_transcoder = video_transcoder.VideoTranscoder(source, path, filename)
-            v_transcoder.video_encoder_type = encoders.dash_encoder.DashVideoEncoder
+            if config.use_svtav1:
+                v_transcoder.video_encoder_type = encoders.dash_encoder.SVTAV1DashVideoEncoder
+            else:
+                v_transcoder.video_encoder_type = encoders.dash_encoder.DashVideoEncoder
             return v_transcoder
         else:
             v_writer = video_transcoder.VideoWriter(source, path, filename, os.path.splitext(source)[1].lower())
@@ -154,7 +157,10 @@ def get_memory_transcoder(
     elif bytes(source[:4]) in MKV_HEADER:
         if config.preferred_codec in (config.PREFERRED_CODEC.DASH_AVIF, config.PREFERRED_CODEC.DASH_SRS):
             v_transcoder = video_transcoder.VideoTranscoder(source, path, filename)
-            v_transcoder.video_encoder_type = encoders.dash_encoder.DashVideoEncoder
+            if config.use_svtav1:
+                v_transcoder.video_encoder_type = encoders.dash_encoder.SVTAV1DashVideoEncoder
+            else:
+                v_transcoder.video_encoder_type = encoders.dash_encoder.DashVideoEncoder
             return v_transcoder
         else:
             v_writer = video_transcoder.VideoWriter(source, path, filename, ".webm")
