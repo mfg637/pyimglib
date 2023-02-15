@@ -140,6 +140,13 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
                 if tmpfile is not None:
                     tmpfile.close()
                 self._output_size = self.lossy_encoder.calc_file_size()
+                if self._lossless and len(self._lossless_data) < self._output_size:
+                    self._lossless = True
+                    self.lossy_encoder.delete_result()
+                    self._output_size = len(self._lossless_data)
+                    self._quality = 100
+                else:
+                    self._lossless = False
             else:
                 self.lossy_encoder: encoders.BytesEncoder = self.lossy_encoder_type(self._source, img)
                 self._lossy_data = self.lossy_encoder.encode(self._quality)
