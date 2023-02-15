@@ -5,12 +5,15 @@ import tempfile
 
 import PIL.Image
 
-from .encoder import Encoder
+from .encoder import BytesEncoder
+from ..common import run_subprocess
 from ... import config
 
 
-class AVIFEncoder(Encoder):
+class AVIFEncoder(BytesEncoder):
+    SUFFIX = ".avif"
     def __init__(self, source, img: PIL.Image.Image):
+        BytesEncoder.__init__(self, self.SUFFIX)
         self._source = source
         self._img = img
 
@@ -76,7 +79,8 @@ class AVIFEncoder(Encoder):
                 src_tmp_file_name,
                 output_tmp_file.name
             ]
-        subprocess.run(commandline)
+
+        run_subprocess(commandline, log_stdout=True)
         if src_tmp_file is not None:
             src_tmp_file.close()
         encoded_data = output_tmp_file.read()
@@ -85,13 +89,6 @@ class AVIFEncoder(Encoder):
             self._av1_enable_advanced_options = False
             return self.encode(quality)
         return encoded_data
-
-    def save(self, encoded_data: bytes, path: pathlib.Path, name: str) -> pathlib.Path:
-        output_fname = path.joinpath(name + ".avif")
-        outfile = open(output_fname, 'wb')
-        outfile.write(encoded_data)
-        outfile.close()
-        return output_fname
 
 
 class AVIFLosslessEncoder(AVIFEncoder):

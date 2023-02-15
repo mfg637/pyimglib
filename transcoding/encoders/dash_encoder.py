@@ -10,7 +10,7 @@ import re
 import tempfile
 from typing import Iterable, Final
 
-from .encoder import VideoEncoder
+from .encoder import FilesEncoder
 from .. import common
 from ...decoders import ffmpeg
 from ... import config
@@ -22,12 +22,13 @@ file_template_regex = re.compile("\$[\da-zA-Z\-%]+\$")
 logger = logging.getLogger(__name__)
 
 
-class DASHEncoder(VideoEncoder):
+class DASHEncoder(FilesEncoder):
     def __init__(self, crf: int, gop_size, pix_fmt, high_tier_encoder):
         self._crf = crf
         self._target_pixel_format = pix_fmt
         self._target_encoder = high_tier_encoder
         self._gop_size = gop_size
+        self.mpd_manifest_file: pathlib.Path | None = None
 
     @staticmethod
     def calc_size(width_orig, height_orig, min_size):
@@ -84,13 +85,15 @@ class DASHEncoder(VideoEncoder):
                 height_small = height_max = int(common.bit_round(height_orig, -1))
         return width_small, height_small, width_max, height_max
 
-    @staticmethod
-    def get_files(mpd_file: pathlib.Path):
+    def get_files(self):
+        if self.mpd_manifest_file is None:
+            return []
+
         list_files = []
 
         file_templates = set()
-        parent_dir = mpd_file.parent
-        mpd_document: xml.dom.minidom.Document = xml.dom.minidom.parse(str(mpd_file))
+        parent_dir = self.mpd_manifest_file.parent
+        mpd_document: xml.dom.minidom.Document = xml.dom.minidom.parse(str(self.mpd_manifest_file))
         segment_templates: Iterable[xml.dom.minidom.Element] = mpd_document.getElementsByTagName("SegmentTemplate")
         for template in segment_templates:
             file_templates.add(file_template_regex.sub("*", template.getAttribute("initialization")))
@@ -103,26 +106,8 @@ class DASHEncoder(VideoEncoder):
                 if file.is_file():
                     list_files.append(file)
 
-        list_files.append(mpd_file)
+        list_files.append(self.mpd_manifest_file)
         return list_files
-
-    @staticmethod
-    def get_file_size(mpd_file: pathlib.Path):
-        files = DASHEncoder.get_files(mpd_file)
-        size = 0
-
-        for file in files:
-            size += file.stat().st_size
-
-        return size
-
-    @staticmethod
-    def delete_result(mpd_file: pathlib.Path):
-        if mpd_file.is_file():
-            print(mpd_file)
-            files = DASHEncoder.get_files(mpd_file)
-            for file in files:
-                file.unlink()
 
     def calc_encoding_params(self, input_file: pathlib.Path, strict=False):
         src_metadata = ffmpeg.probe(input_file)
@@ -183,7 +168,7 @@ class DASHLoopEncoder(DASHEncoder):
             "-pix_fmt:0", self._target_pixel_format,
             "-pix_fmt:1", "yuv420p",
             "-c:v:0", self._target_encoder,
-            "-cpu-used", str(config.aomenc_cpu_usage),
+            "-cpu-used", str(config.av1_cpu_usage),
             "-b:v:0", "0",
             "-crf:0", str(crf),
             "-crf:1", str(crf - lt_gap),
@@ -206,15 +191,15 @@ class DASHLoopEncoder(DASHEncoder):
         commandline += [
             output_file
         ]
-        subprocess.call(
-            commandline
-        )
+        common.run_subprocess(commandline)
+        self.mpd_manifest_file = output_file
         return output_file
 
 
 class DashVideoEncoder(DASHEncoder):
     def __init__(self, crf: int):
         super().__init__(crf, 10, "yuv420p10le", "libaom-av1")
+        self.av1an_workers = config.dash_encoding_threads
 
     @staticmethod
     def get_keyframes(ffprobe_json_output):
@@ -227,6 +212,28 @@ class DashVideoEncoder(DASHEncoder):
 
         return key_frames
 
+    def get_av1an_commandline(self, input_file, ht_video_file, gop_size, width_max, height_max, crf, av1an_scenes_file):
+        av1an_commandline = "av1an -i \"{}\" -o \"{}\" -v \"--cpu-used={} --kf-max-dist={} --kf-min-dist={} ".format(
+            input_file, ht_video_file.name, config.av1_cpu_usage, gop_size, gop_size
+        )
+
+        if width_max <= 1920 and height_max <= 1920:
+            av1an_commandline += "--sb-size=64 "
+        if config.av1an_aomenc_threads >= 2 and 1024 <= width_max <= 1920:
+            av1an_commandline += "--tile-columns=1 "
+
+        av1an_commandline += "--threads={} --end-usage=q --cq-level={}".format(
+            config.av1an_aomenc_threads, crf
+        )
+        if config.av1_cpu_usage <= 4:
+            av1an_commandline += " --lag-in-frames=48 --enable-qm=1 --enable-fwd-kf=0 --enable-chroma-deltaq=0 --enable-keyframe-filtering=1 --arnr-strength=1"
+        av1an_commandline += "\" -w {} -s {} -a=\"-an\" --passes=1".format(
+            self.av1an_workers, av1an_scenes_file.name
+        )
+        if logging.root.level >= logging.ERROR:
+            av1an_commandline += " --quiet"
+        return shlex.split(av1an_commandline)
+
     def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
         width_max, height_max, width_small, height_small, gop_size, crf, lt_gap, fps = \
             self.calc_encoding_params(input_file)
@@ -235,7 +242,7 @@ class DashVideoEncoder(DASHEncoder):
 
         low_tier_transcoding_commandline = [
             "ffmpeg"]
-        low_tier_transcoding_commandline += ffmpeg.set_loglevel(logging.root.level)
+        low_tier_transcoding_commandline += ['-loglevel', 'info']
         low_tier_transcoding_commandline += [
             "-y",
             "-i", input_file,
@@ -258,11 +265,11 @@ class DashVideoEncoder(DASHEncoder):
         commandline = [
             "ffmpeg",
         ]
-        commandline += ffmpeg.set_loglevel(logging.root.level)
+        commandline += ['-loglevel', 'info']
 
         av1_rfc_codec_string = None
 
-        subprocess.run(low_tier_transcoding_commandline)
+        common.run_subprocess(low_tier_transcoding_commandline)
 
         if width_max <= 720 or height_max <= 720:
             commandline += [
@@ -313,21 +320,9 @@ class DashVideoEncoder(DASHEncoder):
             with av1an_scenes_file.open("w") as f:
                 json.dump(av1an_scenes, f)
 
-            av1an_commandline = "av1an -i \"{}\" -o \"{}\" -v \"--cpu-used={} --kf-max-dist={} --kf-min-dist={} ".format(
-                input_file, ht_video_file.name, config.aomenc_cpu_usage, gop_size, gop_size
+            av1an_commandline = self.get_av1an_commandline(
+                input_file, ht_video_file, gop_size, width_max, height_max, crf, av1an_scenes_file
             )
-
-            if width_max <= 1920 and height_max <= 1920:
-                av1an_commandline += "--sb-size=64 "
-            if config.av1an_aomenc_threads >= 2 and 1024 <= width_max <= 1920:
-                av1an_commandline += "--tile-columns=1 "
-
-            av1an_commandline += "--threads={} --end-usage=q --cq-level={} --lag-in-frames=48 --enable-qm=1 --enable-fwd-kf=0 --enable-chroma-deltaq=0 --enable-keyframe-filtering=1 --arnr-strength=1\" -w {} -s {} -a=\"-an\" --passes=1".format(
-                config.av1an_aomenc_threads, crf, config.dash_encoding_threads, av1an_scenes_file.name
-            )
-            if logging.root.level >= logging.ERROR:
-                av1an_commandline += " --quiet"
-            av1an_commandline = shlex.split(av1an_commandline)
             logger.debug(av1an_commandline.__repr__())
             subprocess.run(av1an_commandline)
 
@@ -360,7 +355,7 @@ class DashVideoEncoder(DASHEncoder):
         commandline += [
             output_file
         ]
-        subprocess.call(
+        common.run_subprocess(
             commandline
         )
         lt_video_file.close()
@@ -381,5 +376,27 @@ class DashVideoEncoder(DASHEncoder):
             av1_representation_element.setAttribute("codecs", av1_rfc_codec_string)
             with output_file.open(mode="w") as f:
                 mpd_document.writexml(f)
+
+        self.mpd_manifest_file = output_file
         return output_file
+
+
+class SVTAV1DashVideoEncoder(DashVideoEncoder):
+    def __init__(self, crf: int):
+        super().__init__(crf)
+        self.av1an_workers = 1
+
+    def get_av1an_commandline(self, input_file, ht_video_file, gop_size, width_max, height_max, crf, av1an_scenes_file):
+        av1an_commandline = \
+            "av1an -i \"{}\" -o \"{}\" --encoder svt_av1 -v \"--preset {} --keyint 10s --crf {}\"".format(
+                input_file, ht_video_file.name, config.av1_cpu_usage, crf
+            )
+
+        av1an_commandline += " -w 1 -s {} -a=\"-an\" --passes=1".format(
+            config.dash_encoding_threads, av1an_scenes_file.name
+        )
+        if logging.root.level >= logging.ERROR:
+            av1an_commandline += " --quiet"
+
+        return shlex.split(av1an_commandline)
 

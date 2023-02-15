@@ -7,6 +7,9 @@ class PREFERRED_CODEC(enum.Enum):
     WEBP = enum.auto()
     AVIF = enum.auto()
     DASH_AVIF = enum.auto()
+    DASH_SRS = enum.auto()
+
+use_svtav1 = False
 
 
 preferred_codec = PREFERRED_CODEC.WEBP
@@ -28,7 +31,7 @@ class AVIF_DECODING_SPEED(enum.Enum):
 
 avif_decoding_speed = AVIF_DECODING_SPEED.SLOW
 avifenc_encoding_speed = 2
-aomenc_cpu_usage = 4
+av1_cpu_usage = 4
 
 # Max image size
 # works if image optimisations is enabled
@@ -48,7 +51,7 @@ class YUV4MPEG2_LIMITED_RANGE_CORRENTION_MODES(enum.Enum):
 
 yuv4mpeg2_limited_range_correction = YUV4MPEG2_LIMITED_RANGE_CORRENTION_MODES.CLIPPING
 
-srs_webp_size_limit = 2048
+srs_cl3_size_limit = 2048
 srs_avif_trigger_size = 2560
 srs_thumbnail_for_lossless_trigger_size = 4096
 

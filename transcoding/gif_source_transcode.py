@@ -23,6 +23,8 @@ class GIFTranscode(base_transcoder.BaseTranscoder):
 
     def __init__(self, source, path: pathlib.Path, file_name: str):
         super().__init__(source, path, file_name)
+        self.encoded_data = None
+        self._animation_encoder: encoders.BytesEncoder | encoders.FilesEncoder | None = None
 
     @abc.abstractmethod
     def _invalid_file_exception_handle(self, e):
@@ -34,56 +36,83 @@ class GIFTranscode(base_transcoder.BaseTranscoder):
         if self._animated:
             self._quality = 100 - config.GIF_VIDEOLOOP_CRF
             self._output_file = self._path.joinpath(self._file_name)
-            self._animation_encoder: encoders.VideoEncoder = self.animation_encoder_type(config.GIF_VIDEOLOOP_CRF)
-            tmpfile = None
-            if type(self._source) is str:
-                input_file = pathlib.Path(self._source)
-            elif isinstance(self._source, pathlib.Path):
-                input_file = self._source
+            if issubclass(self.animation_encoder_type, encoders.encoder.FilesEncoder):
+                self._animation_encoder: encoders.FilesEncoder = \
+                    self.animation_encoder_type(config.GIF_VIDEOLOOP_CRF)
+                tmpfile = None
+                if type(self._source) is str:
+                    input_file = pathlib.Path(self._source)
+                elif isinstance(self._source, pathlib.Path):
+                    input_file = self._source
+                else:
+                    tmpfile = tempfile.NamedTemporaryFile(delete=True)
+                    input_file = pathlib.Path(tmpfile.name)
+                    tmpfile.write(self._source)
+                self._output_file = self._animation_encoder.encode(input_file, self._output_file)
+                if tmpfile is not None:
+                    tmpfile.close()
+                try:
+                    self._output_size = self._animation_encoder.calc_file_size()
+                except FileNotFoundError:
+                    raise base_transcoder.NotSupportedSourceException()
+            elif issubclass(self.animation_encoder_type, encoders.encoder.BytesEncoder):
+                self._animation_encoder: encoders.encoder.BytesEncoder = \
+                    self.animation_encoder_type(self._source)
+                self.encoded_data = self._animation_encoder.encode(config.GIF_VIDEOLOOP_CRF)
+                self._output_size = len(self.encoded_data)
             else:
-                tmpfile = tempfile.NamedTemporaryFile(delete=True)
-                input_file = pathlib.Path(tmpfile.name)
-                tmpfile.write(self._source)
-            self._output_file = self._animation_encoder.encode(input_file, self._output_file)
-            if tmpfile is not None:
-                tmpfile.close()
-            try:
-                if isinstance(self.animation_encoder_type, encoders.dash_encoder.DASHEncoder):
-                    self._output_size = encoders.dash_encoder.DASHEncoder.get_file_size(self._output_file)
-                else:
-                    self._output_size = os.path.getsize(self._output_file)
-            except FileNotFoundError:
-                raise base_transcoder.NotSupportedSourceException()
+                raise NotImplementedError(self.animation_encoder_type)
         else:
-            self._lossy_encoder: encoders.Encoder = self.lossy_encoder_type(self._source, img)
+            if issubclass(self.lossy_encoder_type, encoders.encoder.FilesEncoder):
+                self._lossy_encoder: encoders.FilesEncoder = self.lossy_encoder_type(
+                    self._quality, self._get_source_size(), 80
+                )
 
-            self._animated = False
-            try:
-                if isinstance(self.lossy_encoder_type, encoders.webp_encoder.WEBPEncoder) and \
-                        (img.width > encoders.webp_encoder.MAX_SIZE) | (img.height > encoders.webp_encoder.MAX_SIZE):
-                    img.thumbnail(
-                        (encoders.webp_encoder.MAX_SIZE, encoders.webp_encoder.MAX_SIZE),
-                        PIL.Image.Resampling.LANCZOS
-                    )
+                tmpfile = None
+                if type(self._source) is str:
+                    input_file = pathlib.Path(self._source)
+                elif isinstance(self._source, pathlib.Path):
+                    input_file = self._source
                 else:
-                    img.load()
-            except OSError as e:
-                self._invalid_file_exception_handle(e)
-                raise base_transcoder.NotSupportedSourceException()
-            ratio = 80
-            self._lossy_data = self._lossy_encoder.encode(self._quality)
-            self._output_size = len(self._lossy_data)
-            while ((self._output_size / self._get_source_size()) > ((100 - ratio) * 0.01)) and (
-                    self._quality >= 60):
-                self._quality -= 5
+                    tmpfile = tempfile.NamedTemporaryFile(delete=True)
+                    input_file = pathlib.Path(tmpfile.name)
+                    tmpfile.write(self._source)
+
+                self._output_file = self._path.joinpath(self._file_name)
+                self._output_file = self._lossy_encoder.encode(input_file, self._output_file)
+                if tmpfile is not None:
+                    tmpfile.close()
+                self._output_size = self._lossy_encoder.calc_file_size()
+            else:
+                self._lossy_encoder: encoders.BytesEncoder = self.lossy_encoder_type(self._source, img)
+                self._animated = False
+                try:
+                    if isinstance(self.lossy_encoder_type, encoders.webp_encoder.WEBPEncoder) and \
+                            (img.width > encoders.webp_encoder.MAX_SIZE) | (img.height > encoders.webp_encoder.MAX_SIZE):
+                        img.thumbnail(
+                            (encoders.webp_encoder.MAX_SIZE, encoders.webp_encoder.MAX_SIZE),
+                            PIL.Image.Resampling.LANCZOS
+                        )
+                    else:
+                        img.load()
+                except OSError as e:
+                    self._invalid_file_exception_handle(e)
+                    raise base_transcoder.NotSupportedSourceException()
+                ratio = 80
                 self._lossy_data = self._lossy_encoder.encode(self._quality)
                 self._output_size = len(self._lossy_data)
-                ratio = math.ceil(ratio // config.WEBP_QSCALE)
+                while ((self._output_size / self._get_source_size()) > ((100 - ratio) * 0.01)) and (
+                        self._quality >= 60):
+                    self._quality -= 5
+                    self._lossy_data = self._lossy_encoder.encode(self._quality)
+                    self._output_size = len(self._lossy_data)
+                    ratio = math.ceil(ratio // config.WEBP_QSCALE)
         img.close()
 
     def _save(self):
         if self._animated:
-            pass
+            if self.encoded_data is not None:
+                self._output_file = self._animation_encoder.save(self.encoded_data, pathlib.Path(self._path), self._file_name)
         else:
             self._output_file = self._lossy_encoder.save(
                 self._lossy_data, pathlib.Path(self._path), self._file_name
@@ -134,8 +163,8 @@ class GIFInMemoryTranscode(base_transcoder.InMemorySource, GIFTranscode):
         img.close()
 
     def _all_optimisations_failed(self):
-        if isinstance(self.animation_encoder_type, encoders.dash_encoder.DASHEncoder):
-            encoders.dash_encoder.DASHEncoder.delete_result(self._output_file)
+        if isinstance(self._animation_encoder, encoders.encoder.FilesEncoder):
+            self._animation_encoder.delete_result()
         self._output_file = self._path.joinpath(self._file_name).with_suffix(".gif")
         outfile = open(self._output_file, "bw")
         outfile.write(self._source)
