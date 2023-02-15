@@ -59,13 +59,14 @@ class SrsImageEncoder(encoder.FilesEncoder):
                 "media-type": 0,
             },
             "streams": {
-                "image": {"levels": {"3": cl3_file_name}}
+                "image": {"levels": dict()}
             }
         }
         if img.width > self.cl3_size_limit or img.height > self.cl3_size_limit:
             srs_data["streams"]["image"]["levels"]["1"] = cl1_file_name
         else:
             srs_data["streams"]["image"]["levels"]["2"] = cl1_file_name
+        srs_data["streams"]["image"]["levels"]["3"] = cl3_file_name
 
         self.srs_file_path = output_file.with_suffix(".srs")
         with self.srs_file_path.open("w") as f:
