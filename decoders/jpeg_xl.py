@@ -7,7 +7,7 @@ def is_JPEG_XL(file_path):
     file = open(file_path, 'rb')
     header = file.read(7)
     file.close()
-    return header == b'\x00\x00\x00\x0cJXL'
+    return header == b'\x00\x00\x00\x0cJXL' or header[:2] == b'\xff\x0a'
 
 
 def decode(file):

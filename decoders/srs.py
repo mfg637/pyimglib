@@ -21,7 +21,7 @@ class ClImage:
         min_level = self._levels_sorted[0]
         return open_image(self._dir.joinpath(self._levels[min_level]), required_size)
 
-    def progressive_lods(self):
+    def progressive_lods(self) -> list[pathlib.Path]:
         lods = list()
         for level in self._levels_sorted:
             lods.append(self._dir.joinpath(self._levels[level]))
