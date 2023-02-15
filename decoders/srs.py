@@ -33,6 +33,11 @@ class ClImage:
             files.append(self._dir.joinpath(self._levels[level]))
         return files
 
+    def get_content_by_level(self, compatibility_level: int) -> pathlib.Path | None:
+        if compatibility_level in self._levels:
+            return self._dir.joinpath(self._levels[compatibility_level])
+        else:
+            return None
 
 
 def is_ACLMMP_SRS(file_path):

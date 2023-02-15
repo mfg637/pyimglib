@@ -23,6 +23,9 @@ class SrsImageEncoder(encoder.FilesEncoder):
         self.cl3_encoder: encoder.BytesEncoder | None = None
         self.srs_file_path: pathlib.Path| None = None
 
+    def set_manifest_file(self, manifest_file: pathlib.Path):
+        self.srs_file_path = manifest_file
+
     def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
         img = PIL.Image.open(input_file)
         self.cl1_encoder = self.cl1_encoder_type(input_file, img)

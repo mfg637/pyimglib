@@ -31,6 +31,10 @@ class FilesEncoder(AbstractEncoder):
     def get_files(self) -> list[pathlib.Path]:
         pass
 
+    @abc.abstractmethod
+    def set_manifest_file(self, manifest_file: pathlib.Path):
+        pass
+
     def calc_file_size(self) -> int:
         files = self.get_files()
         size = 0

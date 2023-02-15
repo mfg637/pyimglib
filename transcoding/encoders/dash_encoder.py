@@ -30,6 +30,9 @@ class DASHEncoder(FilesEncoder):
         self._gop_size = gop_size
         self.mpd_manifest_file: pathlib.Path | None = None
 
+    def set_manifest_file(self, manifest_file: pathlib.Path):
+        self.mpd_manifest_file = manifest_file
+
     @staticmethod
     def calc_size(width_orig, height_orig, min_size):
         width_max = 2
