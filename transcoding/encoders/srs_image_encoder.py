@@ -8,6 +8,14 @@ from . import encoder, webp_encoder
 from ... import config
 
 
+MEDIA_TYPE_CODE_TO_STREAM_TYPE_KEY = {
+    0: "image",
+    1: "audio",
+    2: "video",
+    3: "video"
+}
+
+
 class SrsImageEncoder(encoder.FilesEncoder):
     cl3_encoder_type: encoder.BytesEncoder | None = None
     cl1_encoder_type: encoder.BytesEncoder | None = None
@@ -82,9 +90,13 @@ class SrsImageEncoder(encoder.FilesEncoder):
         with self.srs_file_path.open('r') as f:
             srs_data = json.load(f)
 
+        stream_type_key = MEDIA_TYPE_CODE_TO_STREAM_TYPE_KEY[srs_data["content"]["media-type"]]
+
         list_files = []
-        for level in srs_data["streams"]["image"]["levels"]:
-            list_files.append(parent_dir.joinpath(srs_data["streams"]["image"]["levels"][level]))
+        for level in srs_data["streams"][stream_type_key]["levels"]:
+            list_files.append(
+                parent_dir.joinpath(srs_data["streams"][stream_type_key]["levels"][level])
+            )
 
         list_files.append(self.srs_file_path)
         return list_files
