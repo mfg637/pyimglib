@@ -1,6 +1,7 @@
 import json
 import math
 import pathlib
+import png
 
 import PIL.Image
 
@@ -29,7 +30,7 @@ class SrsImageEncoder(encoder.FilesEncoder):
         self.cl1_image_data: bytes | None = None
         self.cl1_encoder: encoder.BytesEncoder | None = None
         self.cl3_encoder: encoder.BytesEncoder | None = None
-        self.srs_file_path: pathlib.Path| None = None
+        self.srs_file_path: pathlib.Path | None = None
 
     def set_manifest_file(self, manifest_file: pathlib.Path):
         self.srs_file_path = manifest_file
@@ -78,6 +79,16 @@ class SrsImageEncoder(encoder.FilesEncoder):
         else:
             srs_data["streams"]["image"]["levels"]["2"] = cl1_file_name
         srs_data["streams"]["image"]["levels"]["3"] = cl3_file_name
+
+        if input_file.suffix == ".png":
+            png_file = png.Reader(filename=input_file)
+            file_text_metadata: dict[str, str] = dict()
+            for chunk_name, chunk_content in png_file.chunks():
+                if chunk_name == b"tEXt":
+                    raw_keyword, raw_text_content = bytes(chunk_content).split(b'\x00')
+                    keyword: str = raw_keyword.decode("utf-8")
+                    text_content: str = raw_text_content.decode("utf-8")
+                    srs_data["content"][keyword] = text_content
 
         self.srs_file_path = output_file.with_suffix(".srs")
         with self.srs_file_path.open("w") as f:
