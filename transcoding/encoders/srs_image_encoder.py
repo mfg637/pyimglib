@@ -4,7 +4,7 @@ import pathlib
 
 import PIL.Image
 
-from . import encoder, webp_encoder
+from . import encoder, webp_encoder, avif_encoder
 from ... import config
 
 
@@ -37,6 +37,8 @@ class SrsImageEncoder(encoder.FilesEncoder):
     def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
         img = PIL.Image.open(input_file)
         self.cl1_encoder = self.cl1_encoder_type(input_file, img)
+        if isinstance(self.cl1_encoder, avif_encoder.AVIFEncoder):
+            self.cl1_encoder.encoding_speed = min(config.avifenc_encoding_speed * 2, 10)
         cl3_scaled_img = img.copy()
         if (img.width > self.cl3_size_limit) | (img.height > self.cl3_size_limit):
             cl3_scaled_img.thumbnail(
@@ -53,6 +55,11 @@ class SrsImageEncoder(encoder.FilesEncoder):
             self.cl1_image_data = self.cl1_encoder.encode(self._quality)
             cl1_size = len(self.cl1_image_data)
             ratio = math.ceil(ratio // config.WEBP_QSCALE)
+
+        if isinstance(self.cl1_encoder, avif_encoder.AVIFEncoder):
+            self.cl1_encoder.encoding_speed = config.avifenc_encoding_speed
+            self.cl1_image_data = self.cl1_encoder.encode(self._quality)
+
         self.cl3_image_data = self.cl3_encoder.encode(self._quality)
 
         cl1_file_path = output_file.with_suffix(self.cl1_encoder.SUFFIX)
