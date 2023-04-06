@@ -19,6 +19,7 @@ class AVIFEncoder(BytesEncoder):
 
         self._bit_depth = 10
         self._av1_enable_advanced_options = True
+        self.encoding_speed = config.avifenc_encoding_speed
 
     def encode(self, quality, lossless=False) -> bytes:
         crf = 100 - quality
@@ -31,7 +32,7 @@ class AVIFEncoder(BytesEncoder):
         else:
             commandline += [
                 '-d', str(self._bit_depth),
-                '-s', str(config.avifenc_encoding_speed),
+                '-s', str(self.encoding_speed),
                 '--min', str(max(crf - config.avifenc_qdeviation, 1)),
                 '--max', str(min(crf + config.avifenc_qdeviation, 63)),
                 '-a', 'end-usage=q',
