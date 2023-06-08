@@ -2,17 +2,7 @@ import enum
 
 custom_pillow_image_limits = -1
 
-
-class PREFERRED_CODEC(enum.Enum):
-    WEBP = enum.auto()
-    AVIF = enum.auto()
-    DASH_AVIF = enum.auto()
-    DASH_SRS = enum.auto()
-
 use_svtav1 = False
-
-
-preferred_codec = PREFERRED_CODEC.WEBP
 
 
 # if 0 or None, AVIF's multithreading is off
@@ -79,3 +69,27 @@ WEBP_QSCALE = 1.375
 SRS_QSCALE = 1.25
 
 dash_low_tier_crf_gap = 4
+
+from .transcoding import encoders
+
+encoders.srs_image_encoder.SrsImageEncoder.cl1_encoder_type = encoders.avif_encoder.AVIFEncoder
+encoders.srs_image_encoder.SrsImageEncoder.cl3_encoder_type = encoders.webp_encoder.WEBPEncoder
+
+png_source_encoders = {
+    "animation_encoder": encoders.dash_encoder.DASHLoopEncoder,
+    "lossless_encoder": encoders.jpeg_xl_encoder.JpegXlLosslessEncoder,
+    "lossy_encoder": encoders.srs_image_encoder.SrsImageEncoder
+}
+
+jpeg_source_encoders = {
+    "lossy_encoder": encoders.srs_image_encoder.SrsImageEncoder
+}
+
+gif_source_encoders = {
+    "lossy_encoder": encoders.srs_image_encoder.SrsImageEncoder,
+    "animation_encoder": encoders.dash_encoder.DASHLoopEncoder
+}
+
+video_encoders = {
+    "video_encoder": encoders.dash_encoder.DashVideoEncoder
+}
