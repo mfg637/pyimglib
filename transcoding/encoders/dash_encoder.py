@@ -153,7 +153,7 @@ class DASHEncoder(FilesEncoder):
 
 class DASHLoopEncoder(DASHEncoder):
     def __init__(self, crf: int):
-        super().__init__(crf, 2, "yuv444p10le", "libaom-av1")
+        super().__init__(crf, 2, "yuva420p", "libvpx-vp9")
 
     def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
         width_max, height_max, width_small, height_small, gop_size, crf, lt_gap, fps = \
@@ -162,11 +162,10 @@ class DASHLoopEncoder(DASHEncoder):
         commandline = [
             "ffmpeg",
             "-i", input_file,
-            "-f", "lavfi", "-i", f"color=c=white,scale={width_max}:{height_max}",
             "-f", "lavfi", "-i", f"color=c=white,scale={width_small}:{height_small}",
             "-filter_complex",
-            f"[1]setsar=1[bg1],[2]setsar=1[bg2],[0]scale={width_max}x{height_max}[sv0],[0]scale={width_small}x{height_small}[sv1],[bg1][sv0]overlay=shortest=1[v1],[bg2][sv1]overlay=shortest=1[v2],[v1]setsar=1[v1],[v2]setsar=1[v2]",
-            "-map", "[v1]",
+            f"[1]setsar=1[bg1],[0]scale={width_small}x{height_small}[sv1],[bg1][sv1]overlay=shortest=1[v2],[v2]setsar=1[v2]",
+            "-map", "0:v:0",
             "-map", "[v2]",
             "-pix_fmt:0", self._target_pixel_format,
             "-pix_fmt:1", "yuv420p",
