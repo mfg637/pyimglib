@@ -61,10 +61,11 @@ class BaseSrsEncoder(encoder.FilesEncoder, ABC):
                 "image": {"levels": dict()}
             }
         }
-        if img.width > config.srs_cl3_size_limit or img.height > config.srs_cl3_size_limit:
-            srs_data["streams"]["image"]["levels"]["1"] = cl1_file_name
-        else:
-            srs_data["streams"]["image"]["levels"]["2"] = cl1_file_name
+        if cl1_file_name is not None:
+            if img.width > config.srs_cl3_size_limit or img.height > config.srs_cl3_size_limit:
+                srs_data["streams"]["image"]["levels"]["1"] = cl1_file_name
+            else:
+                srs_data["streams"]["image"]["levels"]["2"] = cl1_file_name
         srs_data["streams"]["image"]["levels"]["3"] = cl3_file_name
 
         if input_file.suffix == ".png":
@@ -149,22 +150,29 @@ class SrsLosslessImageEncoder(BaseSrsEncoder):
                     (self.cl3_size_limit, self.cl3_size_limit),
                     PIL.Image.Resampling.LANCZOS
             )
-        self.cl3_encoder = self.cl3_encoder_type(input_file, cl3_scaled_img)
-        self._quality = self.base_quality_level
+            self.cl3_encoder = self.cl3_encoder_type(input_file, cl3_scaled_img)
+            self._quality = self.base_quality_level
 
-        self.cl1_image_data = self.cl1_encoder.encode(100)
+            self.cl1_image_data = self.cl1_encoder.encode(100)
 
-        self.cl3_image_data = self.cl3_encoder.encode(self._quality)
+            self.cl3_image_data = self.cl3_encoder.encode(self._quality)
 
-        cl1_file_path = output_file.with_suffix(self.cl1_encoder.SUFFIX)
-        cl3_file_path = output_file.with_suffix(self.cl3_encoder.SUFFIX)
-        cl1_file_name = cl1_file_path.name
-        cl3_file_name = cl3_file_path.name
-        with cl1_file_path.open("bw") as f:
-            f.write(self.cl1_image_data)
-        with cl3_file_path.open("bw") as f:
-            f.write(self.cl3_image_data)
-
-        self.write_image_srs(input_file, img, cl1_file_name, cl3_file_name, output_file)
+            cl1_file_path = output_file.with_suffix(self.cl1_encoder.SUFFIX)
+            cl3_file_path = output_file.with_suffix(self.cl3_encoder.SUFFIX)
+            cl1_file_name = cl1_file_path.name
+            cl3_file_name = cl3_file_path.name
+            with cl1_file_path.open("bw") as f:
+                f.write(self.cl1_image_data)
+            with cl3_file_path.open("bw") as f:
+                f.write(self.cl3_image_data)
+            self.write_image_srs(input_file, img, cl1_file_name, cl3_file_name, output_file)
+        else:
+            self.cl3_encoder = self.cl3_encoder_type(input_file, img)
+            self.cl3_image_data = self.cl3_encoder.encode(100)
+            cl3_file_path = output_file.with_suffix(self.cl3_encoder.SUFFIX)
+            cl3_file_name = cl3_file_path.name
+            with cl3_file_path.open("bw") as f:
+                f.write(self.cl3_image_data)
+            self.write_image_srs(input_file, img, None, cl3_file_name, output_file)
 
         return self.srs_file_path
