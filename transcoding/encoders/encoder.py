@@ -1,5 +1,7 @@
 import abc
 import pathlib
+import typing
+import PIL.Image
 
 
 class AbstractEncoder(abc.ABC):
@@ -46,3 +48,26 @@ class FilesEncoder(AbstractEncoder):
         files = self.get_files()
         for file in files:
             file.unlink()
+
+
+class BytesEncoderWrapper(FilesEncoder):
+    def __init__(self, bytes_encoder_type: typing.Type[BytesEncoder], base_quality_level, source_data_size, ratio):
+        self.encoder_type: typing.Type[BytesEncoder] = bytes_encoder_type
+        self.quality = base_quality_level
+        self.output_file_path: pathlib.Path | None = None
+        self.encoded_data: bytes | None = None
+
+    def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
+        img = PIL.Image.open(input_file)
+        encoder = self.encoder_type(input_file, img)
+        self.encoded_data = encoder.encode(self.quality)
+        self.output_file_path = output_file.with_suffix(encoder.SUFFIX)
+        with self.output_file_path.open("bw") as f:
+            f.write(self.encoded_data)
+        return self.output_file_path
+
+    def get_files(self) -> list[pathlib.Path]:
+        return [self.output_file_path]
+
+    def set_manifest_file(self, manifest_file: pathlib.Path):
+        self.output_file_path = manifest_file

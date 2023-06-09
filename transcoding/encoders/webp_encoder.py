@@ -21,5 +21,6 @@ class WEBPEncoder(BytesEncoder):
 
 
 class WEBPLosslessEncoder(WEBPEncoder):
+    SUFFIX = ".webp"
     def encode(self, quality) -> bytes:
         return WEBPEncoder.encode(self, quality, True)

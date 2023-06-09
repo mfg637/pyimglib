@@ -93,5 +93,6 @@ class AVIFEncoder(BytesEncoder):
 
 
 class AVIFLosslessEncoder(AVIFEncoder):
+    SUFFIX = ".avif"
     def encode(self, quality) -> bytes:
         return AVIFEncoder.encode(self, quality, True)

@@ -72,21 +72,24 @@ dash_low_tier_crf_gap = 4
 
 from .transcoding import encoders
 
-encoders.srs_image_encoder.SrsImageEncoder.cl1_encoder_type = encoders.avif_encoder.AVIFEncoder
-encoders.srs_image_encoder.SrsImageEncoder.cl3_encoder_type = encoders.webp_encoder.WEBPEncoder
+encoders.srs_image_encoder.SrsLossyImageEncoder.cl1_encoder_type = encoders.avif_encoder.AVIFEncoder
+encoders.srs_image_encoder.SrsLossyImageEncoder.cl3_encoder_type = encoders.webp_encoder.WEBPEncoder
+
+encoders.srs_image_encoder.SrsLosslessImageEncoder.cl1_encoder_type = encoders.jpeg_xl_encoder.JpegXlLosslessEncoder
+encoders.srs_image_encoder.SrsLosslessImageEncoder.cl3_encoder_type = encoders.webp_encoder.WEBPLosslessEncoder
 
 png_source_encoders = {
     "animation_encoder": encoders.dash_encoder.DASHLoopEncoder,
-    "lossless_encoder": encoders.jpeg_xl_encoder.JpegXlLosslessEncoder,
-    "lossy_encoder": encoders.srs_image_encoder.SrsImageEncoder
+    "lossless_encoder": encoders.srs_image_encoder.SrsLosslessImageEncoder,
+    "lossy_encoder": encoders.srs_image_encoder.SrsLossyImageEncoder
 }
 
 jpeg_source_encoders = {
-    "lossy_encoder": encoders.srs_image_encoder.SrsImageEncoder
+    "lossy_encoder": encoders.srs_image_encoder.SrsLossyImageEncoder
 }
 
 gif_source_encoders = {
-    "lossy_encoder": encoders.srs_image_encoder.SrsImageEncoder,
+    "lossy_encoder": encoders.srs_image_encoder.SrsLossyImageEncoder,
     "animation_encoder": encoders.dash_encoder.DASHLoopEncoder
 }
 

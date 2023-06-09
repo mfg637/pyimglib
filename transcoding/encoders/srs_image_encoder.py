@@ -1,6 +1,9 @@
 import json
 import math
 import pathlib
+from abc import ABC
+import typing
+
 import png
 
 import PIL.Image
@@ -17,11 +20,7 @@ MEDIA_TYPE_CODE_TO_STREAM_TYPE_KEY = {
 }
 
 
-class SrsImageEncoder(encoder.FilesEncoder):
-    cl3_encoder_type: encoder.BytesEncoder | None = None
-    cl1_encoder_type: encoder.BytesEncoder | None = None
-    cl3_size_limit = config.srs_cl3_size_limit
-
+class BaseSrsEncoder(encoder.FilesEncoder, ABC):
     def __init__(self, base_quality_level, source_data_size, ratio):
         self.base_quality_level = base_quality_level
         self.source_data_size = source_data_size
@@ -34,6 +33,62 @@ class SrsImageEncoder(encoder.FilesEncoder):
 
     def set_manifest_file(self, manifest_file: pathlib.Path):
         self.srs_file_path = manifest_file
+
+    def get_files(self) -> list[pathlib.Path]:
+        srs_data = None
+        parent_dir = self.srs_file_path.parent
+        with self.srs_file_path.open('r') as f:
+            srs_data = json.load(f)
+
+        stream_type_key = MEDIA_TYPE_CODE_TO_STREAM_TYPE_KEY[srs_data["content"]["media-type"]]
+
+        list_files = []
+        for level in srs_data["streams"][stream_type_key]["levels"]:
+            list_files.append(
+                parent_dir.joinpath(srs_data["streams"][stream_type_key]["levels"][level])
+            )
+
+        list_files.append(self.srs_file_path)
+        return list_files
+
+    def write_image_srs(self, input_file, img, cl1_file_name, cl3_file_name, output_file):
+        srs_data = {
+            "ftype": "CLSRS",
+            "content": {
+                "media-type": 0,
+            },
+            "streams": {
+                "image": {"levels": dict()}
+            }
+        }
+        if img.width > config.srs_cl3_size_limit or img.height > config.srs_cl3_size_limit:
+            srs_data["streams"]["image"]["levels"]["1"] = cl1_file_name
+        else:
+            srs_data["streams"]["image"]["levels"]["2"] = cl1_file_name
+        srs_data["streams"]["image"]["levels"]["3"] = cl3_file_name
+
+        if input_file.suffix == ".png":
+            png_file = png.Reader(filename=input_file)
+            file_text_metadata: dict[str, str] = dict()
+            for chunk_name, chunk_content in png_file.chunks():
+                if chunk_name == b"tEXt":
+                    raw_keyword, raw_text_content = bytes(chunk_content).split(b'\x00')
+                    keyword: str = raw_keyword.decode("utf-8")
+                    text_content: str = raw_text_content.decode("utf-8")
+                    srs_data["content"][keyword] = text_content
+
+        self.srs_file_path = output_file.with_suffix(".srs")
+        with self.srs_file_path.open("w") as f:
+            json.dump(srs_data, f)
+
+
+class SrsLossyImageEncoder(BaseSrsEncoder):
+    cl3_encoder_type:  typing.Type[encoder.BytesEncoder] | None = None
+    cl1_encoder_type: typing.Type[encoder.BytesEncoder] | None = None
+    cl3_size_limit = config.srs_cl3_size_limit
+
+    def __init__(self, base_quality_level, source_data_size, ratio):
+        super().__init__(base_quality_level, source_data_size, ratio)
 
     def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
         img = PIL.Image.open(input_file)
@@ -72,50 +127,44 @@ class SrsImageEncoder(encoder.FilesEncoder):
         with cl3_file_path.open("bw") as f:
             f.write(self.cl3_image_data)
 
-        srs_data = {
-            "ftype": "CLSRS",
-            "content": {
-                "media-type": 0,
-            },
-            "streams": {
-                "image": {"levels": dict()}
-            }
-        }
-        if img.width > self.cl3_size_limit or img.height > self.cl3_size_limit:
-            srs_data["streams"]["image"]["levels"]["1"] = cl1_file_name
-        else:
-            srs_data["streams"]["image"]["levels"]["2"] = cl1_file_name
-        srs_data["streams"]["image"]["levels"]["3"] = cl3_file_name
+        self.write_image_srs(input_file, img, cl1_file_name, cl3_file_name, output_file)
 
-        if input_file.suffix == ".png":
-            png_file = png.Reader(filename=input_file)
-            file_text_metadata: dict[str, str] = dict()
-            for chunk_name, chunk_content in png_file.chunks():
-                if chunk_name == b"tEXt":
-                    raw_keyword, raw_text_content = bytes(chunk_content).split(b'\x00')
-                    keyword: str = raw_keyword.decode("utf-8")
-                    text_content: str = raw_text_content.decode("utf-8")
-                    srs_data["content"][keyword] = text_content
-
-        self.srs_file_path = output_file.with_suffix(".srs")
-        with self.srs_file_path.open("w") as f:
-            json.dump(srs_data, f)
         return self.srs_file_path
 
-    def get_files(self) -> list[pathlib.Path]:
-        srs_data = None
-        parent_dir = self.srs_file_path.parent
-        with self.srs_file_path.open('r') as f:
-            srs_data = json.load(f)
 
-        stream_type_key = MEDIA_TYPE_CODE_TO_STREAM_TYPE_KEY[srs_data["content"]["media-type"]]
+class SrsLosslessImageEncoder(BaseSrsEncoder):
+    cl3_encoder_type:  typing.Type[encoder.BytesEncoder] | None = None
+    cl1_encoder_type: typing.Type[encoder.BytesEncoder] | None = None
+    cl3_size_limit = config.srs_cl3_size_limit
 
-        list_files = []
-        for level in srs_data["streams"][stream_type_key]["levels"]:
-            list_files.append(
-                parent_dir.joinpath(srs_data["streams"][stream_type_key]["levels"][level])
+    def __init__(self, base_quality_level, source_data_size, ratio):
+        super().__init__(base_quality_level, source_data_size, ratio)
+
+    def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
+        img = PIL.Image.open(input_file)
+        self.cl1_encoder = self.cl1_encoder_type(input_file, img)
+        cl3_scaled_img = img.copy()
+        if (img.width > self.cl3_size_limit) | (img.height > self.cl3_size_limit):
+            cl3_scaled_img.thumbnail(
+                    (self.cl3_size_limit, self.cl3_size_limit),
+                    PIL.Image.Resampling.LANCZOS
             )
+        self.cl3_encoder = self.cl3_encoder_type(input_file, cl3_scaled_img)
+        self._quality = self.base_quality_level
 
-        list_files.append(self.srs_file_path)
-        return list_files
+        self.cl1_image_data = self.cl1_encoder.encode(100)
 
+        self.cl3_image_data = self.cl3_encoder.encode(self._quality)
+
+        cl1_file_path = output_file.with_suffix(self.cl1_encoder.SUFFIX)
+        cl3_file_path = output_file.with_suffix(self.cl3_encoder.SUFFIX)
+        cl1_file_name = cl1_file_path.name
+        cl3_file_name = cl3_file_path.name
+        with cl1_file_path.open("bw") as f:
+            f.write(self.cl1_image_data)
+        with cl3_file_path.open("bw") as f:
+            f.write(self.cl3_image_data)
+
+        self.write_image_srs(input_file, img, cl1_file_name, cl3_file_name, output_file)
+
+        return self.srs_file_path

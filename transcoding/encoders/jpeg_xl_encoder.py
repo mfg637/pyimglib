@@ -10,6 +10,7 @@ from ... import config
 
 
 class JpegXlEncoder(encoder.BytesEncoder):
+    SUFFIX = ".jxl"
     def __init__(self, source, img: PIL.Image.Image):
         encoder.BytesEncoder.__init__(self, ".jxl")
         self.source = source
@@ -39,6 +40,7 @@ class JpegXlEncoder(encoder.BytesEncoder):
 
 
 class JpegXlLosslessEncoder(JpegXlEncoder):
+    SUFFIX = ".jxl"
     def encode(self, quality) -> bytes:
         return JpegXlEncoder.encode(self, 100)
 
