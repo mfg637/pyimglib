@@ -48,6 +48,11 @@ class WEBMEncoder(BytesEncoder):
         return encoding_results.stdout
 
 
+class VP8Encoder(WEBMEncoder):
+    def __init__(self, source):
+        super().__init__("libvpx-vp8", "yuv420p", source)
+
+
 class VP9Encoder(WEBMEncoder):
     def __init__(self, source):
         super().__init__("libvpx-vp9", "yuva420p", source)

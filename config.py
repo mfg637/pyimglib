@@ -54,7 +54,7 @@ gop_length_seconds = 10
 # Reasonable range: 0.5-1
 cl3_to_orig_ratio = 0.5
 VIDEO_CRF = 24
-GIF_VIDEOLOOP_CRF = 28
+GIF_VIDEOLOOP_CRF = 24
 APNG_VIDEOLOOP_CRF = VIDEO_CRF
 VIDEOLOOP_CRF = GIF_VIDEOLOOP_CRF
 tiers_min_size = [480, 240, 144, 0]
@@ -68,7 +68,7 @@ force_audio_transcode = False
 WEBP_QSCALE = 1.375
 SRS_QSCALE = 1.25
 
-dash_low_tier_crf_gap = 4
+dash_low_tier_crf_gap = 0
 
 from .transcoding import encoders
 
