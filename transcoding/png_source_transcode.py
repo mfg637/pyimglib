@@ -157,7 +157,7 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
                     self.lossy_encoder.delete_result()
                     self._output_size = self._lossless_encoder.calc_file_size()
                     self._quality = 100
-                else:
+                elif self._lossless:
                     self._lossless_encoder.delete_result()
                     self._lossless = False
             else:
