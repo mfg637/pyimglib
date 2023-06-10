@@ -135,11 +135,13 @@ class SrsLossyImageEncoder(BaseSrsEncoder):
 
 class SrsLosslessImageEncoder(BaseSrsEncoder):
     cl3_encoder_type:  typing.Type[encoder.BytesEncoder] | None = None
+    cl3_lossy_encoder_type: typing.Type[encoder.BytesEncoder] | None = None
     cl1_encoder_type: typing.Type[encoder.BytesEncoder] | None = None
     cl3_size_limit = config.srs_cl3_size_limit
 
     def __init__(self, base_quality_level, source_data_size, ratio):
         super().__init__(base_quality_level, source_data_size, ratio)
+        self.cl3_lossy_encoder: encoder.BytesEncoder | None = None
 
     def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
         img = PIL.Image.open(input_file)
@@ -151,11 +153,17 @@ class SrsLosslessImageEncoder(BaseSrsEncoder):
                     PIL.Image.Resampling.LANCZOS
             )
             self.cl3_encoder = self.cl3_encoder_type(input_file, cl3_scaled_img)
+            self.cl3_lossy_encoder = self.cl3_lossy_encoder_type(input_file, cl3_scaled_img)
             self._quality = self.base_quality_level
 
             self.cl1_image_data = self.cl1_encoder.encode(100)
+            self.cl3_image_data = self.cl3_encoder.encode(100)
 
-            self.cl3_image_data = self.cl3_encoder.encode(self._quality)
+            self._quality = 100
+
+            while (len(self.cl1_image_data) + len(self.cl3_image_data)) >= self.source_data_size and self._quality > 50:
+                self._quality -= 10
+                self.cl3_image_data = self.cl3_lossy_encoder.encode(self._quality)
 
             cl1_file_path = output_file.with_suffix(self.cl1_encoder.SUFFIX)
             cl3_file_path = output_file.with_suffix(self.cl3_encoder.SUFFIX)

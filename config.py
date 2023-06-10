@@ -77,6 +77,7 @@ encoders.srs_image_encoder.SrsLossyImageEncoder.cl3_encoder_type = encoders.webp
 
 encoders.srs_image_encoder.SrsLosslessImageEncoder.cl1_encoder_type = encoders.jpeg_xl_encoder.JpegXlLosslessEncoder
 encoders.srs_image_encoder.SrsLosslessImageEncoder.cl3_encoder_type = encoders.webp_encoder.WEBPLosslessEncoder
+encoders.srs_image_encoder.SrsLosslessImageEncoder.cl3_lossy_encoder_type = encoders.webp_encoder.WEBPEncoder
 
 png_source_encoders = {
     "animation_encoder": encoders.dash_encoder.DASHLoopEncoder,
