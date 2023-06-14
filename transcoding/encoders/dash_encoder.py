@@ -34,7 +34,7 @@ class DASHEncoder(FilesEncoder):
         self.mpd_manifest_file = manifest_file
 
     @staticmethod
-    def calc_size(width_orig, height_orig, min_size):
+    def calc_size(width_orig, height_orig, min_size, size_precision = -1):
         width_max = 2
         height_max = 2
         width_small = 2
@@ -62,21 +62,21 @@ class DASHEncoder(FilesEncoder):
         if height_orig <= width_orig:
             logging.debug("width > height or width = height")
             if height_orig <= min_size:
-                width_small = width_max = int(common.bit_round(width_orig, -1))
-                height_small = height_max = int(common.bit_round(height_orig, -1))
+                width_small = width_max = int(common.bit_round(width_orig, size_precision))
+                height_small = height_max = int(common.bit_round(height_orig, size_precision))
             else:
                 height_small = min_size
                 scale_coef = height_orig / min_size
-                width_small = int(common.bit_round(width_orig / scale_coef, -1))
+                width_small = int(common.bit_round(width_orig / scale_coef, size_precision))
         elif height_orig > width_orig:
             logging.debug("height > width")
             if width_orig <= min_size:
-                width_small = width_max = int(common.bit_round(width_orig, -1))
-                height_small = height_max = int(common.bit_round(height_orig, -1))
+                width_small = width_max = int(common.bit_round(width_orig, size_precision))
+                height_small = height_max = int(common.bit_round(height_orig, size_precision))
             else:
                 width_small = min_size
                 scale_coef = width_orig / min_size
-                height_small = common.bit_round(height_orig / scale_coef, -1)
+                height_small = common.bit_round(height_orig / scale_coef, size_precision)
 
         logger.debug("width small = {}, height small = {}".format(width_small, height_small))
 
@@ -84,8 +84,8 @@ class DASHEncoder(FilesEncoder):
             aspect_ratio = width_small / height_small
             width_max, height_max, rounded_scale_coef = get_rounded_size(width_small, height_small, scale_coef)
             if rounded_scale_coef == 1:
-                width_small = width_max = int(common.bit_round(width_orig, -1))
-                height_small = height_max = int(common.bit_round(height_orig, -1))
+                width_small = width_max = int(common.bit_round(width_orig, size_precision))
+                height_small = height_max = int(common.bit_round(height_orig, size_precision))
         return width_small, height_small, width_max, height_max
 
     def get_files(self):
@@ -112,7 +112,7 @@ class DASHEncoder(FilesEncoder):
         list_files.append(self.mpd_manifest_file)
         return list_files
 
-    def calc_encoding_params(self, input_file: pathlib.Path, strict=False):
+    def calc_encoding_params(self, input_file: pathlib.Path, strict=False, size_precision = -1):
         src_metadata = ffmpeg.probe(input_file)
         video = ffmpeg.parser.find_video_stream(src_metadata)
         fps = ffmpeg.parser.get_fps(video)
@@ -144,7 +144,7 @@ class DASHEncoder(FilesEncoder):
             crf = calc_crf(width_orig, crf, lt_gap)
 
         width_small, height_small, width_max, height_max = DASHEncoder.calc_size(
-            width_orig, height_orig, limited_min_size
+            width_orig, height_orig, limited_min_size, size_precision
         )
 
         gop_size = int(round(self._gop_size * fps))
@@ -174,16 +174,15 @@ class DASHLoopEncoder(DASHEncoder):
             "-b:v:0", "0",
             "-crf:0", str(crf),
             "-crf:1", str(crf - lt_gap),
-            "-b:v:1", "5M",
-            "-c:v:1", "libvpx",
+            "-c:v:1", "libx264",
             '-threads', str(config.dash_encoding_threads),
-            #"-preset:v:1", "veryslow",
-            #"-level:v:1", "3.1",
+            "-preset:v:1", "veryslow",
+            "-level:v:1", "3.1",
             "-keyint_min", str(gop_size),
             "-g", str(gop_size),
             "-sc_threshold", "0",
             "-c:a", "copy",
-            "-dash_segment_type", "auto",
+            "-dash_segment_type", "mp4",
             "-seg_duration", "10",
             "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
             "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
@@ -346,7 +345,7 @@ class DashVideoEncoder(DASHEncoder):
         elif len(audio):
             commandline += ["-ac", "2", "-c:a", "libopus", "-b:a", "{}k".format(config.opus_stereo_bitrate_kbps)]
         commandline += [
-            "-dash_segment_type", "auto",
+            "-dash_segment_type", "mp4",
             "-seg_duration", "10",
             "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
             "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
