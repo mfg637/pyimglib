@@ -49,7 +49,7 @@ def get_file_transcoder(
         gif_transcoder.animation_encoder_type = config.gif_source_encoders["animation_encoder"]
         return gif_transcoder
     elif os.path.splitext(source)[1].lower() in {".webm", ".mp4", ".mkv"}:
-        if config.preferred_codec in (config.PREFERRED_CODEC.DASH_AVIF, config.PREFERRED_CODEC.DASH_SRS):
+        if issubclass(config.video_encoders["video_encoder"], encoders.dash_encoder.DASHEncoder):
             v_transcoder = video_transcoder.VideoTranscoder(source, path, filename)
             v_transcoder.video_encoder_type = config.video_encoders["video_encoder"]
             return v_transcoder
@@ -95,7 +95,7 @@ def get_memory_transcoder(
         gif_transcoder.animation_encoder_type = config.gif_source_encoders["animation_encoder"]
         return gif_transcoder
     elif bytes(source[:4]) in MKV_HEADER:
-        if config.preferred_codec in (config.PREFERRED_CODEC.DASH_AVIF, config.PREFERRED_CODEC.DASH_SRS):
+        if issubclass(config.video_encoders["video_encoder"], encoders.dash_encoder.DASHEncoder):
             v_transcoder = video_transcoder.VideoTranscoder(source, path, filename)
             v_transcoder.video_encoder_type = config.video_encoders["video_encoder"]
             return v_transcoder
