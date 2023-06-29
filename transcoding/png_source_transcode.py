@@ -101,7 +101,7 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
         self._apng_test_convert(img)
         if self._animated:
             return
-        if img.mode in {'1', 'P', 'PA'}:
+        if img.mode in {'1', 'P', 'PA', 'L'}:
             raise base_transcoder.NotSupportedSourceException()
         self._lossless = True \
             if noise_detection.noise_detection(img) == noise_detection.NoisyImageEnum.NOISELESS else False
