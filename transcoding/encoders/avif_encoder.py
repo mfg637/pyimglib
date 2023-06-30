@@ -24,8 +24,11 @@ class AVIFEncoder(BytesEncoder):
         self.encoding_speed = config.avifenc_encoding_speed
 
     def encode(self, quality, lossless=False, force_subsampling=False) -> bytes:
-        if self._img.width * self._img.height > MAX_AVIF_YUV444_SIZE:
-            force_subsampling = True
+        if quality == 100:
+            lossless = True
+        else:
+            if self._img.width * self._img.height > MAX_AVIF_YUV444_SIZE:
+                force_subsampling = True
         crf = 100 - quality
         commandline = ['avifenc']
         if config.encoding_threads is not None and config.encoding_threads > 0:

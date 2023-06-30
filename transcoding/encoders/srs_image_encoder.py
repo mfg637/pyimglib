@@ -88,6 +88,22 @@ class BaseSrsEncoder(encoder.FilesEncoder, ABC):
         with self.srs_file_path.open("w") as f:
             json.dump(srs_data, f)
 
+    def cl2_encode(self, img, input_file, output_file):
+        if img.width > config.srs_avif_trigger_size or img.height > config.srs_avif_trigger_size:
+            cl2_scaled_img = img.copy()
+            cl2_scaled_img.thumbnail(
+                (config.srs_avif_trigger_size, config.srs_avif_trigger_size),
+                PIL.Image.Resampling.LANCZOS
+            )
+            cl2_encoder = self.cl2_encoder_type(input_file, cl2_scaled_img)
+            cl2_file_path = output_file.with_stem(output_file.stem + '_CL2').with_suffix(cl2_encoder.SUFFIX)
+            cl2_file_name = cl2_file_path.name
+            cl2_encoded_data = cl2_encoder.encode(self._quality)
+            with cl2_file_path.open("bw") as f:
+                f.write(cl2_encoded_data)
+            return cl2_file_name, len(cl2_encoded_data)
+        return None, 0
+
 
 class SrsLossyImageEncoder(BaseSrsEncoder):
     cl3_encoder_type:  typing.Type[encoder.BytesEncoder] | None = None
@@ -131,19 +147,7 @@ class SrsLossyImageEncoder(BaseSrsEncoder):
         cl3_file_name = cl3_file_path.name
 
         self.cl3_image_data = self.cl3_encoder.encode(self._quality - 5)
-        if img.width > config.srs_avif_trigger_size or img.height > config.srs_avif_trigger_size:
-            logger.info("generating CL2 image")
-            cl2_scaled_img = img.copy()
-            cl2_scaled_img.thumbnail(
-                (config.srs_avif_trigger_size, config.srs_avif_trigger_size),
-                PIL.Image.Resampling.LANCZOS
-            )
-            cl2_encoder = self.cl2_encoder_type(input_file, cl2_scaled_img)
-            cl2_file_path = output_file.with_stem(output_file.stem + '_CL2').with_suffix(cl2_encoder.SUFFIX)
-            cl2_file_name = cl2_file_path.name
-            cl2_encoded_data = cl2_encoder.encode(self._quality)
-            with cl2_file_path.open("bw") as f:
-                f.write(cl2_encoded_data)
+        cl2_file_name, cl2_data_len = self.cl2_encode(img, input_file, output_file)
 
 
         with cl1_file_path.open("bw") as f:
@@ -158,6 +162,7 @@ class SrsLossyImageEncoder(BaseSrsEncoder):
 
 class SrsLosslessImageEncoder(BaseSrsEncoder):
     cl3_encoder_type:  typing.Type[encoder.BytesEncoder] | None = None
+    cl2_encoder_type: typing.Type[encoder.BytesEncoder] | None = None
     cl3_lossy_encoder_type: typing.Type[encoder.BytesEncoder] | None = None
     cl1_encoder_type: typing.Type[encoder.BytesEncoder] | None = None
     cl3_size_limit = config.srs_cl3_size_limit
@@ -179,24 +184,28 @@ class SrsLosslessImageEncoder(BaseSrsEncoder):
             self.cl3_lossy_encoder = self.cl3_lossy_encoder_type(input_file, cl3_scaled_img)
             self._quality = self.base_quality_level
 
-            self.cl1_image_data = self.cl1_encoder.encode(100)
-            self.cl3_image_data = self.cl3_encoder.encode(100)
-
-            self._quality = 100
-
-            while (len(self.cl1_image_data) + len(self.cl3_image_data)) >= self.source_data_size and self._quality > 50:
-                self._quality -= 10
-                self.cl3_image_data = self.cl3_lossy_encoder.encode(self._quality)
-
             cl1_file_path = output_file.with_suffix(self.cl1_encoder.SUFFIX)
             cl3_file_path = output_file.with_suffix(self.cl3_encoder.SUFFIX)
             cl1_file_name = cl1_file_path.name
             cl3_file_name = cl3_file_path.name
+            cl2_file_name = None
+
+            self._quality = 100
+            self.cl1_image_data = self.cl1_encoder.encode(100)
+            self.cl3_image_data = self.cl3_encoder.encode(100)
+            cl2_file_name, cl2_data_len = self.cl2_encode(img, input_file, output_file)
+
+            while (len(self.cl1_image_data) + len(self.cl3_image_data) + cl2_data_len) >= self.source_data_size \
+                    and self._quality > 50:
+                self._quality -= 10
+                self.cl3_image_data = self.cl3_lossy_encoder.encode(self._quality)
+                cl2_file_name, cl2_data_len = self.cl2_encode(img, input_file, output_file)
+
             with cl1_file_path.open("bw") as f:
                 f.write(self.cl1_image_data)
             with cl3_file_path.open("bw") as f:
                 f.write(self.cl3_image_data)
-            self.write_image_srs(input_file, img, cl1_file_name, cl3_file_name, output_file)
+            self.write_image_srs(input_file, img, cl1_file_name, cl3_file_name, output_file, cl2_file_name)
         else:
             self.cl3_encoder = self.cl3_encoder_type(input_file, img)
             self.cl3_image_data = self.cl3_encoder.encode(100)
