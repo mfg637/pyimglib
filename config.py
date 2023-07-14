@@ -42,7 +42,7 @@ class YUV4MPEG2_LIMITED_RANGE_CORRENTION_MODES(enum.Enum):
 yuv4mpeg2_limited_range_correction = YUV4MPEG2_LIMITED_RANGE_CORRENTION_MODES.CLIPPING
 
 srs_cl3_size_limit = 2048
-srs_avif_trigger_size = 4096
+srs_cl2_size_limit = 4096
 srs_thumbnail_for_lossless_trigger_size = 4096
 
 cl3_width = 1280
@@ -84,11 +84,11 @@ encoders.srs_image_encoder.SrsLosslessImageEncoder.cl2_encoder_type = encoders.a
 png_source_encoders = {
     "animation_encoder": encoders.dash_encoder.DASHLoopEncoder,
     "lossless_encoder": encoders.srs_image_encoder.SrsLosslessImageEncoder,
-    "lossy_encoder": encoders.srs_image_encoder.SrsLossyImageEncoder
+    "lossy_encoder": encoders.srs_image_encoder.SrsLossyJpegXlEncoder
 }
 
 jpeg_source_encoders = {
-    "lossy_encoder": encoders.srs_image_encoder.SrsLossyImageEncoder
+    "lossy_encoder": encoders.srs_image_encoder.SrsLossyJpegXlEncoder
 }
 
 gif_source_encoders = {
