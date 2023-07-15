@@ -24,10 +24,13 @@ class JPEGTranscode(base_transcoder.BaseTranscoder):
     __metaclass__ = abc.ABCMeta
 
     lossy_encoder_type = None
+    lossless_jpeg_transcoder_type = None
 
     def __init__(self, source, path: pathlib.Path, file_name: str):
         super().__init__(source, path, file_name)
-        self._lossy_encoder: encoders.BytesEncoder = None
+        self._lossy_encoder: encoders.BytesEncoder | encoders.FilesEncoder = None
+        self.lossless_transcoder = None
+        self.lossless_data = None
 
     @abc.abstractmethod
     def _arithmetic_check(self):
@@ -47,28 +50,16 @@ class JPEGTranscode(base_transcoder.BaseTranscoder):
     def get_converter_type(self):
         return None
 
-    def lossless_encode(self):
-        meta_copy = 'all'
-        source_data = self._get_source_data()
-        process = subprocess.Popen(['jpegtran', '-copy', meta_copy, '-arithmetic'],
-                                   stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        if type(source_data) is io.BytesIO:
-            process.stdin.write(source_data.getvalue())
-        else:
-            process.stdin.write(source_data)
-        process.stdin.close()
-        self._optimized_data = process.stdout.read()
-        process.stdout.close()
-        process.terminate()
-        self._output_size = len(self._optimized_data)
-        self._output_file = self._path.joinpath(self._file_name)
-
     def size_treshold(self, img):
         return img.width > 1024 or img.height > 1024
 
     def _encode(self):
         self._arithmetic_check()
         img = self._open_image()
+
+        self.lossless_transcoder: encoders.BytesEncoder = self.lossless_jpeg_transcoder_type(self._source, img)
+        self.lossless_data = self.lossless_transcoder.encode(100)
+
         if self.size_treshold(img):
             self._lossy_output = True
             if issubclass(self.lossy_encoder_type, encoders.encoder.FilesEncoder):
@@ -117,7 +108,17 @@ class JPEGTranscode(base_transcoder.BaseTranscoder):
                 img.close()
         else:
             img.close()
-            self.lossless_encode()
+
+        logging.debug("lossy size: {}".format(self._output_size))
+        logging.debug("lossless size: {}".format(len(self.lossless_data)))
+
+        if self._lossy_output and len(self.lossless_data) > self._output_size:
+            self._lossy_output = True
+        else:
+            self._lossy_output = False
+            if isinstance(self._lossy_encoder, encoders.FilesEncoder):
+                self._lossy_encoder.delete_result()
+            self._output_size = len(self.lossless_data)
 
     def _save(self):
         if self._lossy_output:
@@ -126,11 +127,8 @@ class JPEGTranscode(base_transcoder.BaseTranscoder):
             self._output_file = self._lossy_encoder.save(self._lossy_data, self._path, self._file_name)
             return self._output_file
         else:
-            fname = self._output_file.with_suffix(".jpg")
-            outfile = open(fname, 'wb')
-            outfile.write(self._optimized_data)
-            outfile.close()
-            return fname
+            self._output_file = self.lossless_transcoder.save(self.lossless_data, self._path, self._file_name)
+            return self._output_file
 
 
 class JPEGFileTranscode(base_transcoder.FilePathSource, base_transcoder.UnremovableSource, JPEGTranscode):
@@ -162,7 +160,8 @@ class JPEGFileTranscode(base_transcoder.FilePathSource, base_transcoder.Unremova
         os.utime(self._source, (self._atime, self._mtime))
 
     def _optimisations_failed(self):
-        pass
+        if isinstance(self._lossy_encoder, encoders.encoder.FilesEncoder):
+            self._lossy_encoder.delete_result()
 
     def _invalid_file_exception_handle(self, e):
         logging.warning('invalid file ' + self._source + ' ({}) has been deleted'.format(e))
@@ -180,6 +179,8 @@ class JPEGInMemoryTranscode(base_transcoder.InMemorySource, JPEGTranscode):
         logging.exception('invalid JPEG data')
 
     def _optimisations_failed(self):
+        if isinstance(self._lossy_encoder, encoders.encoder.FilesEncoder):
+            self._lossy_encoder.delete_result()
         fname = self._output_file.with_suffix(".jpg")
         outfile = open(fname, "bw")
         outfile.write(self._source)

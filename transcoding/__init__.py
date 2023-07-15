@@ -88,6 +88,7 @@ def get_memory_transcoder(
     elif isJPEG(source):
         jpeg_transcoder = jpeg_source_transcode.JPEGInMemoryTranscode(source, path, filename)
         jpeg_transcoder.lossy_encoder_type = config.jpeg_source_encoders["lossy_encoder"]
+        jpeg_transcoder.lossless_jpeg_transcoder_type = config.jpeg_source_encoders["lossless_transcoder"]
         return jpeg_transcoder
     elif isGIF(source):
         gif_transcoder = gif_source_transcode.GIFInMemoryTranscode(source, path, filename)

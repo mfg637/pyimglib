@@ -88,11 +88,12 @@ png_source_encoders = {
 }
 
 jpeg_source_encoders = {
-    "lossy_encoder": encoders.srs_image_encoder.SrsLossyJpegXlEncoder
+    "lossy_encoder": encoders.srs_image_encoder.SrsLossyJpegXlEncoder,
+    "lossless_transcoder": encoders.jpeg_recompression.JpegXlTranscoder
 }
 
 gif_source_encoders = {
-    "lossy_encoder": encoders.srs_image_encoder.SrsLossyImageEncoder,
+    "lossy_encoder": encoders.srs_image_encoder.SrsLossyJpegXlEncoder,
     "animation_encoder": encoders.dash_encoder.DASHLoopEncoder
 }
 
