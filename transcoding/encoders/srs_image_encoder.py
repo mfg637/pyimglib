@@ -209,7 +209,8 @@ class SrsLossyJpegXlEncoder(BaseSrsEncoder):
             "cjxl",
             input_file,
             output_file,
-            "-d", "1"
+            "-d", "1",
+            "--lossless_jpeg=0"
         ]
         common.run_subprocess(commandline, log_stdout=True)
 
