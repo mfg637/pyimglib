@@ -47,7 +47,7 @@ class FilesEncoder(AbstractEncoder):
     def delete_result(self):
         files = self.get_files()
         for file in files:
-            file.unlink()
+            file.unlink(missing_ok=True)
 
 
 class BytesEncoderWrapper(FilesEncoder):
