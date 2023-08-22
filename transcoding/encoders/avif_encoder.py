@@ -9,6 +9,8 @@ from .encoder import BytesEncoder
 from ..common import run_subprocess
 from ... import config
 
+MAX_AVIF_YUV444_SIZE = 2**26 + 2**25
+
 
 class AVIFEncoder(BytesEncoder):
     SUFFIX = ".avif"
@@ -21,7 +23,12 @@ class AVIFEncoder(BytesEncoder):
         self._av1_enable_advanced_options = True
         self.encoding_speed = config.avifenc_encoding_speed
 
-    def encode(self, quality, lossless=False) -> bytes:
+    def encode(self, quality, lossless=False, force_subsampling=False) -> bytes:
+        if quality == 100:
+            lossless = True
+        else:
+            if self._img.width * self._img.height > MAX_AVIF_YUV444_SIZE:
+                force_subsampling = True
         crf = 100 - quality
         commandline = ['avifenc']
         if config.encoding_threads is not None and config.encoding_threads > 0:
@@ -38,6 +45,8 @@ class AVIFEncoder(BytesEncoder):
                 '-a', 'end-usage=q',
                 '-a', 'cq-level={}'.format(crf)
             ]
+        if force_subsampling:
+            commandline += ['-y', '420']
         if self._av1_enable_advanced_options:
             commandline += [
                 '-a', 'aq-mode=1',
@@ -91,6 +100,11 @@ class AVIFEncoder(BytesEncoder):
             return self.encode(quality)
         return encoded_data
 
+
+class AVIFSubsampledEncoder(AVIFEncoder):
+    SUFFIX = ".avif"
+    def encode(self, quality) -> bytes:
+        return AVIFEncoder.encode(self, quality, force_subsampling=True)
 
 class AVIFLosslessEncoder(AVIFEncoder):
     SUFFIX = ".avif"
