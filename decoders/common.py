@@ -7,6 +7,10 @@ from . import jpeg,\
     srs,\
     YUV4MPEG2
 
+import pillow_heif
+pillow_heif.register_heif_opener()
+pillow_heif.register_avif_opener()
+
 
 def open_image(file_path, required_size=None):
     if jpeg.is_JPEG(file_path):
@@ -14,8 +18,8 @@ def open_image(file_path, required_size=None):
         decoded_jpg = decoder.decode(required_size)
         img = PIL.Image.open(decoded_jpg.stdout)
         return img
-    elif avif.is_avif(file_path):
-        return avif.decode(file_path)
+    # elif avif.is_avif(file_path):
+    #     return avif.decode(file_path)
     elif YUV4MPEG2.is_Y4M(file_path):
         return YUV4MPEG2.Y4M_FramesStream(file_path)
     elif jpeg_xl.is_JPEG_XL(file_path):
