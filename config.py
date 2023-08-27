@@ -93,7 +93,7 @@ jpeg_source_encoders = {
 }
 
 gif_source_encoders = {
-    "lossy_encoder": encoders.srs_image_encoder.SrsLossyJpegXlEncoder,
+    "lossy_encoder": encoders.jpeg_xl_encoder.JpegXlEncoder,
     "animation_encoder": encoders.dash_encoder.DASHLoopEncoder
 }
 
