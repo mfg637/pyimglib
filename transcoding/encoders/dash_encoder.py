@@ -232,6 +232,7 @@ class DashVideoEncoder(DASHEncoder):
         av1an_commandline += "\" -w {} -s {} -a=\"-an\" --passes=1".format(
             self.av1an_workers, av1an_scenes_file.name
         )
+        av1an_commandline += " --ffmpeg=\"-vf scale={}x{}\" ".format(width_max, height_max)
         if logging.root.level >= logging.ERROR:
             av1an_commandline += " --quiet"
         return shlex.split(av1an_commandline)
@@ -249,8 +250,7 @@ class DashVideoEncoder(DASHEncoder):
             "-y",
             "-i", input_file,
             "-map", "0:v",
-            "-s", f"{width_small}x{height_small}",
-            "-vf", "setsar=1",
+            "-vf", f"scale={width_small}:{height_small},setsar=1",
             "-pix_fmt", "yuv420p",
             "-crf", str(crf),
             "-c:v", "libx264",
