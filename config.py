@@ -72,7 +72,7 @@ dash_low_tier_crf_gap = 0
 
 from .transcoding import encoders
 
-encoders.srs_image_encoder.SrsLossyImageEncoder.cl1_encoder_type = encoders.avif_encoder.AVIFEncoder
+encoders.srs_image_encoder.SrsLossyImageEncoder.cl1_encoder_type = encoders.jpeg_xl_encoder.JpegXlEncoder
 encoders.srs_image_encoder.SrsLossyImageEncoder.cl2_encoder_type = encoders.avif_encoder.AVIFSubsampledEncoder
 encoders.srs_image_encoder.SrsLossyImageEncoder.cl3_encoder_type = encoders.webp_encoder.WEBPEncoder
 
@@ -93,7 +93,7 @@ jpeg_source_encoders = {
 }
 
 gif_source_encoders = {
-    "lossy_encoder": encoders.srs_image_encoder.SrsLossyJpegXlEncoder,
+    "lossy_encoder": encoders.jpeg_xl_encoder.JpegXlEncoder,
     "animation_encoder": encoders.dash_encoder.DASHLoopEncoder
 }
 
