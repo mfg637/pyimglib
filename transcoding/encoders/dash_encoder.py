@@ -164,9 +164,8 @@ class DASHLoopEncoder(DASHEncoder):
         commandline = [
             "ffmpeg",
             "-i", input_file,
-            "-f", "lavfi", "-i", f"color=c=white,scale={width_small}:{height_small}",
             "-filter_complex",
-            f"[1]setsar=1[bg1],[0]scale={width_max}x{height_max}[v1],[0]scale={width_small}x{height_small}[sv1],[bg1][sv1]overlay=shortest=1[v2],[v1]setsar=1[v1],[v2]setsar=1[v2]",
+            f"[0]scale={width_max}x{height_max}[v1],[0]scale={width_small}x{height_small}[v2],[v1]setsar=1[v1],[v2]setsar=1[v2]",
             "-map", "[v1]",
             "-map", "[v2]",
             "-pix_fmt:0", "yuva420p10le",
