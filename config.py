@@ -68,7 +68,7 @@ force_audio_transcode = False
 WEBP_QSCALE = 1.375
 SRS_QSCALE = 1.25
 
-dash_low_tier_crf_gap = 0
+dash_low_tier_crf_gap = 4
 
 from .transcoding import encoders
 
@@ -98,5 +98,7 @@ gif_source_encoders = {
 }
 
 video_encoders = {
-    "video_encoder": encoders.dash_encoder.DashVideoEncoder
+    "video_encoder": encoders.dash_encoder.SVTAV1DashVideoEncoder
 }
+
+show_output_in_console = True

@@ -23,10 +23,9 @@ logger = logging.getLogger(__name__)
 
 
 class DASHEncoder(FilesEncoder):
-    def __init__(self, crf: int, gop_size, pix_fmt, high_tier_encoder):
+    def __init__(self, crf: int, gop_size, pix_fmt):
         self._crf = crf
         self._target_pixel_format = pix_fmt
-        self._target_encoder = high_tier_encoder
         self._gop_size = gop_size
         self.mpd_manifest_file: pathlib.Path | None = None
 
@@ -96,7 +95,10 @@ class DASHEncoder(FilesEncoder):
 
         file_templates = set()
         parent_dir = self.mpd_manifest_file.parent
-        mpd_document: xml.dom.minidom.Document = xml.dom.minidom.parse(str(self.mpd_manifest_file))
+        try:
+            mpd_document: xml.dom.minidom.Document = xml.dom.minidom.parse(str(self.mpd_manifest_file))
+        except xml.parsers.expat.ExpatError:
+            return []
         segment_templates: Iterable[xml.dom.minidom.Element] = mpd_document.getElementsByTagName("SegmentTemplate")
         for template in segment_templates:
             file_templates.add(file_template_regex.sub("*", template.getAttribute("initialization")))
@@ -153,11 +155,11 @@ class DASHEncoder(FilesEncoder):
 
 class DASHLoopEncoder(DASHEncoder):
     def __init__(self, crf: int):
-        super().__init__(crf, 2, "yuva420p", "libvpx-vp9")
+        super().__init__(crf, 2, "yuva420p")
 
     def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
         width_max, height_max, width_small, height_small, gop_size, crf, lt_gap, fps = \
-            self.calc_encoding_params(input_file, strict=True)
+            self.calc_encoding_params(input_file, strict=True, size_precision=0)
 
         commandline = [
             "ffmpeg",
@@ -167,23 +169,21 @@ class DASHLoopEncoder(DASHEncoder):
             f"[1]setsar=1[bg1],[0]scale={width_max}x{height_max}[v1],[0]scale={width_small}x{height_small}[sv1],[bg1][sv1]overlay=shortest=1[v2],[v1]setsar=1[v1],[v2]setsar=1[v2]",
             "-map", "[v1]",
             "-map", "[v2]",
-            "-pix_fmt:0", self._target_pixel_format,
-            "-pix_fmt:1", "yuv420p",
-            "-c:v:0", self._target_encoder,
+            "-pix_fmt:0", "yuva420p10le",
+            "-pix_fmt:1", "yuva420p",
+            "-c:v:0", "libaom-av1",
             "-cpu-used", str(config.av1_cpu_usage),
             "-b:v:0", "0",
-            "-crf:0", str(crf),
-            "-crf:1", str(crf - lt_gap),
-            "-c:v:1", "libx264",
+            "-crf:0", str(crf - lt_gap),
+            "-crf:1", str(crf + lt_gap * 2),
+            "-c:v:1", "libvpx-vp9",
             '-threads', str(config.dash_encoding_threads),
-            "-preset:v:1", "veryslow",
-            "-level:v:1", "3.1",
             "-keyint_min", str(gop_size),
             "-g", str(gop_size),
             "-sc_threshold", "0",
             "-c:a", "copy",
-            "-dash_segment_type", "mp4",
-            "-seg_duration", "10",
+            "-dash_segment_type", "webm",
+            "-seg_duration", str(self._gop_size),
             "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
             "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
             "-adaptation_sets", "id=0,streams=v id=1,streams=a",
@@ -193,14 +193,17 @@ class DASHLoopEncoder(DASHEncoder):
         commandline += [
             output_file
         ]
-        common.run_subprocess(commandline)
+        if config.show_output_in_console:
+            subprocess.run(commandline)
+        else:
+            common.run_subprocess(commandline)
         self.mpd_manifest_file = output_file
         return output_file
 
 
 class DashVideoEncoder(DASHEncoder):
     def __init__(self, crf: int):
-        super().__init__(crf, 10, "yuv420p10le", "libaom-av1")
+        super().__init__(crf, 10, "yuv420p10le")
         self.av1an_workers = config.dash_encoding_threads
 
     @staticmethod
@@ -383,22 +386,74 @@ class DashVideoEncoder(DASHEncoder):
         return output_file
 
 
-class SVTAV1DashVideoEncoder(DashVideoEncoder):
+class SVTAV1DashVideoEncoder(DASHEncoder):
     def __init__(self, crf: int):
-        super().__init__(crf)
-        self.av1an_workers = 1
+        super().__init__(crf, 10, "yuv420p10le")
+        self.av1an_workers = config.dash_encoding_threads
 
-    def get_av1an_commandline(self, input_file, ht_video_file, gop_size, width_max, height_max, crf, av1an_scenes_file):
-        av1an_commandline = \
-            "av1an -i \"{}\" -o \"{}\" --encoder svt_av1 -v \"--preset {} --keyint 10s --crf {}\"".format(
-                input_file, ht_video_file.name, config.av1_cpu_usage, crf
-            )
-
-        av1an_commandline += " -w 1 -s {} -a=\"-an\" --passes=1".format(
-            config.dash_encoding_threads, av1an_scenes_file.name
-        )
-        if logging.root.level >= logging.ERROR:
-            av1an_commandline += " --quiet"
-
-        return shlex.split(av1an_commandline)
+    def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
+        width_max, height_max, width_small, height_small, gop_size, crf, lt_gap, fps = \
+            self.calc_encoding_params(input_file)
+        if width_max != width_small or height_max != height_small:
+            commandline = [
+                "ffmpeg",
+                "-i", input_file,
+                "-filter_complex",
+                f"[0]scale={width_max}x{height_max}[v1],[0]scale={width_small}x{height_small}[v2],[v1]setsar=1[v1],[v2]setsar=1[v2]",
+                "-map", "[v1]",
+                "-map", "[v2]",
+                "-map", "0:a?",
+                "-pix_fmt:0", "yuv420p10le",
+                "-pix_fmt:1", "yuv420p",
+                "-c:v:0", "libsvtav1",
+                "-cpu-used", str(config.av1_cpu_usage),
+                "-b:v:0", "0",
+                "-crf:0", str(crf),
+                "-crf:1", str(crf),
+                "-c:v:1", "libx264",
+                "-preset:v:1", "veryslow",
+                '-threads', str(config.dash_encoding_threads),
+                "-keyint_min", str(gop_size),
+                "-g", str(gop_size),
+                "-sc_threshold", "0",
+                "-c:a", "copy",
+                "-dash_segment_type", "auto",
+                "-seg_duration", str(self._gop_size),
+                "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
+                "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
+                "-adaptation_sets", "id=0,streams=v id=1,streams=a",
+                "-f", "dash"
+            ]
+        else:
+            commandline = [
+                "ffmpeg",
+                "-i", input_file,
+                "-filter_complex",
+                f"[0]scale={width_max}x{height_max}[v1]",
+                "-map", "[v1]",
+                "-map", "0:a?",
+                "-pix_fmt", "yuv420p",
+                "-crf", str(crf),
+                "-c:v", "libx264",
+                "-preset:v", "veryslow",
+                '-threads', str(config.dash_encoding_threads),
+                "-g", str(gop_size),
+                "-c:a", "copy",
+                "-dash_segment_type", "auto",
+                "-seg_duration", str(self._gop_size),
+                "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
+                "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
+                "-adaptation_sets", "id=0,streams=v id=1,streams=a",
+                "-f", "dash"
+            ]
+        output_file = output_file.with_suffix(".mpd")
+        commandline += [
+            output_file
+        ]
+        if config.show_output_in_console:
+            subprocess.run(commandline)
+        else:
+            common.run_subprocess(commandline)
+        self.mpd_manifest_file = output_file
+        return output_file
 
