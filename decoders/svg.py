@@ -6,7 +6,6 @@ import io
 import subprocess
 
 import PIL.Image
-import cairosvg
 import tempfile
 
 svg_tag = re.compile(r'<svg[^>]*>')
@@ -66,22 +65,15 @@ def decode(file_path, required_size=None):
     except ValueError:
         pass
     buffer = None
-    import defusedxml
-    try:
-        if type(file_path) is bytes:
-            buffer = io.BytesIO(cairosvg.svg2png(bytestring=file_path, scale=scale))
-        else:
-            buffer = io.BytesIO(cairosvg.svg2png(url=str(file_path), scale=scale))
-    except defusedxml.common.EntitiesForbidden:
-        tmpfile = None
-        if type(file_path) is bytes:
-            tmpfile = tempfile.NamedTemporaryFile("bw")
-            tmpfile.write(file_path)
-            file_path = tmpfile.name
-        buffer = io.BytesIO(subprocess.run(
-            ['rsvg-convert', '--format=png', '-z', str(scale), str(file_path)],
-            capture_output=True
-        ).stdout)
-        if tmpfile is not None:
-            tmpfile.close()
+    tmpfile = None
+    if type(file_path) is bytes:
+        tmpfile = tempfile.NamedTemporaryFile("bw")
+        tmpfile.write(file_path)
+        file_path = tmpfile.name
+    buffer = io.BytesIO(subprocess.run(
+        ['rsvg-convert', '--format=png', '-z', str(scale), str(file_path)],
+        capture_output=True
+    ).stdout)
+    if tmpfile is not None:
+        tmpfile.close()
     return PIL.Image.open(buffer)
