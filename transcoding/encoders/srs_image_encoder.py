@@ -171,8 +171,9 @@ class SrsLossyJpegXlEncoder(BaseSrsEncoder):
     This encoder depends on specified version of libjxl: commit 38b629f and later (approximately 0.9.0).
     """
 
-    def __init__(self, base_quality_level, source_data_size, ratio):
+    def __init__(self, base_quality_level, source_data_size, ratio, cl1_suffix=".jxl"):
         super().__init__(base_quality_level, source_data_size, ratio)
+        self._cl1_suffix = cl1_suffix
 
     def alpha_channel_test(self, img: PIL.Image.Image):
         if img.mode in {"RGB", "L"}:
@@ -204,7 +205,7 @@ class SrsLossyJpegXlEncoder(BaseSrsEncoder):
         common.run_subprocess(commandline, log_stdout=True)
         jpeg_tmp_file.close()
 
-    def encode_cl1(self, input_file: pathlib.Path, output_file: pathlib.Path):
+    def encode_cl1(self, input_file: pathlib.Path, output_file: pathlib.Path, img: PIL.Image.Image = None):
         commandline = [
             "cjxl",
             input_file,
@@ -239,9 +240,9 @@ class SrsLossyJpegXlEncoder(BaseSrsEncoder):
             cl2_file_path = output_file.with_stem("{}_cl2".format(output_file.stem)).with_suffix(".jxl")
             cl2_file_name = cl2_file_path.name
             self.encode_cl2(cl2_image, cl2_file_path)
-            cl1_file_path = output_file.with_suffix(".jxl")
+            cl1_file_path = output_file.with_suffix(self._cl1_suffix)
             cl1_file_name = cl1_file_path.name
-            self.encode_cl1(input_file, cl1_file_path)
+            self.encode_cl1(input_file, cl1_file_path, img)
         else:
             logger.debug("cl2 encode")
             cl2_file_path = output_file.with_suffix(".jxl")
@@ -252,6 +253,19 @@ class SrsLossyJpegXlEncoder(BaseSrsEncoder):
 
         return self.srs_file_path
 
+class HybridImageEncoder(SrsLossyJpegXlEncoder):
+    def __init__(self, base_quality_level, source_data_size, ratio):
+        super().__init__(base_quality_level, source_data_size, ratio, cl1_suffix=".avif")
+
+    def encode_cl1(self, input_file: pathlib.Path, output_file: pathlib.Path, img: PIL.Image.Image = None):
+        logger.info("jpeg xl cl1 encoder redefined to AVIF encoder")
+        if img is None:
+            logger.info("img is none. Opening file…")
+            img = PIL.Image.open(input_file)
+        cl1_encoder = avif_encoder.AVIFEncoder(input_file, img)
+        cl1_image_data = cl1_encoder.encode(95)
+        with output_file.open("bw") as f:
+            f.write(cl1_image_data)
 
 class SrsLosslessImageEncoder(BaseSrsEncoder):
     cl3_encoder_type:  typing.Type[encoder.BytesEncoder] | None = None
