@@ -13,11 +13,11 @@ def ffmpeg_set_fps_commandline(fps):
     return ['-r', str(fps)]
 
 
-def limit_fps(fps):
+def limit_fps(fps, limit_value=30):
     src_fps_valid = True
-    if fps > 30:
+    if fps > limit_value:
         src_fps_valid = False
-        while fps > 30:
+        while fps > limit_value:
             fps /= 2
     return fps, src_fps_valid
 
