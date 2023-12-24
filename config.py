@@ -98,7 +98,7 @@ gif_source_encoders = {
 }
 
 video_encoders = {
-    "video_encoder": encoders.dash_encoder.SVTAV1DashVideoEncoder
+    "video_encoder": encoders.dash_encoder.SourceAdaptiveTranscoder
 }
 
 show_output_in_console = True

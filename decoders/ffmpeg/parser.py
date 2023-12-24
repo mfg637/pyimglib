@@ -45,3 +45,9 @@ def find_audio_streams(data):
 
 def get_file_bitrate(data):
     return int(data["format"]["bit_rate"])
+
+def get_video_codec(video_stream) -> str:
+    return video_stream["codec_name"]
+
+def get_video_pixel_format(video_stream) -> str:
+    return video_stream["pix_fmt"]
