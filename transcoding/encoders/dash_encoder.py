@@ -493,13 +493,13 @@ class SourceAdaptiveTranscoder(DASHEncoder):
                 if height_orig > min_size:
                     height_small = min_size
                     scale_coef = height_orig / min_size
-                    width_small = int(round(width_orig / scale_coef))
+                    width_small = int(common.bit_round(width_orig / scale_coef, -1))
             elif height_orig > width_orig:
                 logging.debug("height > width")
                 if width_orig > min_size:
                     width_small = min_size
                     scale_coef = width_orig / min_size
-                    height_small = int(round(height_orig / scale_coef))
+                    height_small = int(common.bit_round(height_orig / scale_coef, -1))
             crf = self._crf
             gop_size = int(round(self._gop_size * cl3_fps))
             cl1_gop_size = int(round(self._gop_size * fps))
