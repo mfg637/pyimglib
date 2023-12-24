@@ -185,7 +185,6 @@ class DASHLoopEncoder(DASHEncoder):
             "-seg_duration", str(self._gop_size),
             "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
             "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
-            "-adaptation_sets", "id=0,streams=v id=1,streams=a",
             "-f", "dash"
         ]
         output_file = output_file.with_suffix(".mpd")
@@ -351,7 +350,6 @@ class DashVideoEncoder(DASHEncoder):
             "-seg_duration", "10",
             "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
             "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
-            "-adaptation_sets", "id=0,streams=v id=1,streams=a",
             "-f", "dash"
         ]
         ht_init = output_file.with_name("{}-init-0.m4s".format(output_file.name))
@@ -405,7 +403,7 @@ class SVTAV1DashVideoEncoder(DASHEncoder):
                 "-pix_fmt:0", "yuv420p10le",
                 "-pix_fmt:1", "yuv420p",
                 "-c:v:0", "libsvtav1",
-                "-cpu-used", str(config.av1_cpu_usage),
+                "-preset:v:0", str(config.av1_cpu_usage),
                 "-b:v:0", "0",
                 "-crf:0", str(crf),
                 "-crf:1", str(crf),
@@ -420,7 +418,6 @@ class SVTAV1DashVideoEncoder(DASHEncoder):
                 "-seg_duration", str(self._gop_size),
                 "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
                 "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
-                "-adaptation_sets", "id=0,streams=v id=1,streams=a",
                 "-f", "dash"
             ]
         else:
@@ -442,7 +439,6 @@ class SVTAV1DashVideoEncoder(DASHEncoder):
                 "-seg_duration", str(self._gop_size),
                 "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
                 "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
-                "-adaptation_sets", "id=0,streams=v id=1,streams=a",
                 "-f", "dash"
             ]
         output_file = output_file.with_suffix(".mpd")
