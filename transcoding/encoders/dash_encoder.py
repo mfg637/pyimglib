@@ -452,6 +452,8 @@ class SVTAV1DashVideoEncoder(DASHEncoder):
         self.mpd_manifest_file = output_file
         return output_file
 
+MAX_CL2_SIZE = 1920
+
 class SourceAdaptiveTranscoder(DASHEncoder):
     def __init__(self, crf: int):
         super().__init__(crf, 10, "yuv420p10le")
@@ -504,29 +506,75 @@ class SourceAdaptiveTranscoder(DASHEncoder):
             gop_size = int(round(self._gop_size * cl3_fps))
             cl1_gop_size = int(round(self._gop_size * fps))
             if compatible_codec:
-                commandline = [
-                    "ffmpeg",
-                    "-i", input_file,
-                    "-filter_complex",
-                    f"[0]scale={width_small}x{height_small}[v1]",
-                    "-map", "0:v:0",
-                    "-map", "[v1]",
-                    "-map", "0:a?",
-                    "-r:v:1", str(cl3_fps),
-                    "-pix_fmt:v:1", "yuv420p",
-                    "-crf:v:1", str(crf),
-                    "-c:v:0", "copy",
-                    "-c:v:1", "libx264",
-                    "-preset:v", "slow",
-                    '-threads', str(config.dash_encoding_threads),
-                    "-g:v:1", str(gop_size),
-                    "-c:a", "copy",
-                    "-dash_segment_type", "auto",
-                    "-seg_duration", str(self._gop_size),
-                    "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
-                    "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
-                    "-f", "dash"
-                ]
+                compatible_resolution = width_orig <= MAX_CL2_SIZE and height_orig <= MAX_CL2_SIZE
+                if compatible_resolution:
+                    commandline = [
+                        "ffmpeg",
+                        "-i", input_file,
+                        "-filter_complex",
+                        f"[0]scale={width_small}x{height_small}[v1]",
+                        "-map", "0:v:0",
+                        "-map", "[v1]",
+                        "-map", "0:a?",
+                        "-r:v:1", str(cl3_fps),
+                        "-pix_fmt:v:1", "yuv420p",
+                        "-crf:v:1", str(crf),
+                        "-c:v:0", "copy",
+                        "-c:v:1", "libx264",
+                        "-preset:v", "slow",
+                        '-threads', str(config.dash_encoding_threads),
+                        "-g:v:1", str(gop_size),
+                        "-c:a", "copy",
+                        "-dash_segment_type", "auto",
+                        "-seg_duration", str(self._gop_size),
+                        "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
+                        "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
+                        "-f", "dash"
+                    ]
+                else:
+                    width_cl2, height_cl2, width_max, height_max = DASHEncoder.calc_size(
+                        width_orig, height_orig, 1080, 0
+                    )
+                    if width_cl2 > MAX_CL2_SIZE or height_cl2 > MAX_CL2_SIZE:
+                        width_cl2, height_cl2, width_max, height_max = DASHEncoder.calc_size(
+                            width_orig, height_orig, 720, 0
+                        )
+                        if width_cl2 > MAX_CL2_SIZE or height_cl2 > MAX_CL2_SIZE:
+                            width_cl2, height_cl2, width_max, height_max = DASHEncoder.calc_size(
+                                width_orig, height_orig, 360, 0
+                            )
+
+                    commandline = [
+                        "ffmpeg",
+                        "-i", input_file,
+                        "-filter_complex",
+                        f"[0]scale={width_max}x{height_max}[v0],[0]scale={width_cl2}x{height_cl2}[v1],[0]scale={width_small}x{height_small}[v2]",
+                        "-map", "[v0]",
+                        "-map", "[v1]",
+                        "-map", "[v2]",
+                        "-map", "0:a?",
+                        "-r:v:2", str(cl3_fps),
+                        "-pix_fmt:v", "yuv420p",
+                        "-pix_fmt:v:0", "yuv420p10le",
+                        "-crf:v", str(crf),
+                        "-c:v", "libvpx-vp9",
+                        "-cpu-used", str(config.av1_cpu_usage),
+                        "-c:v:2", "libx264",
+                        "-preset:v:2", "slow",
+                        '-threads', str(config.dash_encoding_threads),
+                        "-sc_threshold:v:0", "0",
+                        "-sc_threshold:v:1", "0",
+                        "-g:v:0", str(cl1_gop_size),
+                        "-g:v:1", str(cl1_gop_size),
+                        "-g:v:2", str(gop_size),
+                        "-c:a", "copy",
+                        "-dash_segment_type", "auto",
+                        "-seg_duration", str(self._gop_size),
+                        "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
+                        "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
+                        "-adaptation_sets", "id=0,streams=0,1 id=1,streams=2 id=2,streams=a",
+                        "-f", "dash"
+                    ]
             else:
                 commandline = [
                     "ffmpeg",
