@@ -163,33 +163,51 @@ class DASHLoopEncoder(DASHEncoder):
     def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
         width_max, height_max, width_small, height_small, gop_size, crf, lt_gap, fps = \
             self.calc_encoding_params(input_file, strict=True, size_precision=0)
-
-        commandline = [
-            "ffmpeg",
-            "-i", input_file,
-            "-filter_complex",
-            f"[0]scale={width_max}x{height_max}[v1],[0]scale={width_small}x{height_small}[v2],[v1]setsar=1[v1],[v2]setsar=1[v2]",
-            "-map", "[v1]",
-            "-map", "[v2]",
-            "-pix_fmt:0", "yuva420p10le",
-            "-pix_fmt:1", "yuva420p",
-            "-c:v:0", "libaom-av1",
-            "-cpu-used", str(config.av1_cpu_usage),
-            "-b:v:0", "0",
-            "-crf:0", str(crf - lt_gap),
-            "-crf:1", str(crf + lt_gap * 2),
-            "-c:v:1", "libvpx-vp9",
-            '-threads', str(config.dash_encoding_threads),
-            "-keyint_min", str(gop_size),
-            "-g", str(gop_size),
-            "-sc_threshold", "0",
-            "-c:a", "copy",
-            "-dash_segment_type", "webm",
-            "-seg_duration", str(self._gop_size),
-            "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
-            "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
-            "-f", "dash"
-        ]
+        if width_max == width_small and height_max == height_small:
+            commandline = [
+                "ffmpeg",
+                "-i", input_file,
+                "-map", "0:v:0",
+                "-pix_fmt:1", "yuva420p",
+                "-cpu-used", str(config.av1_cpu_usage),
+                "-b:v:0", "0",
+                "-crf", str(crf),
+                "-c:v", "libvpx-vp9",
+                '-threads', str(config.dash_encoding_threads),
+                "-keyint_min", str(gop_size),
+                "-g", str(gop_size),
+                "-sc_threshold", "0",
+                "-c:a", "copy",
+                "-dash_segment_type", "webm",
+                "-seg_duration", str(self._gop_size),
+                "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
+                "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
+                "-f", "dash"
+            ]
+        else:
+            commandline = [
+                "ffmpeg",
+                "-i", input_file,
+                "-filter_complex",
+                f"[0]scale={width_max}x{height_max}[v1],[0]scale={width_small}x{height_small}[v2],[v1]setsar=1[v1],[v2]setsar=1[v2]",
+                "-map", "[v1]",
+                "-map", "[v2]",
+                "-pix_fmt:1", "yuva420p",
+                "-cpu-used", str(config.av1_cpu_usage),
+                "-b:v:0", "0",
+                "-crf", str(crf),
+                "-c:v", "libvpx-vp9",
+                '-threads', str(config.dash_encoding_threads),
+                "-keyint_min", str(gop_size),
+                "-g", str(gop_size),
+                "-sc_threshold", "0",
+                "-c:a", "copy",
+                "-dash_segment_type", "webm",
+                "-seg_duration", str(self._gop_size),
+                "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
+                "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
+                "-f", "dash"
+            ]
         output_file = output_file.with_suffix(".mpd")
         commandline += [
             output_file
