@@ -1,19 +1,23 @@
 import io
+import logging
 import pathlib
 import subprocess
 import tempfile
 
 import PIL.Image
 
-from .encoder import BytesEncoder
-from ..common import run_subprocess
 from ... import config
+from ..common import run_subprocess
+from .encoder import BytesEncoder
 
 MAX_AVIF_YUV444_SIZE = 2**26 + 2**25
+
+logger = logging.getLogger(__name__)
 
 
 class AVIFEncoder(BytesEncoder):
     SUFFIX = ".avif"
+
     def __init__(self, source, img: PIL.Image.Image):
         BytesEncoder.__init__(self, self.SUFFIX)
         self._source = source
@@ -24,7 +28,7 @@ class AVIFEncoder(BytesEncoder):
         self.encoding_speed = config.avifenc_encoding_speed
 
     def encode(self, quality, lossless=False, force_subsampling=False) -> bytes:
-        if quality == 100:
+        if quality == 100 and not force_subsampling:
             lossless = True
         else:
             if self._img.width * self._img.height > MAX_AVIF_YUV444_SIZE:
@@ -53,7 +57,8 @@ class AVIFEncoder(BytesEncoder):
                 '-a', 'enable-chroma-deltaq=1',
             ]
 
-        output_tmp_file = tempfile.NamedTemporaryFile(mode='rb', suffix=".avif", delete=True)
+        output_tmp_file = tempfile.NamedTemporaryFile(
+            mode='rb', suffix=".avif", delete=True)
 
         src_tmp_file = None
 
@@ -65,23 +70,28 @@ class AVIFEncoder(BytesEncoder):
         else:
             src_tmp_file_name = None
             if self._img.format == "PNG" and isinstance(self._source, (memoryview, bytes)):
-                src_tmp_file = tempfile.NamedTemporaryFile(mode='wb', suffix=".png", delete=True)
+                src_tmp_file = tempfile.NamedTemporaryFile(
+                    mode='wb', suffix=".png", delete=True)
                 src_tmp_file.write(self._source)
             elif self._img.format == "JPEG" and isinstance(self._source, (memoryview, bytes)):
-                src_tmp_file = tempfile.NamedTemporaryFile(mode='wb', suffix=".jpg", delete=True)
+                src_tmp_file = tempfile.NamedTemporaryFile(
+                    mode='wb', suffix=".jpg", delete=True)
                 src_tmp_file.write(self._source)
             else:
-                src_tmp_file = tempfile.NamedTemporaryFile(mode='wb', suffix=".png", delete=True)
+                src_tmp_file = tempfile.NamedTemporaryFile(
+                    mode='wb', suffix=".png", delete=True)
                 self._img.save(src_tmp_file, format="PNG")
             src_tmp_file_name = src_tmp_file.name
 
             if ".png" in src_tmp_file_name:
                 # fix ICPP profiles error
-                check_error = subprocess.run(['pngcrush', '-n', '-q', src_tmp_file_name], stderr=subprocess.PIPE)
+                check_error = subprocess.run(
+                    ['pngcrush', '-n', '-q', src_tmp_file_name], stderr=subprocess.PIPE)
                 if b'pngcrush: iCCP: Not recognizing known sRGB profile that has been edited' in check_error.stderr:
                     buf = io.BytesIO()
                     self._img.save(buf, format="PNG")
-                    proc = subprocess.Popen(['convert', '-', src_tmp_file_name], stdin=subprocess.PIPE)
+                    proc = subprocess.Popen(
+                        ['convert', '-', src_tmp_file_name], stdin=subprocess.PIPE)
                     proc.communicate(buf.getbuffer())
                     proc.wait()
 
@@ -89,6 +99,7 @@ class AVIFEncoder(BytesEncoder):
                 src_tmp_file_name,
                 output_tmp_file.name
             ]
+        logger.debug("commandline {}".format(commandline.__repr__()))
 
         run_subprocess(commandline, log_stdout=True)
         if src_tmp_file is not None:
@@ -103,10 +114,13 @@ class AVIFEncoder(BytesEncoder):
 
 class AVIFSubsampledEncoder(AVIFEncoder):
     SUFFIX = ".avif"
+
     def encode(self, quality) -> bytes:
         return AVIFEncoder.encode(self, quality, force_subsampling=True)
 
+
 class AVIFLosslessEncoder(AVIFEncoder):
     SUFFIX = ".avif"
+
     def encode(self, quality) -> bytes:
         return AVIFEncoder.encode(self, quality, True)
