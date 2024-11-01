@@ -33,30 +33,31 @@ class DASHEncoder(FilesEncoder):
         self.mpd_manifest_file = manifest_file
 
     @staticmethod
+    def get_rounded_size(width_small, height_small, scale_coef, aspect_ratio):
+        def scale_size(width, height, scale):
+            scaled_width = int(round(width * scale))
+            scaled_height = int(round(height * scale))
+            return scaled_width, scaled_height
+
+        scale_precission = 6
+        rounded_scale_coef = scale_coef
+        width_max, height_max = scale_size(width_small, height_small, rounded_scale_coef)
+        ar_scaled = width_max / height_max
+        while ar_scaled != aspect_ratio:
+            scale_precission -= 1
+            rounded_scale_coef = common.bit_round(scale_coef, scale_precission)
+            logger.debug("scale precision = {}, scale_coef = {}".format(scale_precission, rounded_scale_coef))
+            width_max, height_max = scale_size(width_small, height_small, rounded_scale_coef)
+            ar_scaled = width_max / height_max
+        return width_max, height_max, rounded_scale_coef
+
+    @staticmethod
     def calc_size(width_orig, height_orig, min_size, size_precision = -1):
         width_max = 2
         height_max = 2
         width_small = 2
         height_small = 2
         scale_coef = 1
-
-        def get_rounded_size(width_small, height_small, scale_coef):
-            def scale_size(width, height, scale):
-                scaled_width = int(round(width * scale))
-                scaled_height = int(round(height * scale))
-                return scaled_width, scaled_height
-
-            scale_precission = 6
-            rounded_scale_coef = scale_coef
-            width_max, height_max = scale_size(width_small, height_small, rounded_scale_coef)
-            ar_scaled = width_max / height_max
-            while ar_scaled != aspect_ratio:
-                scale_precission -= 1
-                rounded_scale_coef = common.bit_round(scale_coef, scale_precission)
-                logger.debug("scale precission = {}, scale_coef = {}".format(scale_precission, rounded_scale_coef))
-                width_max, height_max = scale_size(width_small, height_small, rounded_scale_coef)
-                ar_scaled = width_max / height_max
-            return width_max, height_max, rounded_scale_coef
 
         if height_orig <= width_orig:
             logging.debug("width > height or width = height")
@@ -81,7 +82,9 @@ class DASHEncoder(FilesEncoder):
 
         if width_small != width_max or height_small != height_max:
             aspect_ratio = width_small / height_small
-            width_max, height_max, rounded_scale_coef = get_rounded_size(width_small, height_small, scale_coef)
+            width_max, height_max, rounded_scale_coef = DASHEncoder.get_rounded_size(
+                width_small, height_small, scale_coef, aspect_ratio
+            )
             if rounded_scale_coef == 1:
                 width_small = width_max = int(common.bit_round(width_orig, size_precision))
                 height_small = height_max = int(common.bit_round(height_orig, size_precision))
@@ -160,34 +163,51 @@ class DASHLoopEncoder(DASHEncoder):
     def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
         width_max, height_max, width_small, height_small, gop_size, crf, lt_gap, fps = \
             self.calc_encoding_params(input_file, strict=True, size_precision=0)
-
-        commandline = [
-            "ffmpeg",
-            "-i", input_file,
-            "-filter_complex",
-            f"[0]scale={width_max}x{height_max}[v1],[0]scale={width_small}x{height_small}[v2],[v1]setsar=1[v1],[v2]setsar=1[v2]",
-            "-map", "[v1]",
-            "-map", "[v2]",
-            "-pix_fmt:0", "yuva420p10le",
-            "-pix_fmt:1", "yuva420p",
-            "-c:v:0", "libaom-av1",
-            "-cpu-used", str(config.av1_cpu_usage),
-            "-b:v:0", "0",
-            "-crf:0", str(crf - lt_gap),
-            "-crf:1", str(crf + lt_gap * 2),
-            "-c:v:1", "libvpx-vp9",
-            '-threads', str(config.dash_encoding_threads),
-            "-keyint_min", str(gop_size),
-            "-g", str(gop_size),
-            "-sc_threshold", "0",
-            "-c:a", "copy",
-            "-dash_segment_type", "webm",
-            "-seg_duration", str(self._gop_size),
-            "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
-            "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
-            "-adaptation_sets", "id=0,streams=v id=1,streams=a",
-            "-f", "dash"
-        ]
+        if width_max == width_small and height_max == height_small:
+            commandline = [
+                "ffmpeg",
+                "-i", input_file,
+                "-map", "0:v:0",
+                "-pix_fmt:1", "yuva420p",
+                "-cpu-used", str(config.av1_cpu_usage),
+                "-b:v:0", "0",
+                "-crf", str(crf),
+                "-c:v", "libvpx-vp9",
+                '-threads', str(config.dash_encoding_threads),
+                "-keyint_min", str(gop_size),
+                "-g", str(gop_size),
+                "-sc_threshold", "0",
+                "-c:a", "copy",
+                "-dash_segment_type", "webm",
+                "-seg_duration", str(self._gop_size),
+                "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
+                "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
+                "-f", "dash"
+            ]
+        else:
+            commandline = [
+                "ffmpeg",
+                "-i", input_file,
+                "-filter_complex",
+                f"[0]scale={width_max}x{height_max}[v1],[0]scale={width_small}x{height_small}[v2],[v1]setsar=1[v1],[v2]setsar=1[v2]",
+                "-map", "[v1]",
+                "-map", "[v2]",
+                "-pix_fmt:1", "yuva420p",
+                "-cpu-used", str(config.av1_cpu_usage),
+                "-b:v:0", "0",
+                "-crf", str(crf),
+                "-c:v", "libvpx-vp9",
+                '-threads', str(config.dash_encoding_threads),
+                "-keyint_min", str(gop_size),
+                "-g", str(gop_size),
+                "-sc_threshold", "0",
+                "-c:a", "copy",
+                "-dash_segment_type", "webm",
+                "-seg_duration", str(self._gop_size),
+                "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
+                "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
+                "-f", "dash"
+            ]
         output_file = output_file.with_suffix(".mpd")
         commandline += [
             output_file
@@ -351,7 +371,6 @@ class DashVideoEncoder(DASHEncoder):
             "-seg_duration", "10",
             "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
             "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
-            "-adaptation_sets", "id=0,streams=v id=1,streams=a",
             "-f", "dash"
         ]
         ht_init = output_file.with_name("{}-init-0.m4s".format(output_file.name))
@@ -405,7 +424,7 @@ class SVTAV1DashVideoEncoder(DASHEncoder):
                 "-pix_fmt:0", "yuv420p10le",
                 "-pix_fmt:1", "yuv420p",
                 "-c:v:0", "libsvtav1",
-                "-cpu-used", str(config.av1_cpu_usage),
+                "-preset:v:0", str(config.av1_cpu_usage),
                 "-b:v:0", "0",
                 "-crf:0", str(crf),
                 "-crf:1", str(crf),
@@ -420,7 +439,6 @@ class SVTAV1DashVideoEncoder(DASHEncoder):
                 "-seg_duration", str(self._gop_size),
                 "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
                 "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
-                "-adaptation_sets", "id=0,streams=v id=1,streams=a",
                 "-f", "dash"
             ]
         else:
@@ -442,13 +460,267 @@ class SVTAV1DashVideoEncoder(DASHEncoder):
                 "-seg_duration", str(self._gop_size),
                 "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
                 "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
-                "-adaptation_sets", "id=0,streams=v id=1,streams=a",
                 "-f", "dash"
             ]
         output_file = output_file.with_suffix(".mpd")
         commandline += [
             output_file
         ]
+        if config.show_output_in_console:
+            subprocess.run(commandline)
+        else:
+            common.run_subprocess(commandline)
+        self.mpd_manifest_file = output_file
+        return output_file
+
+CL2_MAX_SIDE_LIMIT = 1920
+CL2_MIN_SIDE_LIMIT = 1080
+
+class SourceAdaptiveTranscoder(DASHEncoder):
+    def __init__(self, crf: int):
+        super().__init__(crf, 10, "yuv420p10le")
+        self.av1an_workers = config.dash_encoding_threads
+
+    def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
+        src_metadata = ffmpeg.probe(input_file)
+        video = ffmpeg.parser.find_video_stream(src_metadata)
+        fps = ffmpeg.parser.get_fps(video)
+        video_codec_name = ffmpeg.parser.get_video_codec(video)
+
+        transcode_required = False
+        cl3_fps = fps
+        if fps > 30:
+            transcode_required = True
+            while cl3_fps > 30:
+                cl3_fps /= 2
+
+        width_orig = video["width"]
+        height_orig = video["height"]
+        min_side = None
+        max_side = None
+        if width_orig >= height_orig:
+            max_side = width_orig
+            min_side = height_orig
+        else:
+            max_side = height_orig
+            min_side = width_orig
+
+        if max_side > CL2_MAX_SIDE_LIMIT or min_side > CL2_MIN_SIDE_LIMIT:
+            transcode_required = True
+
+        source_pixel_format = ffmpeg.parser.get_video_pixel_format(video)
+        if source_pixel_format != "yuv420p":
+            transcode_required = True
+
+        if video_codec_name not in {"h264", "vp8"}:
+            transcode_required = True
+
+        def calc_size(min_size, precision = -1, max_size = None):
+            width_small = width_orig
+            height_small = height_orig
+            if height_orig <= width_orig:
+                logging.debug("width > height or width = height")
+                if height_orig > min_size:
+                    height_small = min_size
+                    scale_coef = height_orig / min_size
+                    width_small = int(common.bit_round(width_orig / scale_coef, precision))
+                    if max_size is not None and width_small > max_size:
+                        width_small = max_size
+                        scale_coef = width_orig / width_small
+                        height_small = int(common.bit_round(height_orig / scale_coef, precision))
+            elif height_orig > width_orig:
+                logging.debug("height > width")
+                if width_orig > min_size:
+                    width_small = min_size
+                    scale_coef = width_orig / min_size
+                    height_small = int(common.bit_round(height_orig / scale_coef, precision))
+                    if max_size is not None and height_small > max_size:
+                        height_small = max_size
+                        scale_coef = height_orig / min_size
+                        width_small = int(common.bit_round(width_orig / scale_coef, precision))
+            return width_small, height_small
+        commandline = []
+        def make_transcode_downscale_commandline():
+            width_cl2, height_cl2 = calc_size(CL2_MIN_SIDE_LIMIT, max_size=CL2_MAX_SIDE_LIMIT, precision=0)
+            scale_coef = width_orig / width_cl2
+            aspect_ratio = width_cl2 / height_cl2
+            width_max, height_max, rounded_scale_coef = DASHEncoder.get_rounded_size(
+                width_cl2, height_cl2, scale_coef, aspect_ratio
+            )
+            if rounded_scale_coef == 1:
+                commandline = [
+                    "ffmpeg",
+                    "-i", input_file,
+                    "-filter_complex",
+                    f"[0]scale={width_cl2}x{height_cl2}[v1],[0]scale={width_small}x{height_small}[v2]",
+                    "-map", "[v1]",
+                    "-map", "[v2]",
+                    "-map", "0:a?",
+                    "-r:v:1", str(cl3_fps),
+                    "-pix_fmt:v", "yuv420p",
+                    "-crf:v", str(crf),
+                    "-c:v:0", "libvpx-vp9",
+                    "-cpu-used", str(config.av1_cpu_usage),
+                    "-c:v:1", "libx264",
+                    "-preset:v:1", "veryslow",
+                    '-threads', str(config.dash_encoding_threads),
+                    "-g:v:0", str(cl1_gop_size),
+                    "-g:v:1", str(gop_size),
+                    "-c:a", "copy",
+                    "-dash_segment_type", "auto",
+                    "-seg_duration", str(self._gop_size),
+                    "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
+                    "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
+                    "-f", "dash"
+                ]
+            else:
+                commandline = [
+                    "ffmpeg",
+                    "-i", input_file,
+                    "-filter_complex",
+                    f"[0]scale={width_max}x{height_max}[v0],[0]scale={width_cl2}x{height_cl2}[v1],[0]scale={width_small}x{height_small}[v2]",
+                    "-map", "[v0]",
+                    "-map", "[v1]",
+                    "-map", "[v2]",
+                    "-map", "0:a?",
+                    "-r:v:2", str(cl3_fps),
+                    "-pix_fmt:v", "yuv420p10le",
+                    "-pix_fmt:v", "yuv420p",
+                    "-crf:v", str(crf),
+                    "-c:v", "libvpx-vp9",
+                    "-cpu-used", str(config.av1_cpu_usage),
+                    "-c:v:2", "libx264",
+                    "-preset:v:2", "veryslow",
+                    '-threads', str(config.dash_encoding_threads),
+                    "-sc_threshold:v:0", "0",
+                    "-sc_threshold:v:1", "0",
+                    "-g:v:0", str(cl1_gop_size),
+                    "-g:v:1", str(cl1_gop_size),
+                    "-g:v:2", str(gop_size),
+                    "-c:a", "copy",
+                    "-dash_segment_type", "auto",
+                    "-seg_duration", str(self._gop_size),
+                    "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
+                    "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
+                    "-adaptation_sets", "id=0,streams=0,1 id=1,streams=2 id=2,streams=a",
+                    "-f", "dash"
+                ]
+            return commandline
+        if transcode_required:
+            compatible_codec = video_codec_name in {"h264", "vp8", "vp9", "av1"}
+            width_small, height_small = calc_size(720, max_size=1280)
+            crf = self._crf
+            gop_size = int(round(self._gop_size * cl3_fps))
+            cl1_gop_size = int(round(self._gop_size * fps))
+            if compatible_codec:
+                compatible_resolution = max_side <= CL2_MAX_SIDE_LIMIT and min_side <= CL2_MIN_SIDE_LIMIT
+                if compatible_resolution:
+                    if video_codec_name == "vp8" and fps > 30:
+                        commandline = [
+                            "ffmpeg",
+                            "-i", input_file,
+                            "-filter_complex",
+                            f"[0]scale={width_small}x{height_small}[v1]",
+                            "-map", "0:v:0",
+                            "-map", "[v1]",
+                            "-map", "0:a?",
+                            "-pix_fmt", "yuv420p",
+                            "-c:v:0", "libvpx-vp9",
+                            "-cpu-used", str(config.av1_cpu_usage),
+                            "-b:v:0", "0",
+                            "-crf:0", str(crf),
+                            "-crf:1", str(crf),
+                            "-c:v:1", "libx264",
+                            "-preset:v:1", "veryslow",
+                            '-threads', str(config.dash_encoding_threads),
+                            "-g:v:0", str(cl1_gop_size),
+                            "-g:v:1", str(gop_size),
+                            "-r:v:1", str(cl3_fps),
+                            "-c:a", "copy",
+                            "-dash_segment_type", "auto",
+                            "-seg_duration", str(self._gop_size),
+                            "-media_seg_name",
+                            '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
+                            "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
+                            "-f", "dash"
+                        ]
+                    else:
+                        commandline = [
+                            "ffmpeg",
+                            "-i", input_file,
+                            "-filter_complex",
+                            f"[0]scale={width_small}x{height_small}[v1]",
+                            "-map", "0:v:0",
+                            "-map", "[v1]",
+                            "-map", "0:a?",
+                            "-r:v:1", str(cl3_fps),
+                            "-pix_fmt:v:1", "yuv420p",
+                            "-crf:v:1", str(crf),
+                            "-c:v:0", "copy",
+                            "-c:v:1", "libx264",
+                            "-preset:v", "slow",
+                            '-threads', str(config.dash_encoding_threads),
+                            "-g:v:1", str(gop_size),
+                            "-c:a", "copy",
+                            "-dash_segment_type", "auto",
+                            "-seg_duration", str(self._gop_size),
+                            "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
+                            "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
+                            "-f", "dash"
+                        ]
+                else:
+                    commandline = make_transcode_downscale_commandline()
+            else:
+                compatible_resolution = max_side <= CL2_MAX_SIDE_LIMIT and min_side <= CL2_MIN_SIDE_LIMIT
+                if compatible_resolution:
+                    commandline = [
+                        "ffmpeg",
+                        "-i", input_file,
+                        "-filter_complex",
+                        f"[0]scale={width_small}x{height_small}[v1]",
+                        "-map", "0:v:0",
+                        "-map", "[v1]",
+                        "-map", "0:a?",
+                        "-pix_fmt", "yuv420p",
+                        "-c:v:0", "libvpx-vp9",
+                        "-cpu-used", str(config.av1_cpu_usage),
+                        "-b:v:0", "0",
+                        "-crf:0", str(crf),
+                        "-crf:1", str(crf),
+                        "-c:v:1", "libx264",
+                        "-preset:v:1", "veryslow",
+                        '-threads', str(config.dash_encoding_threads),
+                        "-g:v:0", str(cl1_gop_size),
+                        "-g:v:1", str(gop_size),
+                        "-r:v:1", str(cl3_fps),
+                        "-c:a", "copy",
+                        "-dash_segment_type", "auto",
+                        "-seg_duration", str(self._gop_size),
+                        "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
+                        "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
+                        "-f", "dash"
+                    ]
+                else:
+                    commandline = make_transcode_downscale_commandline()
+        else:
+            commandline = [
+                "ffmpeg",
+                "-i", input_file,
+                "-map", "0:v:0",
+                "-map", "0:a?",
+                "-c", "copy",
+                "-dash_segment_type", "auto",
+                # default segment duration is unknown. May become turned on in future
+                #"-seg_duration", str(self._gop_size),
+                "-media_seg_name", '{}-chunk-$RepresentationID$-$Number%05d$.$ext$'.format(output_file.name),
+                "-init_seg_name", '{}-init-$RepresentationID$.$ext$'.format(output_file.name),
+                "-f", "dash",
+            ]
+        output_file = output_file.with_suffix(".mpd")
+        commandline += [
+            output_file
+        ]
+        logger.debug("commandline: {}".format(commandline))
         if config.show_output_in_console:
             subprocess.run(commandline)
         else:
