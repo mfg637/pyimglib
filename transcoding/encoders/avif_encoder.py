@@ -45,8 +45,6 @@ class AVIFEncoder(BytesEncoder):
             commandline += [
                 '-d', str(self._bit_depth),
                 '-s', str(self.encoding_speed),
-                '--min', str(max(crf - config.avifenc_qdeviation, 1)),
-                '--max', str(min(crf + config.avifenc_qdeviation, 63)),
                 '-a', 'end-usage=q',
                 '-a', 'cq-level={}'.format(crf)
             ]

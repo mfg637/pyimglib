@@ -60,8 +60,6 @@ VIDEOLOOP_CRF = GIF_VIDEOLOOP_CRF
 tiers_min_size = [480, 240, 144, 0]
 opus_stereo_bitrate_kbps = 96
 
-avifenc_qdeviation = 5
-
 allow_rewrite = False
 force_audio_transcode = False
 
