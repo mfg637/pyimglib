@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 class AVIFEncoder(BytesEncoder):
     SUFFIX = ".avif"
+    enable_tune_ssimulacra2 = False
 
     def __init__(self, source, img: PIL.Image.Image):
         BytesEncoder.__init__(self, self.SUFFIX)
@@ -55,8 +56,9 @@ class AVIFEncoder(BytesEncoder):
             commandline += [
                 '-a', 'color:aq-mode=1',
                 '-a', 'color:enable-chroma-deltaq=1',
-                #'-a', 'color:'
             ]
+            if self.enable_tune_ssimulacra2:
+                commandline += ['-a', 'color:tune=ssimulacra2']
 
         output_tmp_file = tempfile.NamedTemporaryFile(
             mode='rb', suffix=".avif", delete=True)

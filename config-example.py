@@ -72,6 +72,9 @@ dash_low_tier_crf_gap = 4
 
 from .transcoding import encoders
 
+# uncomment line below to enable
+# encoders.avif_encoder.AVIFEncoder.enable_tune_ssimulacra2 = True
+
 encoders.srs_image_encoder.SrsLossyImageEncoder.cl1_encoder_type = encoders.avif_encoder.AVIFEncoder
 encoders.srs_image_encoder.SrsLossyImageEncoder.cl2_encoder_type = encoders.avif_encoder.AVIFSubsampledEncoder
 encoders.srs_image_encoder.SrsLossyImageEncoder.cl3_encoder_type = encoders.webp_encoder.WEBPEncoder
