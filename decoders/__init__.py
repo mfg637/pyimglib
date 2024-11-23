@@ -12,6 +12,7 @@ from . import jpeg,\
     frames_stream,\
     video,\
     srs,\
-    YUV4MPEG2
+    YUV4MPEG2,\
+    ffmpeg
 
 from .common import open_image, get_image_format
