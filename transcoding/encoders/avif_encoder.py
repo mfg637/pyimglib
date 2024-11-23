@@ -53,8 +53,9 @@ class AVIFEncoder(BytesEncoder):
             commandline += ['-y', '420']
         if self._av1_enable_advanced_options:
             commandline += [
-                '-a', 'aq-mode=1',
-                '-a', 'enable-chroma-deltaq=1',
+                '-a', 'color:aq-mode=1',
+                '-a', 'color:enable-chroma-deltaq=1',
+                #'-a', 'color:'
             ]
 
         output_tmp_file = tempfile.NamedTemporaryFile(
