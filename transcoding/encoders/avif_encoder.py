@@ -97,7 +97,7 @@ class AVIFEncoder(BytesEncoder):
                     buf = io.BytesIO()
                     self._img.save(buf, format="PNG")
                     proc = subprocess.Popen(
-                        ['convert', '-', src_tmp_file_name], stdin=subprocess.PIPE)
+                        ['magick', '-', src_tmp_file_name], stdin=subprocess.PIPE)
                     proc.communicate(buf.getbuffer())
                     proc.wait()
 
