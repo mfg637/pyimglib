@@ -24,6 +24,16 @@ MEDIA_TYPE_CODE_TO_STREAM_TYPE_KEY = {
 }
 
 
+def test_alpha_channel(img: PIL.Image.Image):
+    if img.mode in {"RGB", "L"}:
+        return False
+    image_size = img.width * img.height
+    if img.mode in {"RGBA", "LA"}:
+        return img.histogram()[-1] != image_size
+    # I don't know how to check transparency in palette mode
+    return True
+
+
 class BaseSrsEncoder(encoder.FilesEncoder, ABC):
     def __init__(self, base_quality_level, source_data_size, ratio):
         self.base_quality_level = base_quality_level
@@ -181,15 +191,6 @@ class SrsLossyJpegXlEncoder(BaseSrsEncoder):
         super().__init__(base_quality_level, source_data_size, ratio)
         self._cl1_suffix = cl1_suffix
 
-    def alpha_channel_test(self, img: PIL.Image.Image):
-        if img.mode in {"RGB", "L"}:
-            return False
-        image_size = img.width * img.height
-        if img.mode in {"RGBA", "LA"}:
-            return img.histogram()[-1] != image_size
-        # I don't know how to check transparency in palette mode
-        return True
-
     def encode_cl2(self, source: PIL.Image.Image, output_file: pathlib.Path):
         src_tmp_file = tempfile.NamedTemporaryFile(suffix=".png")
         source.save(src_tmp_file, "PNG")
@@ -225,7 +226,7 @@ class SrsLossyJpegXlEncoder(BaseSrsEncoder):
         logger.debug("open image")
         img = PIL.Image.open(input_file)
 
-        has_alpha_channel = self.alpha_channel_test(img)
+        has_alpha_channel = test_alpha_channel(img)
 
         logger.debug("has alpha channel: {}".format(
             has_alpha_channel.__repr__()))
