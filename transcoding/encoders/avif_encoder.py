@@ -28,7 +28,11 @@ class AVIFEncoder(BytesEncoder):
         self._av1_enable_advanced_options = True
         self.encoding_speed = config.avifenc_encoding_speed
 
-    def encode(self, quality, lossless=False, force_subsampling=False) -> bytes:
+    def encode(self, quality, lossless=False, force_subsampling=False, reencode_source=False) -> bytes:
+        def check_source_acceptable(self, reencode_source):
+            source_is_file: bool = type(self._source) is str or isinstance(self._source, pathlib.Path)
+            format_acceptable: bool = self._img.format in {"PNG", "JPEG"}
+            return not reencode_source and source_is_file and format_acceptable
         if quality == 100 and not force_subsampling:
             lossless = True
         else:
@@ -63,25 +67,26 @@ class AVIFEncoder(BytesEncoder):
 
         src_tmp_file = None
 
-        if type(self._source) is str or isinstance(self._source, pathlib.Path) and self._img.format in {"PNG", "JPEG"}:
+        if check_source_acceptable(self, reencode_source):
             commandline += [
                 self._source,
                 output_tmp_file.name
             ]
         else:
             src_tmp_file_name = None
-            if self._img.format == "PNG" and isinstance(self._source, (memoryview, bytes)):
+            is_source_byteslike = isinstance(self._source, (memoryview, bytes))
+            if not reencode_source and self._img.format == "PNG" and is_source_byteslike:
                 src_tmp_file = tempfile.NamedTemporaryFile(
                     mode='wb', suffix=".png", delete=True)
                 src_tmp_file.write(self._source)
-            elif self._img.format == "JPEG" and isinstance(self._source, (memoryview, bytes)):
+            elif not reencode_source and self._img.format == "JPEG" and is_source_byteslike:
                 src_tmp_file = tempfile.NamedTemporaryFile(
                     mode='wb', suffix=".jpg", delete=True)
                 src_tmp_file.write(self._source)
             else:
                 src_tmp_file = tempfile.NamedTemporaryFile(
                     mode='wb', suffix=".png", delete=True)
-                self._img.save(src_tmp_file, format="PNG")
+                self._img.save(src_tmp_file, format="PNG", compress_level=0)
             src_tmp_file_name = src_tmp_file.name
 
             if ".png" in src_tmp_file_name:
@@ -107,9 +112,12 @@ class AVIFEncoder(BytesEncoder):
             src_tmp_file.close()
         encoded_data = output_tmp_file.read()
         output_tmp_file.close()
-        if len(encoded_data) == 0 and self._av1_enable_advanced_options:
-            self._av1_enable_advanced_options = False
-            return self.encode(quality)
+        if len(encoded_data) == 0 and not reencode_source:
+            logger.warning("Encoded file is empty. Try again with resaved source file.")
+            # This code temporary disabled.
+            # If options such as aq-mode or enable-chroma-deltaq causing errors, enable it.
+            # self._av1_enable_advanced_options = False
+            return self.encode(quality, reencode_source=True)
         return encoded_data
 
 
