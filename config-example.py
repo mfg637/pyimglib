@@ -1,4 +1,5 @@
 import enum
+import subprocess
 
 custom_pillow_image_limits = -1
 
@@ -103,3 +104,16 @@ video_encoders = {
 }
 
 show_output_in_console = True
+
+jpegli_enabled = True
+
+def test_jpeg_li() -> bool:
+    try:
+        result = subprocess.run(["cjpegli"])
+    except FileNotFoundError:
+        return False
+    # TODO: check this commandline when jpegli build is ready
+    # if result.returncode != 0:
+    #     return False
+    return True
+jpegli_enabled = jpegli_enabled and test_jpeg_li()

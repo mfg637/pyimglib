@@ -192,18 +192,25 @@ class SrsLossyJpegXlEncoder(BaseSrsEncoder):
         self._cl1_suffix = cl1_suffix
 
     def encode_cl2(self, source: PIL.Image.Image, output_file: pathlib.Path):
-        src_tmp_file = tempfile.NamedTemporaryFile(suffix=".png")
-        source.save(src_tmp_file, "PNG")
-        source_file = src_tmp_file.name
         jpeg_tmp_file = tempfile.NamedTemporaryFile(suffix=".jpg")
-        # use cjpegli encoder to generate libjxl tuned jpeg file
-        commandline = [
-            "cjpegli",
-            source_file,
-            jpeg_tmp_file.name
-        ]
-        common.run_subprocess(commandline, log_stdout=True)
-        src_tmp_file.close()
+        if config.jpegli_enabled:
+            src_tmp_file = tempfile.NamedTemporaryFile(suffix=".png")
+            source.save(src_tmp_file, "PNG")
+            source_file = src_tmp_file.name
+            # use cjpegli encoder to generate libjxl tuned jpeg file
+            commandline = [
+                "cjpegli",
+                source_file,
+                jpeg_tmp_file.name
+            ]
+            common.run_subprocess(commandline, log_stdout=True)
+            src_tmp_file.close()
+        else:
+            if source.mode == "RGBA":
+                _source = source.convert(mode="RGB")
+                source.close()
+                source = _source
+            source.save(jpeg_tmp_file, "JPEG", quality=90, subsampling=0)
         commandline = [
             "cjxl",
             jpeg_tmp_file.name,
