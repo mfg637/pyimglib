@@ -124,8 +124,8 @@ class AVIFEncoder(BytesEncoder):
 class AVIFSubsampledEncoder(AVIFEncoder):
     SUFFIX = ".avif"
 
-    def encode(self, quality) -> bytes:
-        return AVIFEncoder.encode(self, quality, force_subsampling=True)
+    def encode(self, quality, reencode_source=False) -> bytes:
+        return AVIFEncoder.encode(self, quality, reencode_source=reencode_source, force_subsampling=True)
 
 
 class AVIFLosslessEncoder(AVIFEncoder):
