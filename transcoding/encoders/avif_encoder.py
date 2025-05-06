@@ -59,8 +59,9 @@ class AVIFEncoder(BytesEncoder):
                 '-a', 'color:aq-mode=1',
                 '-a', 'color:enable-chroma-deltaq=1',
             ]
+            # libaom v3.12.1 specific bugfix
             if self.enable_tune_ssimulacra2:
-                commandline += ['-a', 'color:tune=ssimulacra2']
+                commandline += ['-a', 'color:tune=iq']
 
         output_tmp_file = tempfile.NamedTemporaryFile(
             mode='rb', suffix=".avif", delete=True)
