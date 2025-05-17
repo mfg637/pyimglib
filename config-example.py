@@ -109,11 +109,10 @@ jpegli_enabled = True
 
 def test_jpeg_li() -> bool:
     try:
-        result = subprocess.run(["cjpegli"])
+        result = subprocess.run(["cjpegli"], stdout=subprocess.DEVNULL)
     except FileNotFoundError:
         return False
-    # TODO: check this commandline when jpegli build is ready
-    # if result.returncode != 0:
-    #     return False
+    if result.returncode != 0:
+        return False
     return True
 jpegli_enabled = jpegli_enabled and test_jpeg_li()
