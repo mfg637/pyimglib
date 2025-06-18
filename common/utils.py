@@ -15,3 +15,23 @@ def run_subprocess(commandline: list[str], log_stdout=False):
         for line in stdout_message:
             logger.debug("stdout: {}".format(line))
     return result
+
+
+def bit_round(number, precision: int = 0):
+    scale = 1
+
+    if precision > 0:
+        scale = 2 ** precision
+        number *= scale
+    elif precision < 0:
+        scale = 2 ** (precision * -1)
+        number /= scale
+
+    number = round(number)
+
+    if precision > 0:
+        number /= scale
+    elif precision < 0:
+        number *= scale
+
+    return number

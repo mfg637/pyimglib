@@ -61,11 +61,10 @@ def get_video_pixel_format(video_stream) -> str:
 
 
 def check_variate_frame_rate_and_estimate_durarion(
-        source: pathlib.Path | bytearray
+        source: pathlib.Path | bytearray | str
 ) -> tuple[float, bool]:
-    print("start checking…")
     tmpfile = None
-    if isinstance(source, pathlib.Path):
+    if isinstance(source, (pathlib.Path, str)):
         file_path = source
     else:
         tmpfile = tempfile.NamedTemporaryFile(delete_on_close=True)
@@ -94,5 +93,4 @@ def check_variate_frame_rate_and_estimate_durarion(
                 vfr = True
         duration_time = float(duration_time_raw)
         duration_sum += duration_time
-    print("results is", duration_sum, vfr)
     return duration_sum, vfr
