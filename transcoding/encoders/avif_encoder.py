@@ -7,7 +7,7 @@ import tempfile
 import PIL.Image
 
 from ... import config
-from ..common import run_subprocess
+from ...common import run_subprocess
 from .encoder import BytesEncoder
 
 MAX_AVIF_YUV444_SIZE = 2**26 + 2**25

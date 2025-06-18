@@ -6,7 +6,7 @@ import PIL.Image
 
 from . import encoder
 import tempfile
-from ..common import run_subprocess
+from ...common import run_subprocess
 
 class ArithmeticJpeg(encoder.BytesEncoder):
     def __init__(self, source, img: PIL.Image.Image):

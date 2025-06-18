@@ -5,7 +5,7 @@ import tempfile
 import PIL.Image
 
 from . import encoder
-from .. import common
+from ... import common
 from ... import config
 
 

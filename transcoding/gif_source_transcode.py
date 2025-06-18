@@ -60,6 +60,11 @@ class GIFTranscode(base_transcoder.BaseTranscoder):
                     self.animation_encoder_type(self._source)
                 self.encoded_data = self._animation_encoder.encode(config.GIF_VIDEOLOOP_CRF)
                 self._output_size = len(self.encoded_data)
+            elif issubclass(self.animation_encoder_type, encoders.encoder.SingleFileEncoder):
+                self._animation_encoder: encoders.encoder.SingleFileEncoder = \
+                    self.animation_encoder_type(self._source)
+                self._output_file = self._animation_encoder.encode(config.GIF_VIDEOLOOP_CRF, self._output_file)
+                self._output_size = self._output_file.stat().st_size
             else:
                 raise NotImplementedError(self.animation_encoder_type)
         else:

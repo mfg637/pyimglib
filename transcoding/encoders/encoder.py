@@ -50,6 +50,15 @@ class FilesEncoder(AbstractEncoder):
             file.unlink(missing_ok=True)
 
 
+class SingleFileEncoder(AbstractEncoder):
+    def __init__(self, file_suffix):
+        self.file_suffix = file_suffix
+
+    @abc.abstractmethod
+    def encode(self, quality, output_file: pathlib.Path) -> pathlib.Path:
+        pass
+
+
 class BytesEncoderWrapper(FilesEncoder):
     def __init__(self, bytes_encoder_type: typing.Type[BytesEncoder], base_quality_level, source_data_size, ratio):
         self.encoder_type: typing.Type[BytesEncoder] = bytes_encoder_type

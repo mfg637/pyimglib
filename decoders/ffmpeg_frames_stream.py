@@ -1,8 +1,10 @@
 import PIL.Image
 import subprocess
-from . import frames_stream, ffmpeg
+from . import frames_stream
 
-from .ffmpeg.parser import fps_calc
+from ..common import ffmpeg
+
+from ..common.ffmpeg.parser import fps_calc
 
 
 class FFmpegFramesStream(frames_stream.FramesStream):

@@ -11,8 +11,8 @@ import tempfile
 from typing import Iterable, Final
 
 from .encoder import FilesEncoder
-from .. import common
-from ...decoders import ffmpeg
+from ... import common
+from ...common import ffmpeg
 from ... import config
 
 import xml.dom.minidom

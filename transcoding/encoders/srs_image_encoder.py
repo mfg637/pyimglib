@@ -10,7 +10,7 @@ import PIL.Image
 import png
 
 from ... import config
-from .. import common
+from ... import common
 from . import avif_encoder, encoder, webp_encoder
 
 logger = logging.getLogger(__name__)
