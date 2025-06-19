@@ -21,9 +21,10 @@ class GIFTranscode(base_transcoder.BaseTranscoder):
     lossy_encoder_type = None
     animation_encoder_type = None
 
-    def __init__(self, source, path: pathlib.Path, file_name: str):
+    def __init__(self, source, path: pathlib.Path, file_name: str, rewrite: bool):
         super().__init__(source, path, file_name)
         self.encoded_data = None
+        self.rewrite = rewrite
         self._animation_encoder: encoders.BytesEncoder | encoders.FilesEncoder | None = None
 
     @abc.abstractmethod
@@ -63,7 +64,9 @@ class GIFTranscode(base_transcoder.BaseTranscoder):
             elif issubclass(self.animation_encoder_type, encoders.encoder.SingleFileEncoder):
                 self._animation_encoder: encoders.encoder.SingleFileEncoder = \
                     self.animation_encoder_type(self._source)
-                self._output_file = self._animation_encoder.encode(config.GIF_VIDEOLOOP_CRF, self._output_file)
+                self._output_file = self._animation_encoder.encode(
+                    config.GIF_VIDEOLOOP_CRF, self._output_file, self.rewrite
+                )
                 self._output_size = self._output_file.stat().st_size
             else:
                 raise NotImplementedError(self.animation_encoder_type)
@@ -135,7 +138,7 @@ class GIFTranscode(base_transcoder.BaseTranscoder):
 class GIFFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRemovable, GIFTranscode):
 
     def __init__(self, source: pathlib.Path, path: pathlib.Path, file_name: str):
-        GIFTranscode.__init__(self, source, path, file_name)
+        GIFTranscode.__init__(self, source, path, file_name, False)
         base_transcoder.FilePathSource.__init__(self, source, path, file_name)
         img = Image.open(source)
         self._animated = img.is_animated
@@ -159,9 +162,15 @@ class GIFFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRem
 
 class GIFInMemoryTranscode(base_transcoder.InMemorySource, GIFTranscode):
 
-    def __init__(self, source: bytearray, path: pathlib.Path, file_name: str):
+    def __init__(
+        self,
+        source: bytearray,
+        path: pathlib.Path,
+        file_name: str,
+        rewrite: bool
+    ):
         base_transcoder.InMemorySource.__init__(self, source, path, file_name)
-        GIFTranscode.__init__(self, source, path, file_name)
+        GIFTranscode.__init__(self, source, path, file_name, rewrite)
         in_io = io.BytesIO(self._source)
         img = Image.open(in_io)
         self._animated = img.is_animated

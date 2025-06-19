@@ -19,6 +19,9 @@ class AlreadyOptimizedSourceException(Exception):
 class NotSupportedSourceException(Exception):
     pass
 
+class PreventTranscoding(Exception):
+    pass
+
 
 class BaseTranscoder:
     __metaclass__ = abc.ABCMeta
@@ -78,7 +81,8 @@ class BaseTranscoder:
             self._encode()
         except (
                 AlreadyOptimizedSourceException,
-                NotSupportedSourceException
+                NotSupportedSourceException,
+                PreventTranscoding
         ):
             output_file = self._optimisations_failed()
             return 0, 0, 0, 0, output_file

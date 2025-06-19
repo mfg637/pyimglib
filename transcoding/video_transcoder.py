@@ -1,4 +1,3 @@
-import os
 import pathlib
 import tempfile
 
@@ -7,19 +6,19 @@ from .. import config
 
 
 class VideoWriter:
-    def __init__(self, source, path, file_name, suffix):
+    def __init__(self, source, path: pathlib.Path, file_name: str, suffix):
         self._source = source
-        self._output_file = os.path.join(path, file_name)
+        self._output_file = path.joinpath(file_name)
         self._suffix = suffix
 
     def transcode(self):
         f = None
-        clx = self._output_file+self._suffix
+        self._output_file = self._output_file.with_suffix(self._suffix)
         if isinstance(self._source, (bytes, bytearray)):
-            f = open(clx, "bw")
+            f = open(self._output_file, "bw")
             f.write(self._source)
             f.close()
-        return 0, 0, 0, 0
+        return 0, 0, 0, 0, self._output_file
 
 
 class VideoTranscoder:
@@ -71,4 +70,10 @@ class VideoTranscoder:
         else:
             raise NotImplementedError(self.video_encoder_type)
 
-        return 0, 0, 0, 0, self._output_file
+        return (
+            self._output_size,
+            len(self._source),
+            self._quality,
+            1,
+            self._output_file
+        )

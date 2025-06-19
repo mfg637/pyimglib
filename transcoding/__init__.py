@@ -5,15 +5,19 @@ import logging
 import os
 import pathlib
 
-from . import statistics, \
-    gif_source_transcode, \
-    png_source_transcode, \
-    jpeg_source_transcode, \
-    video_transcoder, \
+from . import (
+    statistics,
+    gif_source_transcode,
+    png_source_transcode,
+    jpeg_source_transcode,
+    video_transcoder,
+    video_loop_transcoder,
     encoders
+)
 
 from .. import config
 from .. import exceptions
+from .. import common
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +79,11 @@ def isGIF(data: bytearray) -> bool:
 
 
 def get_memory_transcoder(
-        source: bytearray, path: pathlib.Path, filename: str, force_lossless=False
+        source: bytearray,
+        path: pathlib.Path,
+        filename: str,
+        force_lossless=False,
+        rewrite=False,
 ):
     from ..decoders.video import MKV_HEADER
     if isPNG(source):
@@ -90,17 +98,31 @@ def get_memory_transcoder(
         jpeg_transcoder.lossless_jpeg_transcoder_type = config.jpeg_source_encoders["lossless_transcoder"]
         return jpeg_transcoder
     elif isGIF(source):
-        gif_transcoder = gif_source_transcode.GIFInMemoryTranscode(source, path, filename)
+        gif_transcoder = gif_source_transcode.GIFInMemoryTranscode(source, path, filename, rewrite)
         gif_transcoder.lossy_encoder_type = config.gif_source_encoders["lossy_encoder"]
         gif_transcoder.animation_encoder_type = config.gif_source_encoders["animation_encoder"]
         return gif_transcoder
     elif bytes(source[:4]) in MKV_HEADER:
-        if issubclass(config.video_encoders["video_encoder"], encoders.dash_encoder.DASHEncoder):
+        src_metadata = common.ffmpeg.probe(source)
+        if common.ffmpeg.parser.test_videoloop(src_metadata):
+            if common.ffmpeg.parser.test_video_cl3(src_metadata):
+                v_writer = video_transcoder.VideoWriter(
+                    source, path, filename, ".webm"
+                )
+                return v_writer
+            else:
+                vloop_transcoder = video_loop_transcoder.VideoLoopTranscoder(
+                    source, path, filename, rewrite
+                )
+                return vloop_transcoder
+        elif issubclass(config.video_encoders["video_encoder"], encoders.dash_encoder.DASHEncoder):
             v_transcoder = video_transcoder.VideoTranscoder(source, path, filename)
             v_transcoder.video_encoder_type = config.video_encoders["video_encoder"]
             return v_transcoder
         else:
-            v_writer = video_transcoder.VideoWriter(source, path, filename, ".webm")
+            v_writer = video_transcoder.VideoWriter(
+                source, path, filename, ".webm"
+            )
             return v_writer
     else:
         logger.error("NON IDENTIFIED FILE FORMAT", source[:16])

@@ -25,6 +25,10 @@ def get_fps(video_stream):
     return fps
 
 
+def get_duration(data):
+    return float(data["format"]["duration"])
+
+
 class SPECIFY_VIDEO_STREAM(enum.Enum):
     FIRST = enum.auto()
     LAST = enum.auto()
@@ -94,3 +98,44 @@ def check_variate_frame_rate_and_estimate_durarion(
         duration_time = float(duration_time_raw)
         duration_sum += duration_time
     return duration_sum, vfr
+
+
+def test_videoloop(src_metadata) -> bool:
+    audio_streams = find_audio_streams(src_metadata)
+    if len(audio_streams) > 0:
+        return False
+    else:
+        duration = get_duration(src_metadata)
+        if duration <= 30.0:
+            return True
+        else:
+            return False
+
+
+def test_video_cl3(src_metadata) -> bool:
+    video = find_video_stream(src_metadata)
+    fps = get_fps(video)
+    if video["width"] > video["height"]:
+        min_size = video["height"]
+        max_size = video["width"]
+    else:
+        min_size = video["width"]
+        max_size = video["height"]
+    if video["codec_name"] in ("vp9", "vp8"):
+        if min_size <= 720 and max_size <= 1280 and fps <= 60:
+            return True
+        elif min_size <= 1080 and max_size <= 1920 and fps <= 30:
+            return True
+    elif video["codec_name"] == "h264":
+        return min_size <= 1080 and max_size <= 1920 and fps <= 60
+    return False
+
+
+def get_size(src_metadata) -> tuple[int, int]:
+    video = find_video_stream(src_metadata)
+    return video["width"], video["height"]
+
+
+def fps(src_metadata):
+    video = find_video_stream(src_metadata)
+    return get_fps(video)

@@ -1,3 +1,4 @@
+import logging
 import pathlib
 import tempfile
 
@@ -5,6 +6,9 @@ from ... import config
 from ...common import run_subprocess, ffmpeg, videoprocessing
 
 from .encoder import SingleFileEncoder
+
+
+logger = logging.getLogger(__name__)
 
 
 class X264Encoder(SingleFileEncoder):
@@ -23,7 +27,9 @@ class X264Encoder(SingleFileEncoder):
         self.source: bytearray | pathlib.Path = source
         self.gop_size = gop_size
 
-    def encode(self, quality, output_file_path: pathlib.Path) -> bytes:
+    def encode(
+        self, quality, output_file_path: pathlib.Path, rewrite: bool
+    ) -> pathlib.Path:
         tmp_input = None
         if isinstance(self.source, (pathlib.Path, str)):
             input_file = str(self.source)
@@ -35,7 +41,7 @@ class X264Encoder(SingleFileEncoder):
         commandline = [
                 'ffmpeg'
         ]
-        if config.allow_rewrite:
+        if config.allow_rewrite or rewrite:
             commandline += ['-y']
         vfilters = ""
         if self.downscale is not None:
@@ -45,7 +51,7 @@ class X264Encoder(SingleFileEncoder):
         if self.vfr:
             vfilters += ",fps=60"
         commandline += [
-            "-loglevel", "warning",
+            #"-loglevel", "warning",
             "-i", input_file,
             "-movflags", "+faststart",
             "-vf", vfilters,
@@ -59,10 +65,36 @@ class X264Encoder(SingleFileEncoder):
             "-sc_threshold", "0",
             str(outfile_path)
         ]
+        logger.debug(f"commandline: {commandline}")
         run_subprocess(commandline)
         if tmp_input is not None:
             tmp_input.close()
         return outfile_path
+
+
+def prepare_arguments(
+    source: bytearray | pathlib.Path
+) -> tuple[tuple[int, int], int, bool]:
+    src_metadata = ffmpeg.probe(source)
+    video = ffmpeg.parser.find_video_stream(src_metadata)
+    estimate_duration, is_vfr = \
+        ffmpeg.parser.check_variate_frame_rate_and_estimate_durarion(
+            source
+        )
+
+    width_orig = video["width"]
+    height_orig = video["height"]
+
+    scaled_width, scaled_height, scale_coef = videoprocessing.scale_down(
+        (width_orig, height_orig), (1080, 1920)
+    )
+
+    if is_vfr:
+        gop_size = 120  # 60 * 2
+    else:
+        gop_size = int(round(ffmpeg.parser.get_fps(video))) * 2
+
+    return (scaled_width, scaled_height), gop_size, is_vfr
 
 
 class GifProcessingWrapper(X264Encoder):
@@ -70,38 +102,16 @@ class GifProcessingWrapper(X264Encoder):
         self,
         source: bytearray | pathlib.Path,
     ):
-        tmp_input = None
-        if isinstance(source, (pathlib.Path, str)):
-            input_file = source
-        else:
-            tmp_input = tempfile.NamedTemporaryFile()
-            tmp_input.write(source)
-            input_file = tmp_input.name
+        scaled_size, gop_size, is_vfr = prepare_arguments(source)
 
-        src_metadata = ffmpeg.probe(input_file)
-        video = ffmpeg.parser.find_video_stream(src_metadata)
-        estimate_duration, is_vfr = \
-            ffmpeg.parser.check_variate_frame_rate_and_estimate_durarion(
-                input_file
-            )
-
-        width_orig = video["width"]
-        height_orig = video["height"]
-
-        scaled_width, scaled_height, scale_coef = videoprocessing.scale_down(
-            (width_orig, height_orig), (1080, 1920)
-        )
-
-        if is_vfr:
-            gop_size = 120  # 60 * 2
-        else:
-            gop_size = int(round(ffmpeg.parser.get_fps(video))) * 2
-
-        if tmp_input is not None:
-            tmp_input.close()
         super().__init__(
             source,
-            (scaled_width, scaled_height),
+            scaled_size,
             gop_size,
             variable_frame_rate=is_vfr
         )
+
+
+def make_x264_vloop_encoder(source: bytearray | pathlib.Path):
+    scaled_size, gop_size, is_vfr = prepare_arguments(source)
+    return X264Encoder(source, scaled_size, gop_size, is_vfr)
