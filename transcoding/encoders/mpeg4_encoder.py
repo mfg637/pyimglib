@@ -45,11 +45,15 @@ class X264Encoder(SingleFileEncoder):
             commandline += ['-y']
         vfilters = ""
         if self.downscale is not None:
-            vfilters = f"scale={self.downscale[0]}:{self.downscale[1]}"
+            vfilters = f"[0:v:0]scale={self.downscale[0]}:{self.downscale[1]}[v]"
         else:
-            vfilters = "scale=trunc(iw/2)*2:trunc(ih/2)*2"
+            vfilters = "[0:v:0]scale=trunc(iw/2)*2:trunc(ih/2)*2[v]"
         if self.vfr:
-            vfilters += ",fps=60"
+            vfilters += ",[v]fps=60[v]"
+        vfilters += (
+            f",color=c=white:s={self.downscale[0]}x{self.downscale[1]}[bg],"
+            "[bg][v]overlay=shortest=1:format=yuv420"
+        )
         commandline += [
             #"-loglevel", "warning",
             "-i", input_file,
