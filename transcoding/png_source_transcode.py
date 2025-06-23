@@ -23,7 +23,7 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
     lossless_encoder_type: typing.Type[encoders.encoder.BytesEncoder] | typing.Type[encoders.encoder.FilesEncoder] = None
     animation_encoder_type: typing.Type[encoders.encoder.FilesEncoder] = None
 
-    def __init__(self, source, path, file_name, force_lossless=False):
+    def __init__(self, source, path, file_name, rewrite: bool, force_lossless=False):
         base_transcoder.BaseTranscoder.__init__(self, source, path, file_name)
         self._animated = False
         self._lossless = False
@@ -35,6 +35,7 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
         self.lossy_encoder = None
         self._animation_encoder = None
         self._anim_output_filename = None
+        self.rewrite = rewrite
 
     def _apng_test_convert(self, img):
         if img.custom_mimetype == "image/apng":
@@ -42,7 +43,6 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
             # self._fext = 'webm'
             self._quality = 100 - config.APNG_VIDEOLOOP_CRF
             self._anim_output_filename = self._path.joinpath(self._file_name)
-            self._animation_encoder: encoders.FilesEncoder = self.animation_encoder_type(config.APNG_VIDEOLOOP_CRF)
             tmpfile = None
             if type(self._source) is str:
                 input_file = pathlib.Path(self._source)
@@ -52,18 +52,34 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
                 tmpfile = tempfile.NamedTemporaryFile(delete=True)
                 input_file = pathlib.Path(tmpfile.name)
                 tmpfile.write(self._source)
-            self._anim_output_filename = self._animation_encoder.encode(input_file, self._anim_output_filename)
+            if issubclass(self.animation_encoder_type, encoders.encoder.FilesEncoder):
+                self._animation_encoder: encoders.FilesEncoder = self.animation_encoder_type(config.APNG_VIDEOLOOP_CRF)
+                self._anim_output_filename = self._animation_encoder.encode(input_file, self._anim_output_filename)
+                try:
+                    if isinstance(self.animation_encoder_type, encoders.dash_encoder.DASHEncoder):
+                        self._output_size = encoders.dash_encoder.DASHEncoder.get_file_size(self._anim_output_filename)
+                    else:
+                        self._output_size = os.path.getsize(self._anim_output_filename)
+                except FileNotFoundError:
+                    raise base_transcoder.NotSupportedSourceException()
+                else:
+                    self._output_file = self._anim_output_filename
+            elif issubclass(self.animation_encoder_type, encoders.encoder.BytesEncoder):
+                self._animation_encoder: encoders.encoder.BytesEncoder = \
+                    self.animation_encoder_type(self._source)
+                self.encoded_data = self._animation_encoder.encode(config.APNG_VIDEOLOOP_CRF)
+                self._output_size = len(self.encoded_data)
+            elif issubclass(self.animation_encoder_type, encoders.encoder.SingleFileEncoder):
+                self._animation_encoder: encoders.encoder.SingleFileEncoder = \
+                    self.animation_encoder_type(self._source)
+                self._output_file = self._animation_encoder.encode(
+                    config.APNG_VIDEOLOOP_CRF, self._output_file, self.rewrite
+                )
+                self._output_size = self._output_file.stat().st_size
+            else:
+                raise NotImplementedError(self.animation_encoder_type)
             if tmpfile is not None:
                 tmpfile.close()
-            try:
-                if isinstance(self.animation_encoder_type, encoders.dash_encoder.DASHEncoder):
-                    self._output_size = encoders.dash_encoder.DASHEncoder.get_file_size(self._anim_output_filename)
-                else:
-                    self._output_size = os.path.getsize(self._anim_output_filename)
-            except FileNotFoundError:
-                raise base_transcoder.NotSupportedSourceException()
-            else:
-                self._output_file = self._anim_output_filename
             img.close()
             return
 
@@ -203,7 +219,7 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
 class PNGFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRemovable, PNGTranscode):
     def __init__(self, source: pathlib.Path, path: pathlib.Path, file_name: str, force_lossless):
         base_transcoder.FilePathSource.__init__(self, source, path, file_name)
-        PNGTranscode.__init__(self, source, path, file_name, force_lossless)
+        PNGTranscode.__init__(self, source, path, file_name, False, force_lossless)
 
     def _invalid_file_exception_handle(self, e):
         logging.warning('invalid file ' + self._source + ' ({}) has been deleted'.format(e))
@@ -230,9 +246,9 @@ class PNGFileTranscode(base_transcoder.FilePathSource, base_transcoder.SourceRem
 
 class PNGInMemoryTranscode(base_transcoder.InMemorySource, PNGTranscode):
 
-    def __init__(self, source: bytearray, path: pathlib.Path, file_name: str, force_lossless):
+    def __init__(self, source: bytearray, path: pathlib.Path, file_name: str, rewrite: bool, force_lossless):
         base_transcoder.InMemorySource.__init__(self, source, path, file_name)
-        PNGTranscode.__init__(self, source, path, file_name, force_lossless)
+        PNGTranscode.__init__(self, source, path, file_name, rewrite, force_lossless)
 
     def _invalid_file_exception_handle(self, e):
         logging.exception('invalid png data')

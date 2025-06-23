@@ -87,7 +87,9 @@ def get_memory_transcoder(
 ):
     from ..decoders.video import MKV_HEADER
     if isPNG(source):
-        png_transcoder = png_source_transcode.PNGInMemoryTranscode(source, path, filename, force_lossless)
+        png_transcoder = png_source_transcode.PNGInMemoryTranscode(
+            source, path, filename, rewrite, force_lossless
+        )
         png_transcoder.animation_encoder_type = config.png_source_encoders["animation_encoder"]
         png_transcoder.lossless_encoder_type = config.png_source_encoders["lossless_encoder"]
         png_transcoder.lossy_encoder_type = config.png_source_encoders["lossy_encoder"]
