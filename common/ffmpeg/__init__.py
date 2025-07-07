@@ -6,9 +6,9 @@ import pathlib
 import subprocess
 import logging
 from platform import system
-import tempfile
 
-from . import exceptions, parser
+from . import exceptions
+from ..utils import InputSourceFacade
 
 if system() == "Windows":
     si = subprocess.STARTUPINFO()
@@ -50,25 +50,25 @@ def probe(source: bytearray | pathlib.Path | str):
             it is written to a temporary file for probing.
         - The function ensures temporary files are cleaned up after use.
     """
-    tmp_input = None
-    if isinstance(source, (pathlib.Path, str)):
-        input_file = source
-    else:
-        tmp_input = tempfile.NamedTemporaryFile()
-        tmp_input.write(source)
-        input_file = tmp_input.name
+    source_handler = InputSourceFacade(source)
+    input_file = source_handler.get_file_str()
 
     result = None
     try:
         commandline = ['ffprobe']
         commandline += set_loglevel(logging.root.level)
-        commandline += ['-print_format', 'json', '-show_format', '-show_streams', '-show_chapters', str(input_file)]
+        commandline += [
+            '-print_format', 'json',
+            '-show_format',
+            '-show_streams',
+            '-show_chapters',
+            input_file
+        ]
         result = json.loads(str(get_output(commandline), 'utf-8'))
     except UnicodeEncodeError:
         raise exceptions.InvalidFilename(source)
     finally:
-        if tmp_input is not None:
-            tmp_input.close()
+        source_handler.close()
     return result
 
 

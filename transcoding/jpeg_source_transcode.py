@@ -10,7 +10,7 @@ import tempfile
 import PIL.Image
 
 from . import base_transcoder, encoders
-from .. import decoders, config
+from .. import decoders, config, common
 
 logger = logging.getLogger(__name__)
 
@@ -57,8 +57,35 @@ class JPEGTranscode(base_transcoder.BaseTranscoder):
         self._arithmetic_check()
         img = self._open_image()
 
-        self.lossless_transcoder: encoders.BytesEncoder = self.lossless_jpeg_transcoder_type(self._source, img)
-        self.lossless_data = self.lossless_transcoder.encode(100)
+        # TODO: add single file encoder support
+        if issubclass(
+            self.lossless_jpeg_transcoder_type, encoders.encoder.BytesEncoder
+        ):
+            self.lossless_transcoder = self.lossless_jpeg_transcoder_type(
+                self._source, img
+            )
+            self.lossless_data = self.lossless_transcoder.encode(100)
+        elif issubclass(
+            self.lossless_jpeg_transcoder_type,
+            encoders.encoder.SingleFileEncoder
+        ):
+            self.lossless_transcoder = self.lossless_jpeg_transcoder_type(
+                self._source, img
+            )
+            tmp_output = tempfile.NamedTemporaryFile()
+            tmp_outfile_path = pathlib.Path(tmp_output.name)
+            tmp_output.close()
+            tmp_outfile_path: pathlib.Path = self.lossless_transcoder.encode(
+                100, tmp_outfile_path
+            )
+            self.lossless_data = tmp_outfile_path.read_bytes()
+            tmp_outfile_path.unlink()
+        else:
+            raise NotImplementedError(
+                "Not supported transcoder type " + str(
+                    self.lossless_jpeg_transcoder_type
+                )
+            )
 
         if self.size_treshold(img):
             self._lossy_output = True
@@ -66,21 +93,14 @@ class JPEGTranscode(base_transcoder.BaseTranscoder):
                 self._lossy_encoder: encoders.FilesEncoder = self.lossy_encoder_type(
                     self._quality, self._get_source_size(), 80
                 )
-
-                tmpfile = None
-                if type(self._source) is str:
-                    input_file = pathlib.Path(self._source)
-                elif isinstance(self._source, pathlib.Path):
-                    input_file = self._source
-                else:
-                    tmpfile = tempfile.NamedTemporaryFile(delete=True)
-                    input_file = pathlib.Path(tmpfile.name)
-                    tmpfile.write(self._source)
-
-                self._output_file = self._path.joinpath(self._file_name)
-                self._output_file = self._lossy_encoder.encode(input_file, self._output_file)
-                if tmpfile is not None:
-                    tmpfile.close()
+                with common.utils.InputSourceFacade(
+                    self._source, ".jpeg"
+                ) as sh:
+                    input_file = sh.get_file_path()
+                    self._output_file = self._path.joinpath(self._file_name)
+                    self._output_file = self._lossy_encoder.encode(
+                        input_file, self._output_file
+                    )
                 self._output_size = self._lossy_encoder.calc_file_size()
             else:
                 self._lossy_encoder: encoders.BytesEncoder = self.lossy_encoder_type(self._source, img)

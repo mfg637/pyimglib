@@ -3,7 +3,7 @@ import pathlib
 import tempfile
 
 from ... import config
-from ...common import run_subprocess, ffmpeg, videoprocessing
+from ...common import run_subprocess, ffmpeg, videoprocessing, utils
 
 from .encoder import SingleFileEncoder
 
@@ -30,13 +30,8 @@ class X264Encoder(SingleFileEncoder):
     def encode(
         self, quality, output_file_path: pathlib.Path, rewrite: bool
     ) -> pathlib.Path:
-        tmp_input = None
-        if isinstance(self.source, (pathlib.Path, str)):
-            input_file = str(self.source)
-        else:
-            tmp_input = tempfile.NamedTemporaryFile()
-            tmp_input.write(self.source)
-            input_file = tmp_input.name
+        source_handler = utils.InputSourceFacade(self.source)
+        input_file = source_handler.get_file_str()
         outfile_path = output_file_path.with_suffix(self.SUFFIX)
         commandline = [
                 'ffmpeg'
@@ -71,8 +66,7 @@ class X264Encoder(SingleFileEncoder):
         ]
         logger.debug(f"commandline: {commandline}")
         run_subprocess(commandline)
-        if tmp_input is not None:
-            tmp_input.close()
+        source_handler.close()
         return outfile_path
 
 

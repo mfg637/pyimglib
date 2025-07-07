@@ -1,9 +1,7 @@
 import enum
-import pathlib
 import json
-import tempfile
 
-from ..utils import run_subprocess
+from ..utils import run_subprocess, InputSourceFacade, SourceType
 
 
 def fps_calc(raw_str):
@@ -65,24 +63,17 @@ def get_video_pixel_format(video_stream) -> str:
 
 
 def check_variate_frame_rate_and_estimate_durarion(
-        source: pathlib.Path | bytearray | str
+        source: SourceType
 ) -> tuple[float, bool]:
-    tmpfile = None
-    if isinstance(source, (pathlib.Path, str)):
-        file_path = source
-    else:
-        tmpfile = tempfile.NamedTemporaryFile(delete_on_close=True)
-        file_path = tmpfile.name
-        tmpfile.write(source)
-    commandline = [
-        "ffprobe",
-        "-show_entries", "frame=duration_time",
-        "-print_format", "json",
-        str(file_path)
-    ]
-    result = run_subprocess(commandline)
-    if tmpfile is not None:
-        tmpfile.close()
+    with InputSourceFacade(source) as source_handler:
+        file_path = source_handler.get_file_str()
+        commandline = [
+            "ffprobe",
+            "-show_entries", "frame=duration_time",
+            "-print_format", "json",
+            file_path
+        ]
+        result = run_subprocess(commandline)
     raw_data = result.stdout.decode()
     json_data = json.loads(raw_data)
     first_value = None

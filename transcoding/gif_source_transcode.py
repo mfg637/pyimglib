@@ -10,7 +10,7 @@ import PIL.Image
 from PIL import Image
 
 from . import base_transcoder, encoders
-from .. import config
+from .. import config, common
 
 logger = logging.getLogger(__name__)
 
@@ -40,18 +40,13 @@ class GIFTranscode(base_transcoder.BaseTranscoder):
             if issubclass(self.animation_encoder_type, encoders.encoder.FilesEncoder):
                 self._animation_encoder: encoders.FilesEncoder = \
                     self.animation_encoder_type(config.GIF_VIDEOLOOP_CRF)
-                tmpfile = None
-                if type(self._source) is str:
-                    input_file = pathlib.Path(self._source)
-                elif isinstance(self._source, pathlib.Path):
-                    input_file = self._source
-                else:
-                    tmpfile = tempfile.NamedTemporaryFile(delete=True)
-                    input_file = pathlib.Path(tmpfile.name)
-                    tmpfile.write(self._source)
-                self._output_file = self._animation_encoder.encode(input_file, self._output_file)
-                if tmpfile is not None:
-                    tmpfile.close()
+                with common.utils.InputSourceFacade(
+                    self._source, ".gif"
+                ) as sh:
+                    input_file = sh.get_file_path()
+                    self._output_file = self._animation_encoder.encode(
+                        input_file, self._output_file
+                    )
                 try:
                     self._output_size = self._animation_encoder.calc_file_size()
                 except FileNotFoundError:
@@ -76,20 +71,14 @@ class GIFTranscode(base_transcoder.BaseTranscoder):
                     self._quality, self._get_source_size(), 80
                 )
 
-                tmpfile = None
-                if type(self._source) is str:
-                    input_file = pathlib.Path(self._source)
-                elif isinstance(self._source, pathlib.Path):
-                    input_file = self._source
-                else:
-                    tmpfile = tempfile.NamedTemporaryFile(delete=True)
-                    input_file = pathlib.Path(tmpfile.name)
-                    tmpfile.write(self._source)
-
-                self._output_file = self._path.joinpath(self._file_name)
-                self._output_file = self._lossy_encoder.encode(input_file, self._output_file)
-                if tmpfile is not None:
-                    tmpfile.close()
+                with common.utils.InputSourceFacade(
+                    self._source, ".gif"
+                ) as sh:
+                    input_file = sh.get_file_path()
+                    self._output_file = self._path.joinpath(self._file_name)
+                    self._output_file = self._lossy_encoder.encode(
+                        input_file, self._output_file
+                    )
                 self._output_size = self._lossy_encoder.calc_file_size()
             else:
                 self._lossy_encoder: encoders.BytesEncoder = self.lossy_encoder_type(self._source, img)

@@ -2,7 +2,7 @@ import pathlib
 import tempfile
 
 from ... import config
-from ...common import run_subprocess
+from ...common import run_subprocess, utils
 
 from .encoder import BytesEncoder
 
@@ -16,13 +16,8 @@ class WEBMEncoder(BytesEncoder):
         self.source: bytearray | pathlib.Path = source
 
     def encode(self, quality) -> bytes:
-        tmp_input = None
-        if isinstance(self.source, (pathlib.Path, str)):
-            input_file = self.source
-        else:
-            tmp_input = tempfile.NamedTemporaryFile()
-            tmp_input.write(self.source)
-            input_file = tmp_input.name
+        source_handler = utils.InputSourceFacade(self.source)
+        input_file = source_handler.get_file_str()
         commandline = [
                 'ffmpeg'
         ]
@@ -43,8 +38,7 @@ class WEBMEncoder(BytesEncoder):
             '-'
         ]
         encoding_results = run_subprocess(commandline)
-        if tmp_input is not None:
-            tmp_input.close()
+        source_handler.close()
         return encoding_results.stdout
 
 

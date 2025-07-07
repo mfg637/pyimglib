@@ -6,7 +6,7 @@ import PIL.Image
 
 from . import encoder
 import tempfile
-from ...common import run_subprocess
+from ...common import run_subprocess, utils
 
 class ArithmeticJpeg(encoder.BytesEncoder):
     def __init__(self, source, img: PIL.Image.Image):
@@ -37,26 +37,19 @@ class ArithmeticJpeg(encoder.BytesEncoder):
         return result
 
 
-class JpegXlTranscoder(encoder.BytesEncoder):
+class JpegXlTranscoder(encoder.SingleFileEncoder):
     def __init__(self, source, img: PIL.Image.Image):
         super().__init__(file_suffix=".jxl")
         self._source = source
         self._img = img
 
-    def encode(self, quality=None) -> bytes:
-        input_file = None
-        in_tmp_file = None
-        if isinstance(self._source, pathlib.Path):
-            input_file = self._source
-        else:
-            in_tmp_file = tempfile.NamedTemporaryFile(suffix=".jpg")
-            in_tmp_file.write(self._source)
-            input_file = in_tmp_file.name
-        out_tmp_file = tempfile.NamedTemporaryFile(suffix=".jxl")
-        commandline = ['cjxl', '--lossless_jpeg=1', input_file, out_tmp_file.name]
+    def encode(self, quality, output_file: pathlib.Path) -> pathlib.Path:
+        source_handler = utils.InputSourceFacade(self._source, ".jpg")
+        input_file = source_handler.get_file_str()
+        output_file = output_file.with_suffix(self.file_suffix)
+        commandline = [
+            'cjxl', '--lossless_jpeg=1', input_file, str(output_file)
+        ]
         run_subprocess(commandline, log_stdout=True)
-        if in_tmp_file is not None:
-            in_tmp_file.close()
-        result = out_tmp_file.read()
-        out_tmp_file.close()
-        return result
+        source_handler.close()
+        return output_file

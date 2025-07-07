@@ -58,6 +58,13 @@ class SingleFileEncoder(AbstractEncoder):
     def encode(self, quality, output_file: pathlib.Path) -> pathlib.Path:
         pass
 
+    def save(self, encoded_data: bytes, path: pathlib.Path, name: str) -> pathlib.Path:
+        output_fname = path.joinpath(name + self.file_suffix)
+        outfile = open(output_fname, 'wb')
+        outfile.write(encoded_data)
+        outfile.close()
+        return output_fname
+
 
 class BytesEncoderWrapper(FilesEncoder):
     def __init__(self, bytes_encoder_type: typing.Type[BytesEncoder], base_quality_level, source_data_size, ratio):

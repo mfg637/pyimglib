@@ -11,7 +11,7 @@ import PIL.Image
 
 from . import base_transcoder, noise_detection
 from . import encoders
-from .. import config
+from .. import config, common
 
 logger = logging.getLogger(__name__)
 
@@ -43,15 +43,10 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
             # self._fext = 'webm'
             self._quality = 100 - config.APNG_VIDEOLOOP_CRF
             self._anim_output_filename = self._path.joinpath(self._file_name)
-            tmpfile = None
-            if type(self._source) is str:
-                input_file = pathlib.Path(self._source)
-            elif isinstance(self._source, pathlib.Path):
-                input_file = self._source
-            else:
-                tmpfile = tempfile.NamedTemporaryFile(delete=True)
-                input_file = pathlib.Path(tmpfile.name)
-                tmpfile.write(self._source)
+            source_handler = common.utils.InputSourceFacade(
+                self._source, ".apng"
+            )
+            input_file = source_handler.get_file_path()
             if issubclass(self.animation_encoder_type, encoders.encoder.FilesEncoder):
                 self._animation_encoder: encoders.FilesEncoder = self.animation_encoder_type(config.APNG_VIDEOLOOP_CRF)
                 self._anim_output_filename = self._animation_encoder.encode(input_file, self._anim_output_filename)
@@ -78,8 +73,7 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
                 self._output_size = self._output_file.stat().st_size
             else:
                 raise NotImplementedError(self.animation_encoder_type)
-            if tmpfile is not None:
-                tmpfile.close()
+            source_handler.close()
             img.close()
             return
 
@@ -134,15 +128,8 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
             self._invalid_file_exception_handle(e)
             raise base_transcoder.NotSupportedSourceException()
 
-        tmpfile = None
-        if type(self._source) is str:
-            input_file = pathlib.Path(self._source)
-        elif isinstance(self._source, pathlib.Path):
-            input_file = self._source
-        else:
-            tmpfile = tempfile.NamedTemporaryFile(delete=True)
-            input_file = pathlib.Path(tmpfile.name)
-            tmpfile.write(self._source)
+        source_handler = common.utils.InputSourceFacade(self._source, ".png")
+        input_file = source_handler.get_file_path()
 
         ratio = 80
         if self._force_lossless:
@@ -197,8 +184,7 @@ class PNGTranscode(base_transcoder.BaseTranscoder):
                         self._output_size = len(self._lossy_data)
                         ratio = math.ceil(ratio // config.WEBP_QSCALE)
 
-        if tmpfile is not None:
-            tmpfile.close()
+        source_handler.close()
 
         img.close()
 
