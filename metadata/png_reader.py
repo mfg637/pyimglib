@@ -67,11 +67,18 @@ class iTXt_Reading(AbstractTextReading):
 
     def read(self, chunk_content):
         raw_keyword, packed_data, translated_keyword, text_data = \
-            bytes(chunk_content).split(b'\x00', maxsplit=4)
+            bytes(chunk_content).split(b'\x00', maxsplit=3)
         keyword = raw_keyword.decode("latin-1")
+
+        if keyword == "XML:com.adobe.xmp":
+            keyword = "XML::XMP"
+            text = text_data.replace(b'\x00', b'', 2).decode(self.charset)
+            return keyword, text
+
         compression_flag = packed_data[0]
         compression_method = packed_data[1]
         language_tag = packed_data[2:]
+
         if language_tag:
             keyword += f" ({language_tag.decode('ascii')})"
         elif translated_keyword:
@@ -80,6 +87,7 @@ class iTXt_Reading(AbstractTextReading):
             text = decode_ztxt(self.charset, compression_method, text_data)
         else:
             text = text_data.decode(self.charset)
+
         return keyword, text
 
 
