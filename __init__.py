@@ -1,6 +1,6 @@
 import PIL.Image
 
-from . import decoders, transcoding, ACLMMP, config, exceptions
+from . import decoders, transcoding, ACLMMP, config, exceptions, metadata
 
 
 def calc_image_hash(img: PIL.Image.Image) -> tuple[float, bytes, int, int]:
