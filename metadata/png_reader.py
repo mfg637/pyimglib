@@ -4,6 +4,10 @@ import abc
 import zlib
 
 
+class EmptyContentError(ValueError):
+    pass
+
+
 class AbstractTextReading(abc.ABC):
     def __init__(self, charset):
         self.charset = charset
@@ -21,7 +25,7 @@ class BaseTextReading(AbstractTextReading):
     def read(self, chunk_content) -> tuple[str, str]:
         raw_keyword, raw_data = bytes(chunk_content).split(b'\x00', maxsplit=1)
         if not raw_data:
-            raise ValueError("Empty content")
+            raise EmptyContentError("Empty content")
         keyword = raw_keyword.decode("latin-1")
         text_content = self.decode_content(raw_data)
         return keyword, text_content
@@ -106,6 +110,9 @@ def read(png_source):
     for chunk_name, chunk_content in reader.chunks():
         if chunk_name in SUPPORTED_CHUNKS:
             chunk_reader = SUPPORTED_CHUNKS[chunk_name]()
-            keyword, text_content = chunk_reader.read(chunk_content)
+            try:
+                keyword, text_content = chunk_reader.read(chunk_content)
+            except EmptyContentError:
+                continue
             metadata[keyword] = text_content
     return metadata
