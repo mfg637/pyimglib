@@ -4,9 +4,8 @@ import pathlib
 from abc import ABC
 import PIL.Image
 
-from pyimglib import config
+from pyimglib import config, metadata
 from pyimglib.transcoding.encoders import encoder
-import png
 
 logger = logging.getLogger(__name__)
 
@@ -95,14 +94,11 @@ class BaseSrsEncoder(encoder.FilesEncoder, ABC):
             srs_data["streams"]["image"]["levels"]["3"] = cl3_file_name
 
         if input_file.suffix == ".png":
-            png_file = png.Reader(filename=input_file)
-            for chunk_name, chunk_content in png_file.chunks():
-                if chunk_name == b"tEXt":
-                    raw_keyword, raw_text_content = bytes(
-                        chunk_content).split(b'\x00')
-                    keyword: str = raw_keyword.decode("utf-8")
-                    text_content: str = raw_text_content.decode("utf-8")
-                    srs_data["content"]["attachment"][keyword] = text_content
+            srs_data["content"]["attachment"] = \
+                metadata.png_reader.read(input_file)
+        elif input_file.suffix in {".jpg", ".jpeg", ".jfif"}:
+            srs_data["content"]["attachment"] = \
+                metadata.jpeg_reader.read(input_file)
 
         logger.debug("srs content: {}".format(srs_data.__repr__()))
 
