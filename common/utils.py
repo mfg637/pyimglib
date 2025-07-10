@@ -1,3 +1,6 @@
+from collections.abc import Iterable
+from fractions import Fraction
+import numbers
 import pathlib
 import subprocess
 import logging
@@ -108,3 +111,49 @@ def pil_writer(img: PIL.Image.Image, format="PNG"):
     def writer(fobj):
         img.save(fobj, format=format)
     return writer
+
+
+def check_is_fractions(value):
+    return isinstance(value, Fraction) or (
+        isinstance(value, Iterable) and
+        len(value) == 2 and
+        isinstance(value[0], numbers.Rational) and
+        isinstance(value[1], numbers.Rational)
+    )
+
+
+def fractions_to_float(fraction: Fraction | tuple[int, int]) -> float:
+    if isinstance(fraction, Fraction):
+        return fraction.numerator / fraction.denominator
+    elif isinstance(fraction, Iterable):
+        return fraction[0]/fraction[1]
+    else:
+        return float(fraction)
+
+
+def to_fractions_or_float(value):
+    if check_is_fractions(value):
+        if isinstance(value, Fraction):
+            return value
+        return Fraction(*value)
+    elif isinstance(value, (int, float)):
+        return value
+    else:
+        return float(value)
+
+
+def to_float(value):
+    if check_is_fractions(value):
+        return fractions_to_float(value)
+    elif isinstance(value, (int, float)):
+        return value
+    else:
+        return float(value)
+
+
+def format_number(value):
+    value = to_fractions_or_float(value)
+    if isinstance(value, Fraction):
+        return str(value)
+    else:
+        return f"{value:.3f}"

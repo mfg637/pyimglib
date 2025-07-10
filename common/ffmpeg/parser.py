@@ -1,15 +1,22 @@
 import enum
 import json
 
-from ..utils import run_subprocess, InputSourceFacade, SourceType
+from ..utils import (
+    run_subprocess,
+    InputSourceFacade,
+    SourceType,
+    check_is_fractions,
+    to_fractions_or_float
+)
 
 
 def fps_calc(raw_str):
     _f = raw_str.split("/")
+    _f = (int(_f[0]), int(_f[1]))
     if len(_f) != 2 and len(_f) > 0:
         return int(_f[0])
-    elif len(_f) == 2:
-        return int(_f[0])/int(_f[1])
+    elif check_is_fractions(_f):
+        return to_fractions_or_float(_f)
     else:
         raise ValueError(raw_str)
 
