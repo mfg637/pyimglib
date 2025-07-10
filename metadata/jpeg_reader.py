@@ -145,18 +145,146 @@ def format_exposure_mode(value):
 def format_exposure_program(value):
     EXPOSURE_PROGRAM = {
         1: "Manual",
-        2: "Normal program",
-        3: "Aperture priority",
-        4: "Shutter priority",
+        2: "Program AE",
+        3: "Aperture priority AE",
+        4: "Shutter priority AE",
         5: "Creative program (biased toward depth of field)",
         6: "Action program (biased toward fast shutter speed)",
         7: (
             "Portrait mode "
             "(for clsoeup photos with the background out of focus)"
         ),
-        8: "Landscape mode (for landscapes with the background in focus"
+        8: "Landscape mode (for landscapes with the background in focus",
+        9: "Bulb"
     }
     return EXPOSURE_PROGRAM.get(value, "Not defined")
+
+
+def format_sensitivity_type(value):
+    SENSITIVITY_TYPE = {
+        1: "Standard Output Sensitivity",
+        2: "Recommended Exposure Index",
+        3: "ISO Speed",
+        4: "Standard Output Sensitivity and Recommended Exposure Index",
+        5: "Standard Output Sensitivity and ISO Speed",
+        6: "Recommended Exposure Index and ISO Speed",
+        7: (
+            "Standard Output Sensitivity, "
+            "Recommended Exposure Index and ISO Speed"
+        )
+    }
+    return SENSITIVITY_TYPE.get(value, "Unknown")
+
+
+def format_scene_capture_type(value):
+    SCENE_TYPE = {
+        0: "Standard",
+        1: "Landscape",
+        2: "Portrait",
+        3: "Night",
+        4: "Other",
+    }
+    return SCENE_TYPE.get(value, "Unknown value")
+
+
+def format_resolution_unit(value):
+    UNIT = {
+        1: "None",
+        2: "inches",
+        3: "cm"
+    }
+    return UNIT.get(value, "Unknown")
+
+
+def format_light_source(value):
+    LIGHT_SOURCE = {
+        1: "Daylight",
+        2: "Fluorescent",
+        3: "Tungsten (Incandescent)",
+        4: "Flash",
+        9: "Fine Weather",
+        10: "Cloudy",
+        11: "Shade",
+        12: "Daylight Fluorescent",
+        13: "Day White Fluorescent",
+        14: "Cool White Fluorescent",
+        15: "White Fluorescent",
+        16: "Warm White Fluorescent",
+        17: "Standard Light A",
+        18: "Standard Light B",
+        19: "Standard Light C",
+        20: "D55",
+        21: "D65",
+        22: "D75",
+        23: "D50",
+        24: "ISO Studio Tungsten",
+        255: "Other"
+    }
+    return LIGHT_SOURCE.get(value, "Unknown")
+
+
+def format_color_space(value):
+    NON_STANDART_VALUE_STRING = " (non standart value)"
+    COLOR_SPACE = {
+        1: "sRGB",
+        2: "Adobe RGB" + NON_STANDART_VALUE_STRING,
+        0xfffd: "Wide Gamut RGB" + NON_STANDART_VALUE_STRING,
+        0xfffe: "ICC Profile" + NON_STANDART_VALUE_STRING,
+        0xffff: "Uncalibrated" + NON_STANDART_VALUE_STRING
+    }
+    return COLOR_SPACE.get(value, "Unknown")
+
+
+def format_sensing_method(value):
+    SENSING_METHOD = {
+        1: "Not defined",
+        2: "One-chip color area",
+        3: "Two-chip color area",
+        4: "Three-chip color area",
+        5: "Color sequential area",
+        7: "Trilinear",
+        8: "Color sequential linear",
+    }
+    return SENSING_METHOD.get(value, "Unknown")
+
+
+def format_white_balance(value):
+    return "Manual" if value & 1 else "Auto"
+
+
+def format_gain_control(value):
+    GAIN_CONTROL = {
+        0: "None",
+        1: "Low gain up",
+        2: "High gain up",
+        3: "Low gain down",
+        4: "High gain down"
+    }
+    return GAIN_CONTROL.get(value, "Unknown value")
+
+
+def format_contrast_saturation_sharpness(value):
+    CONTRAST_VALUES = {
+        0: "Normal",
+        1: "Low",
+        2: "High"
+    }
+    return CONTRAST_VALUES.get(value, "Unknown value")
+
+
+def format_custom_rendered(value):
+    APPLE_IOS_STRING = " (Apple iOS)"
+    CUSTOM_RENDER_VALUES = {
+        0: "Normal",
+        1: "Custom",
+        2: "HDR (no original saved)" + APPLE_IOS_STRING,
+        3: "HDR (original saved)" + APPLE_IOS_STRING,
+        4: "Original (for HDR)" + APPLE_IOS_STRING,
+        5: "Panorama" + APPLE_IOS_STRING,
+        6: "Portrait HDR" + APPLE_IOS_STRING,
+        7: "Portrait" + APPLE_IOS_STRING
+    }
+    return CUSTOM_RENDER_VALUES.get(value, "Unknown value")
 
 
 def check_is_fractions(value):
@@ -248,6 +376,10 @@ def string_exists(value):
     return "exists"
 
 
+def string_not_supported(value):
+    return "not supported"
+
+
 CUSTOM_PROCESSING = {
     TAG_TO_ID["UserComment"]: decode_user_comment,
     TAG_TO_ID["BitsPerSample"]: to_sum_and_to_string,
@@ -262,6 +394,18 @@ CUSTOM_PROCESSING = {
     TAG_TO_ID["FocalLength"]: format_focal_length,
     TAG_TO_ID["ExposureBiasValue"]: format_exposure_bias_value,
     TAG_TO_ID["DigitalZoomRatio"]: format_digital_zoom_ratio,
+    TAG_TO_ID["SensitivityType"]: format_sensitivity_type,
+    TAG_TO_ID["SceneCaptureType"]: format_scene_capture_type,
+    TAG_TO_ID["ResolutionUnit"]: format_resolution_unit,
+    TAG_TO_ID["LightSource"]: format_light_source,
+    TAG_TO_ID["ColorSpace"]: format_color_space,
+    TAG_TO_ID["SensingMethod"]: format_sensing_method,
+    TAG_TO_ID["WhiteBalance"]: format_white_balance,
+    TAG_TO_ID["GainControl"]: format_gain_control,
+    TAG_TO_ID["Contrast"]: format_contrast_saturation_sharpness,
+    TAG_TO_ID["Saturation"]: format_contrast_saturation_sharpness,
+    TAG_TO_ID["Sharpness"]: format_contrast_saturation_sharpness,
+    TAG_TO_ID["CustomRendered"]: format_custom_rendered,
     TAG_TO_ID["MakerNote"]: empty_string,
     TAG_TO_ID["ComponentsConfiguration"]: empty_string,
     TAG_TO_ID["ExifOffset"]: empty_string,
@@ -270,6 +414,10 @@ CUSTOM_PROCESSING = {
     TAG_TO_ID["FileSource"]: empty_string,
     TAG_TO_ID["FlashPixVersion"]: empty_string,
     TAG_TO_ID["GPSInfo"]: string_exists,
+    TAG_TO_ID["SubsecTime"]: empty_string,
+    TAG_TO_ID["SubsecTimeOriginal"]: empty_string,
+    TAG_TO_ID["SubsecTimeDigitized"]: empty_string,
+    TAG_TO_ID["ExifInteroperabilityOffset"]: string_not_supported,
     TAG_TO_ID["FocalLengthIn35mmFilm"]: lambda v: f"{to_float(v):.0f} mm",
 }
 
