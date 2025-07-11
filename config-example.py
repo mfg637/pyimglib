@@ -112,6 +112,7 @@ show_output_in_console = True
 
 jpegli_enabled = True
 
+
 def test_jpeg_li() -> bool:
     try:
         result = subprocess.run(["cjpegli"], stdout=subprocess.DEVNULL)
@@ -120,4 +121,8 @@ def test_jpeg_li() -> bool:
     if result.returncode != 0:
         return False
     return True
+
+
 jpegli_enabled = jpegli_enabled and test_jpeg_li()
+
+render_svg = False

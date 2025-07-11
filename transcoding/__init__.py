@@ -107,13 +107,20 @@ def get_memory_transcoder(
         gif_transcoder.animation_encoder_type = config.gif_source_encoders["animation_encoder"]
         return gif_transcoder
     elif file_type.is_svg(source):
-        svg_transcoder = svg_source_encoder.InMemorySVGEncoder(
-            source, path, filename
-        )
-        svg_transcoder.animation_encoder_type = config.png_source_encoders["animation_encoder"]
-        svg_transcoder.lossless_encoder_type = config.png_source_encoders["lossless_encoder"]
-        svg_transcoder.lossy_encoder_type = config.png_source_encoders["lossy_encoder"]
-        return svg_transcoder
+        if config.render_svg:
+            svg_transcoder = svg_source_encoder.InMemorySVGEncoder(
+                source, path, filename
+            )
+            svg_transcoder.animation_encoder_type = \
+                config.png_source_encoders["animation_encoder"]
+            svg_transcoder.lossless_encoder_type = \
+                config.png_source_encoders["lossless_encoder"]
+            svg_transcoder.lossy_encoder_type = \
+                config.png_source_encoders["lossy_encoder"]
+            return svg_transcoder
+        else:
+            svg_writer = svg_source_encoder.SVGWriter(source, path, filename)
+            return svg_writer
     elif bytes(source[:4]) in MKV_HEADER:
         src_metadata = common.ffmpeg.probe(source)
         if common.ffmpeg.parser.test_videoloop(src_metadata):

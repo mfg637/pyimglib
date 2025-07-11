@@ -1,7 +1,7 @@
 from . import base_transcoder
 from ..decoders import svg as svg_decoder
 from .. import common, config
-from . import encoders
+from . import encoders, video_transcoder
 from .encoders.srs_image_encoder import BaseSrsEncoder
 import tempfile
 import pathlib
@@ -49,3 +49,8 @@ class SVGEncoder(base_transcoder.BaseTranscoder):
 @base_transcoder.InMemorySourceDecorator
 class InMemorySVGEncoder(SVGEncoder):
     pass
+
+
+class SVGWriter(video_transcoder.VideoWriter):
+    def __init__(self, source, path, file_name):
+        super().__init__(source, path, file_name, ".svg")
