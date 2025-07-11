@@ -179,8 +179,10 @@ class SrsLossyJpegXlEncoder(BaseSrsEncoder):
         if self.check_cl_size_limit(img, 2):
             logger.debug("cl1 encode")
             cl2_image = img.copy()
-            cl2_image.thumbnail(
-                (config.srs_cl2_size_limit, config.srs_cl2_size_limit))
+            cl2_image.thumbnail((
+                config.srs_image_cl_size_limit[2],
+                config.srs_image_cl_size_limit[2]
+            ))
             cl2_file_path = output_file.with_stem(
                 "{}_cl2".format(output_file.stem)).with_suffix(".jxl")
             cl2_file_name = cl2_file_path.name
