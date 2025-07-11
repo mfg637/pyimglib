@@ -19,7 +19,8 @@ class SrsLossyImageEncoder(BaseSrsEncoder):
     cl3_encoder_type:  typing.Type[encoder.BytesEncoder] | None = None
     cl2_encoder_type: typing.Type[encoder.BytesEncoder] | None = None
     cl1_encoder_type: typing.Type[encoder.BytesEncoder] | None = None
-    cl3_size_limit = config.srs_cl3_size_limit
+    cl3_size_limit = config.srs_image_cl_size_limit[3]
+    cl1_size_limit = config.srs_image_cl_size_limit[1]
 
     def __init__(
         self,
@@ -31,18 +32,23 @@ class SrsLossyImageEncoder(BaseSrsEncoder):
         super().__init__(base_quality_level, source_data_size, ratio)
         self.multipass = multipass
 
-    def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
+    def encode(
+        self, input_file: pathlib.Path, output_file: pathlib.Path
+    ) -> pathlib.Path:
         img = PIL.Image.open(input_file)
-        self.cl1_encoder = self.cl1_encoder_type(input_file, img)
+        cl1_img = img
+        if self.check_cl_size_limit(img, 1):
+            cl1_img = self.scale_img(img, 1)
+            self.cl1_encoder = self.cl1_encoder_type(None, cl1_img)
+        else:
+            self.cl1_encoder = self.cl1_encoder_type(input_file, cl1_img)
+
         if isinstance(self.cl1_encoder, avif_encoder.AVIFEncoder):
             self.cl1_encoder.encoding_speed = min(
                 config.avifenc_encoding_speed * 2, 10)
-        cl3_scaled_img = img.copy()
-        if (img.width > self.cl3_size_limit) | (img.height > self.cl3_size_limit):
-            cl3_scaled_img.thumbnail(
-                (self.cl3_size_limit, self.cl3_size_limit),
-                PIL.Image.Resampling.LANCZOS
-            )
+        cl3_scaled_img = img
+        if self.check_cl_size_limit(img, 3):
+            cl3_scaled_img = self.scale_img(img, 3)
         self.cl3_encoder = self.cl3_encoder_type(input_file, cl3_scaled_img)
         self._quality = self.base_quality_level
         self.cl1_image_data = self.cl1_encoder.encode(self._quality)
@@ -79,6 +85,9 @@ class SrsLossyImageEncoder(BaseSrsEncoder):
 
         self.write_image_srs(input_file, img, cl1_file_name,
                              cl3_file_name, output_file, cl2_file_name)
+
+        cl3_scaled_img.close()
+        cl1_img.close()
 
         return self.srs_file_path
 
@@ -167,7 +176,7 @@ class SrsLossyJpegXlEncoder(BaseSrsEncoder):
         cl2_file_name = None
         cl1_file_name = None
 
-        if img.width > config.srs_cl2_size_limit or img.height > config.srs_cl2_size_limit:
+        if self.check_cl_size_limit(img, 2):
             logger.debug("cl1 encode")
             cl2_image = img.copy()
             cl2_image.thumbnail(
@@ -178,7 +187,10 @@ class SrsLossyJpegXlEncoder(BaseSrsEncoder):
             self.encode_cl2(cl2_image, cl2_file_path)
             cl1_file_path = output_file.with_suffix(self._cl1_suffix)
             cl1_file_name = cl1_file_path.name
-            self.encode_cl1(input_file, cl1_file_path, img)
+            cl1_image = img
+            if self.check_cl_size_limit(img, 1):
+                cl1_image = self.scale_img(img, 1)
+            self.encode_cl1(input_file, cl1_file_path, cl1_image)
         else:
             logger.debug("cl2 encode")
             cl2_file_path = output_file.with_suffix(".jxl")
@@ -211,7 +223,7 @@ class SrsLosslessImageEncoder(BaseSrsEncoder):
     cl2_encoder_type: typing.Type[encoder.BytesEncoder] | None = None
     cl3_lossy_encoder_type: typing.Type[encoder.BytesEncoder] | None = None
     cl1_encoder_type: typing.Type[encoder.BytesEncoder] | None = None
-    cl3_size_limit = config.srs_cl3_size_limit
+    cl3_size_limit = config.srs_image_cl_size_limit[3]
 
     def __init__(self, base_quality_level, source_data_size, ratio):
         super().__init__(base_quality_level, source_data_size, ratio)
@@ -219,13 +231,13 @@ class SrsLosslessImageEncoder(BaseSrsEncoder):
 
     def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
         img = PIL.Image.open(input_file)
-        self.cl1_encoder = self.cl1_encoder_type(input_file, img)
-        cl3_scaled_img = img.copy()
-        if (img.width > self.cl3_size_limit) | (img.height > self.cl3_size_limit):
-            cl3_scaled_img.thumbnail(
-                (self.cl3_size_limit, self.cl3_size_limit),
-                PIL.Image.Resampling.LANCZOS
-            )
+        cl1_image = img
+        if self.check_cl_size_limit(img, 1):
+            cl1_image = self.scale_img(img, 1)
+        self.cl1_encoder = self.cl1_encoder_type(input_file, cl1_image)
+        cl3_scaled_img = img
+        if self.check_cl_size_limit(img, 3):
+            cl3_scaled_img = self.scale_img(img, 3)
             self.cl3_encoder = self.cl3_encoder_type(
                 input_file, cl3_scaled_img)
             self.cl3_lossy_encoder = self.cl3_lossy_encoder_type(

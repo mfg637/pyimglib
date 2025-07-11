@@ -42,8 +42,13 @@ class YUV4MPEG2_LIMITED_RANGE_CORRENTION_MODES(enum.Enum):
 
 yuv4mpeg2_limited_range_correction = YUV4MPEG2_LIMITED_RANGE_CORRENTION_MODES.CLIPPING
 
-srs_cl3_size_limit = 2048
-srs_cl2_size_limit = 4096
+srs_image_cl_size_limit = {
+    0: None,
+    1: 2**13,
+    2: 2**12,
+    3: 2**11,
+    4: 2**10
+}
 srs_thumbnail_for_lossless_trigger_size = 4096
 
 cl3_width = 1280

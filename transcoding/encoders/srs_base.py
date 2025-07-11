@@ -87,15 +87,22 @@ class BaseSrsEncoder(encoder.FilesEncoder, ABC):
             cl0_file_path = output_file.with_stem(
                 f"{output_file.stem}_cl0"
             ).with_suffix(self.cl0_file_suffix)
-            print("cl0_file_path", cl0_file_path, "suffix", self.cl0_file_suffix)
             srs_data["streams"]["image"]["levels"]["0"] = cl0_file_path.name
             cl0_file_path.write_bytes(self.cl0_image_data)
         if cl1_file_name is not None:
             if (
-                img.width > config.srs_cl2_size_limit
-                or img.height > config.srs_cl2_size_limit
+                img.width > config.srs_image_cl_size_limit[2]
+                or img.height > config.srs_image_cl_size_limit[2]
                 or cl2_file_name is not None
             ):
+                srs_data["streams"]["image"]["levels"]["1"] = cl1_file_name
+            elif (
+                img.width <= config.srs_image_cl_size_limit[2]
+                and img.height <= config.srs_image_cl_size_limit[2]
+                and cl2_file_name is None
+            ):
+                srs_data["streams"]["image"]["levels"]["2"] = cl1_file_name
+            elif cl2_file_name is not None:
                 srs_data["streams"]["image"]["levels"]["1"] = cl1_file_name
         if cl2_file_name is not None:
             srs_data["streams"]["image"]["levels"]["2"] = cl2_file_name
@@ -115,16 +122,28 @@ class BaseSrsEncoder(encoder.FilesEncoder, ABC):
         with self.srs_file_path.open("w") as f:
             json.dump(srs_data, f)
 
+    @staticmethod
+    def check_cl_size_limit(img, compatibility_level: int):
+        return (
+            (img.width > config.srs_image_cl_size_limit[compatibility_level]) |
+            (img.height > config.srs_image_cl_size_limit[compatibility_level])
+        )
+
+    @staticmethod
+    def scale_img(img, compatibility_level):
+        scaled_img = img.copy()
+        scaled_img.thumbnail(
+            (
+                config.srs_image_cl_size_limit[compatibility_level],
+                config.srs_image_cl_size_limit[compatibility_level]
+            ),
+            PIL.Image.Resampling.LANCZOS
+        )
+        return scaled_img
+
     def cl2_encode(self, img, input_file, output_file):
-        if (
-            img.width > config.srs_cl2_size_limit
-            or img.height > config.srs_cl2_size_limit
-        ):
-            cl2_scaled_img = img.copy()
-            cl2_scaled_img.thumbnail(
-                (config.srs_cl2_size_limit, config.srs_cl2_size_limit),
-                PIL.Image.Resampling.LANCZOS
-            )
+        if self.check_cl_size_limit(img, 2):
+            cl2_scaled_img = self.scale_img(img, 2)
             cl2_encoder = self.cl2_encoder_type(input_file, cl2_scaled_img)
             cl2_file_path = output_file.with_stem(
                 output_file.stem + '_CL2').with_suffix(cl2_encoder.SUFFIX)
