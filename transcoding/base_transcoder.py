@@ -26,7 +26,13 @@ class PreventTranscoding(Exception):
 class BaseTranscoder:
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, source, path: pathlib.Path, file_name: str):
+    def __init__(
+        self,
+        source,
+        path: pathlib.Path,
+        file_name: str,
+        always_save: bool = False
+    ):
         self._source = source
         self._path = path
         self._file_name = file_name
@@ -36,6 +42,7 @@ class BaseTranscoder:
         self._quality = 95
         self._fext = 'webp'
         self._lossy_output = False
+        self._always_save = always_save
 
     @abc.abstractmethod
     def _encode(self):
@@ -87,7 +94,10 @@ class BaseTranscoder:
             output_file = self._optimisations_failed()
             return 0, 0, 0, 0, output_file
         self._record_timestamps()
-        if (self._size > self._output_size) and (self._output_size > 0):
+        if (
+            (self._output_size > 0) and 
+            ((self._size > self._output_size) or self._always_save)
+        ):
             output_file = self._save()
             self._set_utime()
             logger.info(('save {} kbyte ({}%) quality = {}').format(
@@ -153,3 +163,23 @@ class InMemorySource(UnremovableSource):
 
     def _set_utime(self) -> None:
         pass
+
+
+def InMemorySourceDecorator(cls):
+    class InMemorySourceDecorated(cls):
+        def _open_image(self) -> Image.Image:
+            if config.custom_pillow_image_limits != -1:
+                PIL.Image.MAX_IMAGE_PIXELS = config.custom_pillow_image_limits
+            src_io = io.BytesIO(self._source)
+            return Image.open(src_io)
+
+        def _get_source_size(self) -> int:
+            return len(self._source)
+
+        def _set_utime(self) -> None:
+            pass
+
+        def _remove_source(self):
+            pass
+
+    return InMemorySourceDecorated

@@ -21,8 +21,15 @@ class SrsLossyImageEncoder(BaseSrsEncoder):
     cl1_encoder_type: typing.Type[encoder.BytesEncoder] | None = None
     cl3_size_limit = config.srs_cl3_size_limit
 
-    def __init__(self, base_quality_level, source_data_size, ratio):
+    def __init__(
+        self,
+        base_quality_level,
+        source_data_size,
+        ratio,
+        multipass: bool = True
+    ):
         super().__init__(base_quality_level, source_data_size, ratio)
+        self.multipass = multipass
 
     def encode(self, input_file: pathlib.Path, output_file: pathlib.Path) -> pathlib.Path:
         img = PIL.Image.open(input_file)
@@ -41,7 +48,11 @@ class SrsLossyImageEncoder(BaseSrsEncoder):
         self.cl1_image_data = self.cl1_encoder.encode(self._quality)
         cl1_size = len(self.cl1_image_data)
         ratio = self.ratio
-        while ((cl1_size / self.source_data_size) > ((100 - ratio) * 0.01)) and (self._quality >= 60):
+        while (
+            self.multipass and
+            ((cl1_size / self.source_data_size) > ((100 - ratio) * 0.01)) and
+            (self._quality >= 60)
+        ):
             self._quality -= 5
             self.cl1_image_data = self.cl1_encoder.encode(self._quality)
             cl1_size = len(self.cl1_image_data)
@@ -70,6 +81,19 @@ class SrsLossyImageEncoder(BaseSrsEncoder):
                              cl3_file_name, output_file, cl2_file_name)
 
         return self.srs_file_path
+
+
+class SrsSvgEncoder(SrsLossyImageEncoder):
+    def __init__(
+        self,
+        base_quality_level,
+        source_data_size,
+        ratio,
+        cl0_image_data
+    ):
+        super().__init__(base_quality_level, source_data_size, ratio, False)
+        self.cl0_image_data = cl0_image_data
+        self.cl0_file_suffix = ".svg"
 
 
 class SrsLossyJpegXlEncoder(BaseSrsEncoder):

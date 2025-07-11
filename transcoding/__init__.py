@@ -12,12 +12,14 @@ from . import (
     jpeg_source_transcode,
     video_transcoder,
     video_loop_transcoder,
+    svg_source_encoder,
     encoders
 )
 
 from .. import config
 from .. import exceptions
 from .. import common
+from ..common import file_type
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +27,7 @@ logger = logging.getLogger(__name__)
 # derpibooru-dl exclusive
 def get_trancoded_file(source: pathlib.Path, path: pathlib.Path, filename: str):
     fname = path.joinpath(filename)
-    suffixes: list[str] = ['.webp', '.webm', '.avif', '.mpd', '.srs']
+    suffixes: list[str] = ['.webp', '.webm', '.avif', '.mpd', '.srs', ".svg"]
     for suffix in suffixes:
         filepath = fname.with_suffix(suffix)
         if filepath.is_file():
@@ -104,6 +106,14 @@ def get_memory_transcoder(
         gif_transcoder.lossy_encoder_type = config.gif_source_encoders["lossy_encoder"]
         gif_transcoder.animation_encoder_type = config.gif_source_encoders["animation_encoder"]
         return gif_transcoder
+    elif file_type.is_svg(source):
+        svg_transcoder = svg_source_encoder.InMemorySVGEncoder(
+            source, path, filename
+        )
+        svg_transcoder.animation_encoder_type = config.png_source_encoders["animation_encoder"]
+        svg_transcoder.lossless_encoder_type = config.png_source_encoders["lossless_encoder"]
+        svg_transcoder.lossy_encoder_type = config.png_source_encoders["lossy_encoder"]
+        return svg_transcoder
     elif bytes(source[:4]) in MKV_HEADER:
         src_metadata = common.ffmpeg.probe(source)
         if common.ffmpeg.parser.test_videoloop(src_metadata):

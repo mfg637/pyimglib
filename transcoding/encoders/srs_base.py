@@ -35,6 +35,8 @@ class BaseSrsEncoder(encoder.FilesEncoder, ABC):
         self.ratio = ratio
         self.cl3_image_data: bytes | None = None
         self.cl1_image_data: bytes | None = None
+        self.cl0_image_data: bytes | bytearray | None = None
+        self.cl0_file_suffix: str = ""
         self.cl1_encoder: encoder.BytesEncoder | None = None
         self.cl3_encoder: encoder.BytesEncoder | None = None
         self.srs_file_path: pathlib.Path | None = None
@@ -68,7 +70,7 @@ class BaseSrsEncoder(encoder.FilesEncoder, ABC):
         img,
         cl1_file_name,
         cl3_file_name,
-        output_file,
+        output_file: pathlib.Path,
         cl2_file_name=None
     ):
         srs_data = {
@@ -81,6 +83,13 @@ class BaseSrsEncoder(encoder.FilesEncoder, ABC):
                 "image": {"levels": dict()}
             }
         }
+        if self.cl0_image_data:
+            cl0_file_path = output_file.with_stem(
+                f"{output_file.stem}_cl0"
+            ).with_suffix(self.cl0_file_suffix)
+            print("cl0_file_path", cl0_file_path, "suffix", self.cl0_file_suffix)
+            srs_data["streams"]["image"]["levels"]["0"] = cl0_file_path.name
+            cl0_file_path.write_bytes(self.cl0_image_data)
         if cl1_file_name is not None:
             if (
                 img.width > config.srs_cl2_size_limit

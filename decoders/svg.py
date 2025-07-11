@@ -6,27 +6,16 @@ import io
 import subprocess
 
 import PIL.Image
-import tempfile
+from ..common.utils import InputSourceFacade
+from ..common.file_type import svg_tag, is_svg
 
-svg_tag = re.compile(r'<svg[^>]*>')
 attributes = re.compile(r'[a-zA-Z\:]+\s?=\s?[\'\"][^\'\"]+[\'\"]')
-
-
-def is_svg(file_path):
-    file = open(file_path, 'r')
-    try:
-        data = file.read()
-    except UnicodeDecodeError:
-        file.close()
-        return False
-    file.close()
-    return svg_tag.search(data) is not None
 
 
 def get_resolution(file_path):
     data = None
-    if type(file_path) is bytes:
-        data = str(file_path)
+    if isinstance(file_path, (bytes, bytearray)):
+        data = file_path.decode()
     else:
         file = open(file_path, 'r')
         data = file.read()
@@ -53,11 +42,13 @@ def get_resolution(file_path):
         return None
 
 
-def decode(file_path, required_size=None):
+def decode(source, required_size=None):
     scale = 1
+    source_handler = InputSourceFacade(source, ".svg")
+    input_file = source_handler.get_file_str()
     try:
         if required_size is not None:
-            width, height = get_resolution(file_path)
+            width, height = get_resolution(source_handler.get_bytes())
             if (required_size[0] / width * height) <= required_size[1]:
                 scale = required_size[0] / width
             else:
@@ -65,15 +56,9 @@ def decode(file_path, required_size=None):
     except ValueError:
         pass
     buffer = None
-    tmpfile = None
-    if type(file_path) is bytes:
-        tmpfile = tempfile.NamedTemporaryFile("bw")
-        tmpfile.write(file_path)
-        file_path = tmpfile.name
     buffer = io.BytesIO(subprocess.run(
-        ['rsvg-convert', '--format=png', '-z', str(scale), str(file_path)],
+        ['rsvg-convert', '--format=png', '-z', str(scale), input_file],
         capture_output=True
     ).stdout)
-    if tmpfile is not None:
-        tmpfile.close()
+    source_handler.close()
     return PIL.Image.open(buffer)

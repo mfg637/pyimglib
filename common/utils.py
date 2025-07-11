@@ -91,6 +91,19 @@ class InputSourceFacade:
             else:
                 self.writer(self._tmpfile)
         return file_path
+    
+    def get_bytes(self) -> bytes | bytearray:
+        if isinstance(self._source, (bytes, bytearray)):
+            return self._source
+        else:
+            if type(self._source) is str:
+                file_path = pathlib.Path(str)
+            elif isinstance(self._source, pathlib.Path):
+                file_path = self._source
+            else:
+                raise TypeError(f"Unexpected type: {type(self._source)}")
+            binary_data = file_path.read_bytes()
+            return binary_data
 
     def close(self):
         if self._tmpfile is not None:
