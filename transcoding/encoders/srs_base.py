@@ -21,14 +21,40 @@ def test_alpha_channel(img: PIL.Image.Image):
 
 
 MEDIA_TYPE_CODE_TO_STREAM_TYPE_KEY = {
-    0: "image",
-    1: "audio",
-    2: "video",
-    3: "video"
+    0: ("image",),
+    1: ("audio",),
+    2: ("video", "audio"),
+    3: ("video",)
 }
 
 
-class BaseSrsEncoder(encoder.FilesEncoder, ABC):
+class SrsEncoderBase(encoder.FilesEncoder, ABC):
+    def set_manifest_file(self, manifest_file: pathlib.Path):
+        self.srs_file_path = manifest_file
+
+    def get_files(self) -> list[pathlib.Path]:
+        srs_data = None
+        parent_dir = self.srs_file_path.parent
+        with self.srs_file_path.open('r') as f:
+            srs_data = json.load(f)
+
+        stream_type_keys = MEDIA_TYPE_CODE_TO_STREAM_TYPE_KEY[
+            srs_data["content"]["media-type"]
+        ]
+
+        list_files = []
+        for stream_type_key in stream_type_keys:
+            for level in srs_data["streams"][stream_type_key]["levels"]:
+                list_files.append(
+                    parent_dir.joinpath(
+                        srs_data["streams"][stream_type_key]["levels"][level])
+                )
+
+        list_files.append(self.srs_file_path)
+        return list_files
+
+
+class BaseImageSrsEncoder(SrsEncoderBase):
     def __init__(self, base_quality_level, source_data_size, ratio):
         self.base_quality_level = base_quality_level
         self.source_data_size = source_data_size
@@ -40,29 +66,6 @@ class BaseSrsEncoder(encoder.FilesEncoder, ABC):
         self.cl1_encoder: encoder.BytesEncoder | None = None
         self.cl3_encoder: encoder.BytesEncoder | None = None
         self.srs_file_path: pathlib.Path | None = None
-
-    def set_manifest_file(self, manifest_file: pathlib.Path):
-        self.srs_file_path = manifest_file
-
-    def get_files(self) -> list[pathlib.Path]:
-        srs_data = None
-        parent_dir = self.srs_file_path.parent
-        with self.srs_file_path.open('r') as f:
-            srs_data = json.load(f)
-
-        stream_type_key = MEDIA_TYPE_CODE_TO_STREAM_TYPE_KEY[
-            srs_data["content"]["media-type"]
-        ]
-
-        list_files = []
-        for level in srs_data["streams"][stream_type_key]["levels"]:
-            list_files.append(
-                parent_dir.joinpath(
-                    srs_data["streams"][stream_type_key]["levels"][level])
-            )
-
-        list_files.append(self.srs_file_path)
-        return list_files
 
     def write_image_srs(
         self,

@@ -2,7 +2,7 @@ from . import base_transcoder
 from ..decoders import svg as svg_decoder
 from .. import common, config
 from . import encoders, video_transcoder
-from .encoders.srs_image_encoder import BaseSrsEncoder
+from .encoders.srs_image_encoder import BaseImageSrsEncoder
 import tempfile
 import pathlib
 from PIL.Image import DecompressionBombError, Resampling
@@ -19,11 +19,11 @@ class SVGEncoder(base_transcoder.BaseTranscoder):
         )
         try:
             img = svg_decoder.decode(self._source)
-            if BaseSrsEncoder.check_cl_size_limit(
+            if BaseImageSrsEncoder.check_cl_size_limit(
                 img, 2
             ):
                 img = svg_decoder.decode(self._source, cl2_size_limit)
-                if BaseSrsEncoder.check_cl_size_limit(
+                if BaseImageSrsEncoder.check_cl_size_limit(
                     img, 2
                 ):
                     img.thumbnail(cl2_size_limit, Resampling.LANCZOS)

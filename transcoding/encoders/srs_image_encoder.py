@@ -6,7 +6,7 @@ import typing
 
 import PIL.Image
 
-from .srs_base import BaseSrsEncoder, test_alpha_channel
+from .srs_base import BaseImageSrsEncoder, test_alpha_channel
 
 from ... import config
 from ... import common
@@ -15,7 +15,7 @@ from . import avif_encoder, encoder
 logger = logging.getLogger(__name__)
 
 
-class SrsLossyImageEncoder(BaseSrsEncoder):
+class SrsLossyImageEncoder(BaseImageSrsEncoder):
     cl3_encoder_type:  typing.Type[encoder.BytesEncoder] | None = None
     cl2_encoder_type: typing.Type[encoder.BytesEncoder] | None = None
     cl1_encoder_type: typing.Type[encoder.BytesEncoder] | None = None
@@ -105,7 +105,7 @@ class SrsSvgEncoder(SrsLossyImageEncoder):
         self.cl0_file_suffix = ".svg"
 
 
-class SrsLossyJpegXlEncoder(BaseSrsEncoder):
+class SrsLossyJpegXlEncoder(BaseImageSrsEncoder):
     """
     JPEG XL format have special features like lossless JPEG recompression, which other not.
     JPEG recompression, and generating JPEG compatible JXL bitstream requires special processing pipeline.
@@ -220,7 +220,7 @@ class HybridImageEncoder(SrsLossyJpegXlEncoder):
             f.write(cl1_image_data)
 
 
-class SrsLosslessImageEncoder(BaseSrsEncoder):
+class SrsLosslessImageEncoder(BaseImageSrsEncoder):
     cl3_encoder_type:  typing.Type[encoder.BytesEncoder] | None = None
     cl2_encoder_type: typing.Type[encoder.BytesEncoder] | None = None
     cl3_lossy_encoder_type: typing.Type[encoder.BytesEncoder] | None = None
