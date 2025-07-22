@@ -7,7 +7,7 @@ import subprocess
 import logging
 from platform import system
 
-from . import exceptions
+from . import exceptions, parser
 from ..utils import InputSourceFacade
 
 if system() == "Windows":

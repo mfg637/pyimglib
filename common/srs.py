@@ -105,3 +105,8 @@ AUDIO_CODEC_PREFERED_CONTAINER: dict[
     AudioCodecs.Vorbis: (AudioContainers.OGG_AUDIO, ".oga"),
     AudioCodecs.Opus: (AudioContainers.OGG_OPUS, ".opus")
 }
+
+FFMPEG_VIDEO_CONTAINER_FORMAT = {
+    VideoContainers.MPEG_4: "mp4",
+    VideoContainers.WEBM: "webm"
+}

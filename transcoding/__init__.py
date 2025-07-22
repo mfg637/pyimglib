@@ -134,9 +134,15 @@ def get_memory_transcoder(
                     source, path, filename, rewrite
                 )
                 return vloop_transcoder
-        elif issubclass(config.video_encoders["video_encoder"], encoders.dash_encoder.DASHEncoder):
-            v_transcoder = video_transcoder.VideoTranscoder(source, path, filename)
-            v_transcoder.video_encoder_type = config.video_encoders["video_encoder"]
+        elif issubclass(
+            config.video_encoders["video_encoder"],
+            encoders.encoder.FilesEncoder
+        ):
+            v_transcoder = video_transcoder.VideoTranscoder(
+                source, path, filename
+            )
+            v_transcoder.video_encoder_type = \
+                config.video_encoders["video_encoder"]
             return v_transcoder
         else:
             v_writer = video_transcoder.VideoWriter(

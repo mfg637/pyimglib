@@ -28,6 +28,7 @@ def limit_fps(fps, limit_value=30):
 
 
 def cl3_size_valid(video):
+    raise NotImplementedError("Deprecated method cl3 size valid")
     return video["width"] <= config.cl3_width and video["height"] <= config.cl3_height
 
 

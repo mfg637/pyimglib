@@ -9,6 +9,13 @@ from ..utils import (
     to_fractions_or_float
 )
 
+from ..srs import (
+    VIDEO_30FPS_LEVELS,
+    VIDEO_60FPS_LEVELS,
+    codec_name_to_enum,
+    PIXEL_FORMAT_TO_BITS_PER_CHANNEL
+)
+
 
 def fps_calc(raw_str):
     _f = raw_str.split("/")
@@ -39,7 +46,7 @@ class SPECIFY_VIDEO_STREAM(enum.Enum):
     LAST = enum.auto()
 
 
-def find_video_stream(data, first_or_last=SPECIFY_VIDEO_STREAM.FIRST):
+def find_video_stream(data, first_or_last=SPECIFY_VIDEO_STREAM.FIRST) -> dict:
     video = None
     for stream in data['streams']:
         if stream['codec_type'] == "video":
@@ -49,7 +56,7 @@ def find_video_stream(data, first_or_last=SPECIFY_VIDEO_STREAM.FIRST):
     return video
 
 
-def find_audio_streams(data):
+def find_audio_streams(data) -> list[dict]:
     streams = list()
     for stream in data['streams']:
         if stream['codec_type'] == "audio":
@@ -110,15 +117,51 @@ def test_videoloop(src_metadata) -> bool:
             return False
 
 
+def get_video_size(video_stream) -> tuple[int, int, int, int]:
+    width = video_stream["width"]
+    height = video_stream["height"]
+    if width > height:
+        min_size = height
+        max_size = width
+    else:
+        min_size = width
+        max_size = height
+    return width, height, min_size, max_size
+
+
+def test_video_cl(compatibility_level: int, video_stream) -> bool:
+    video = video_stream
+    fps60_level = VIDEO_60FPS_LEVELS[compatibility_level]
+    fps30_level = VIDEO_30FPS_LEVELS[compatibility_level]
+    fps = get_fps(video)
+    pixel_format = video["pix_fmt"]
+    width, height, min_size, max_size = get_video_size(video_stream)
+
+    if fps > 30:
+        return (
+            fps <= 60 and
+            codec_name_to_enum(video["codec_name"]) <= fps60_level[0].value and
+            max_size <= fps60_level[1] and
+            min_size <= fps60_level[2] and
+            PIXEL_FORMAT_TO_BITS_PER_CHANNEL.get(pixel_format, 999) <=
+            fps60_level[3]
+        )
+    else:
+        return (
+            codec_name_to_enum(video["codec_name"]) <= fps30_level[0].value and
+            max_size <= fps30_level[1] and
+            min_size <= fps30_level[2] and
+            PIXEL_FORMAT_TO_BITS_PER_CHANNEL.get(pixel_format, 999) <=
+            fps30_level[3]
+        )
+
+
 def test_video_cl3(src_metadata) -> bool:
     video = find_video_stream(src_metadata)
     fps = get_fps(video)
-    if video["width"] > video["height"]:
-        min_size = video["height"]
-        max_size = video["width"]
-    else:
-        min_size = video["width"]
-        max_size = video["height"]
+    if video["pix_fmt"] != "yuv420p":
+        return False
+    width, height, min_size, max_size = get_video_size(video)
     if video["codec_name"] in ("vp9", "vp8"):
         if min_size <= 720 and max_size <= 1280 and fps <= 60:
             return True

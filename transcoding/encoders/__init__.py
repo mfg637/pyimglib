@@ -6,6 +6,7 @@ from . import (
     avif_encoder,
     dash_encoder,
     srs_image_encoder,
+    srs_video_encoder,
     jpeg_xl_encoder,
     jpeg_recompression,
 )

@@ -44,11 +44,20 @@ class SrsEncoderBase(encoder.FilesEncoder, ABC):
 
         list_files = []
         for stream_type_key in stream_type_keys:
-            for level in srs_data["streams"][stream_type_key]["levels"]:
-                list_files.append(
-                    parent_dir.joinpath(
-                        srs_data["streams"][stream_type_key]["levels"][level])
-                )
+            if stream_type_key == "audio":
+                for stream in srs_data["streams"]["audio"]:
+                    for channel in stream["channels"]:
+                        for level in stream["channels"][channel]:
+                            file_path = parent_dir.joinpath(
+                                stream["channels"][channel][level]
+                            )
+                            list_files.append(file_path)
+            else:
+                for level in srs_data["streams"][stream_type_key]["levels"]:
+                    file_path = parent_dir.joinpath(
+                        srs_data["streams"][stream_type_key]["levels"][level]
+                    )
+                    list_files.append(file_path)
 
         list_files.append(self.srs_file_path)
         return list_files
