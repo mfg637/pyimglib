@@ -55,16 +55,17 @@ def probe(source: bytearray | pathlib.Path | str):
 
     result = None
     try:
-        commandline = ['ffprobe']
+        commandline = ["ffprobe"]
         commandline += set_loglevel(logging.root.level)
         commandline += [
-            '-print_format', 'json',
-            '-show_format',
-            '-show_streams',
-            '-show_chapters',
-            input_file
+            "-print_format",
+            "json",
+            "-show_format",
+            "-show_streams",
+            "-show_chapters",
+            input_file,
         ]
-        result = json.loads(str(get_output(commandline), 'utf-8'))
+        result = json.loads(str(get_output(commandline), "utf-8"))
     except UnicodeEncodeError:
         raise exceptions.InvalidFilename(source)
     finally:
@@ -80,11 +81,11 @@ def set_loglevel(loglevel):
         case logging.INFO:
             commandline += ["info"]
         case logging.WARNING:
-            commandline += ["warning", '-hide_banner']
+            commandline += ["warning", "-hide_banner"]
         case logging.ERROR:
-            commandline += ["error", '-hide_banner']
+            commandline += ["error", "-hide_banner"]
         case logging.CRITICAL:
-            commandline += ["fatal", '-hide_banner']
+            commandline += ["fatal", "-hide_banner"]
         case _:
-            commandline += ["quiet", '-hide_banner']
+            commandline += ["quiet", "-hide_banner"]
     return commandline
