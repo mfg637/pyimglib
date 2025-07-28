@@ -2,10 +2,18 @@ import pathlib
 import png
 import abc
 import zlib
+from . import exif_reader
 
 
 class EmptyContentError(ValueError):
     pass
+
+
+class EXIF_Data(Exception):
+    pass
+
+
+EXIF_KEYWORD = "Raw profile type exif"
 
 
 class AbstractTextReading(abc.ABC):
@@ -27,6 +35,8 @@ class BaseTextReading(AbstractTextReading):
         if not raw_data:
             raise EmptyContentError("Empty content")
         keyword = raw_keyword.decode("latin-1")
+        if keyword == EXIF_KEYWORD:
+            raise EXIF_Data()
         text_content = self.decode_content(raw_data)
         return keyword, text_content
 
@@ -79,6 +89,8 @@ class iTXt_Reading(AbstractTextReading):
             keyword = "XML::XMP"
             text = text_data.replace(b"\x00", b"", 2).decode(self.charset)
             return keyword, text
+        elif keyword == EXIF_KEYWORD:
+            raise EXIF_Data()
 
         if not len(packed_data):
             raise EmptyContentError()
@@ -117,6 +129,9 @@ def read(png_source):
             try:
                 keyword, text_content = chunk_reader.read(chunk_content)
             except EmptyContentError:
+                continue
+            except EXIF_Data:
+                metadata.update(exif_reader.read(png_source))
                 continue
             metadata[keyword] = text_content
     return metadata

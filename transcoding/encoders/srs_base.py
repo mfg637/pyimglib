@@ -24,7 +24,7 @@ MEDIA_TYPE_CODE_TO_STREAM_TYPE_KEY = {
     0: ("image",),
     1: ("audio",),
     2: ("video", "audio"),
-    3: ("video",)
+    3: ("video",),
 }
 
 
@@ -35,7 +35,7 @@ class SrsEncoderBase(encoder.FilesEncoder, ABC):
     def get_files(self) -> list[pathlib.Path]:
         srs_data = None
         parent_dir = self.srs_file_path.parent
-        with self.srs_file_path.open('r') as f:
+        with self.srs_file_path.open("r") as f:
             srs_data = json.load(f)
 
         stream_type_keys = MEDIA_TYPE_CODE_TO_STREAM_TYPE_KEY[
@@ -83,17 +83,12 @@ class BaseImageSrsEncoder(SrsEncoderBase):
         cl1_file_name,
         cl3_file_name,
         output_file: pathlib.Path,
-        cl2_file_name=None
+        cl2_file_name=None,
     ):
         srs_data = {
             "ftype": "CLSRS",
-            "content": {
-                "media-type": 0,
-                "attachment": dict()
-            },
-            "streams": {
-                "image": {"levels": dict()}
-            }
+            "content": {"media-type": 0, "attachment": dict()},
+            "streams": {"image": {"levels": dict()}},
         }
         if self.cl0_image_data:
             cl0_file_path = output_file.with_stem(
@@ -122,11 +117,13 @@ class BaseImageSrsEncoder(SrsEncoderBase):
             srs_data["streams"]["image"]["levels"]["3"] = cl3_file_name
 
         if input_file.suffix == ".png":
-            srs_data["content"]["attachment"] = \
-                metadata.png_reader.read(input_file)
+            srs_data["content"]["attachment"] = metadata.png_reader.read(
+                input_file
+            )
         elif input_file.suffix in {".jpg", ".jpeg", ".jfif"}:
-            srs_data["content"]["attachment"] = \
-                metadata.jpeg_reader.read(input_file)
+            srs_data["content"]["attachment"] = metadata.exif_reader.read(
+                input_file
+            )
 
         logger.debug("srs content: {}".format(srs_data.__repr__()))
 
@@ -137,9 +134,8 @@ class BaseImageSrsEncoder(SrsEncoderBase):
     @staticmethod
     def check_cl_size_limit(img, compatibility_level: int):
         return (
-            (img.width > config.srs_image_cl_size_limit[compatibility_level]) |
-            (img.height > config.srs_image_cl_size_limit[compatibility_level])
-        )
+            img.width > config.srs_image_cl_size_limit[compatibility_level]
+        ) | (img.height > config.srs_image_cl_size_limit[compatibility_level])
 
     @staticmethod
     def scale_img(img, compatibility_level):
@@ -147,9 +143,9 @@ class BaseImageSrsEncoder(SrsEncoderBase):
         scaled_img.thumbnail(
             (
                 config.srs_image_cl_size_limit[compatibility_level],
-                config.srs_image_cl_size_limit[compatibility_level]
+                config.srs_image_cl_size_limit[compatibility_level],
             ),
-            PIL.Image.Resampling.LANCZOS
+            PIL.Image.Resampling.LANCZOS,
         )
         return scaled_img
 
@@ -158,7 +154,8 @@ class BaseImageSrsEncoder(SrsEncoderBase):
             cl2_scaled_img = self.scale_img(img, 2)
             cl2_encoder = self.cl2_encoder_type(input_file, cl2_scaled_img)
             cl2_file_path = output_file.with_stem(
-                output_file.stem + '_CL2').with_suffix(cl2_encoder.SUFFIX)
+                output_file.stem + "_CL2"
+            ).with_suffix(cl2_encoder.SUFFIX)
             cl2_file_name = cl2_file_path.name
             cl2_encoded_data = cl2_encoder.encode(self._quality)
             if len(cl2_encoded_data) == 0:
