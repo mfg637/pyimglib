@@ -2,7 +2,7 @@ import pathlib
 import png
 import abc
 import zlib
-from . import exif_reader
+from . import exif_reader, iptc_reader
 
 
 class EmptyContentError(ValueError):
@@ -14,6 +14,7 @@ class EXIF_Data(Exception):
 
 
 EXIF_KEYWORD = "Raw profile type exif"
+IPTC_KEYWORD = "Raw profile type iptc"
 
 
 class AbstractTextReading(abc.ABC):
@@ -30,13 +31,19 @@ class BaseTextReading(AbstractTextReading):
     def decode_content(self, raw_data) -> str:
         pass
 
-    def read(self, chunk_content) -> tuple[str, str]:
+    @abc.abstractmethod
+    def decode_iptc(self, raw_data) -> dict[str, str]:
+        pass
+
+    def read(self, chunk_content) -> tuple[str, str] | dict[str, str]:
         raw_keyword, raw_data = bytes(chunk_content).split(b"\x00", maxsplit=1)
         if not raw_data:
             raise EmptyContentError("Empty content")
         keyword = raw_keyword.decode("latin-1")
         if keyword == EXIF_KEYWORD:
             raise EXIF_Data()
+        elif keyword == IPTC_KEYWORD:
+            return self.decode_iptc(raw_data)
         text_content = self.decode_content(raw_data)
         return keyword, text_content
 
@@ -48,12 +55,15 @@ class tEXt_Reading(BaseTextReading):
     def decode_content(self, raw_data):
         return raw_data.decode(self.charset)
 
+    def decode_iptc(self, raw_data) -> dict[str, str]:
+        return iptc_reader.read_png_chunk(raw_data)
 
-def decode_ztxt(charset, compression_method, compressed_text_data):
+
+def decode_ztxt(compression_method, compressed_text_data):
     if compression_method == 0:
         try:
             decompressed_text = zlib.decompress(compressed_text_data)
-            return decompressed_text.decode(charset)
+            return decompressed_text
         except zlib.error as e:
             raise ValueError(f"Failed to decompress zTXt data: {e}")
     else:
@@ -70,8 +80,15 @@ class zTXt_Reading(BaseTextReading):
     def decode_content(self, raw_data):
         compression_method = raw_data[0]
         compressed_text_data = raw_data[1:]
-        return decode_ztxt(
-            self.charset, compression_method, compressed_text_data
+        return decode_ztxt(compression_method, compressed_text_data).decode(
+            self.charset
+        )
+
+    def decode_iptc(self, raw_data) -> dict[str, str]:
+        compression_method = raw_data[0]
+        compressed_text_data = raw_data[1:]
+        return iptc_reader.read_png_chunk(
+            decode_ztxt(compression_method, compressed_text_data)
         )
 
 
@@ -104,8 +121,16 @@ class iTXt_Reading(AbstractTextReading):
         elif translated_keyword:
             keyword += f"/{translated_keyword.decode(self.charset)}"
         if compression_flag:
-            text = decode_ztxt(self.charset, compression_method, text_data)
+            if keyword == IPTC_KEYWORD:
+                return iptc_reader.read_png_chunk(
+                    decode_ztxt(compression_method, text_data)
+                )
+            text = decode_ztxt(compression_method, text_data).decode(
+                self.charset
+            )
         else:
+            if keyword == IPTC_KEYWORD:
+                return iptc_reader.read_png_chunk(text_data)
             text = text_data.decode(self.charset)
 
         return keyword, text
@@ -127,7 +152,12 @@ def read(png_source):
         if chunk_name in SUPPORTED_CHUNKS:
             chunk_reader = SUPPORTED_CHUNKS[chunk_name]()
             try:
-                keyword, text_content = chunk_reader.read(chunk_content)
+                value = chunk_reader.read(chunk_content)
+                if isinstance(value, tuple):
+                    keyword, text_content = value
+                elif isinstance(value, dict):
+                    metadata.update(value)
+                    continue
             except EmptyContentError:
                 continue
             except EXIF_Data:

@@ -1,5 +1,5 @@
 import logging
-from . import exif_reader, png_reader
+from . import exif_reader, iptc_reader, png_reader
 
 logger = logging.getLogger(__name__)
 
