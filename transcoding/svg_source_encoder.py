@@ -1,11 +1,12 @@
 from . import base_transcoder
 from ..decoders import svg as svg_decoder
-from .. import common, config
+from .. import common
 from . import encoders, video_transcoder
 from .encoders.srs_image_encoder import BaseImageSrsEncoder
 import tempfile
 import pathlib
 from PIL.Image import DecompressionBombError, Resampling
+from pyimglib.ACLMMP import specification as srs_spec
 
 
 class SVGEncoder(base_transcoder.BaseTranscoder):
@@ -14,8 +15,8 @@ class SVGEncoder(base_transcoder.BaseTranscoder):
 
     def _encode(self):
         cl2_size_limit = (
-            config.srs_image_cl_size_limit[2],
-            config.srs_image_cl_size_limit[2]
+            srs_spec.image.cl_size_limit[2],
+            srs_spec.image.cl_size_limit[2]
         )
         try:
             img = svg_decoder.decode(self._source)

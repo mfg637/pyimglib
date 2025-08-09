@@ -11,6 +11,7 @@ from .srs_base import BaseImageSrsEncoder, test_alpha_channel
 from ... import config
 from ... import common
 from . import avif_encoder, encoder
+from pyimglib.ACLMMP import specification as srs_spec
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +20,8 @@ class SrsLossyImageEncoder(BaseImageSrsEncoder):
     cl3_encoder_type:  typing.Type[encoder.BytesEncoder] | None = None
     cl2_encoder_type: typing.Type[encoder.BytesEncoder] | None = None
     cl1_encoder_type: typing.Type[encoder.BytesEncoder] | None = None
-    cl3_size_limit = config.srs_image_cl_size_limit[3]
-    cl1_size_limit = config.srs_image_cl_size_limit[1]
+    cl3_size_limit = srs_spec.image.cl_size_limit[3]
+    cl1_size_limit = srs_spec.image.cl_size_limit[1]
 
     def __init__(
         self,
@@ -180,8 +181,8 @@ class SrsLossyJpegXlEncoder(BaseImageSrsEncoder):
             logger.debug("cl1 encode")
             cl2_image = img.copy()
             cl2_image.thumbnail((
-                config.srs_image_cl_size_limit[2],
-                config.srs_image_cl_size_limit[2]
+                srs_spec.image.cl_size_limit[2],
+                srs_spec.image.cl_size_limit[2]
             ))
             cl2_file_path = output_file.with_stem(
                 "{}_cl2".format(output_file.stem)).with_suffix(".jxl")
@@ -225,7 +226,7 @@ class SrsLosslessImageEncoder(BaseImageSrsEncoder):
     cl2_encoder_type: typing.Type[encoder.BytesEncoder] | None = None
     cl3_lossy_encoder_type: typing.Type[encoder.BytesEncoder] | None = None
     cl1_encoder_type: typing.Type[encoder.BytesEncoder] | None = None
-    cl3_size_limit = config.srs_image_cl_size_limit[3]
+    cl3_size_limit = srs_spec.image.cl_size_limit[3]
 
     def __init__(self, base_quality_level, source_data_size, ratio):
         super().__init__(base_quality_level, source_data_size, ratio)

@@ -8,6 +8,7 @@ import string
 from typing import Union
 from ... import common, config
 from . import srs_base
+from pyimglib.ACLMMP import specification as srs_spec
 
 import abc
 
@@ -19,8 +20,12 @@ class StreamCopy:
     pass
 
 
-CodecType = Union[common.srs.VideoCodecs, common.srs.AudioCodecs, StreamCopy]
-ContainerType = Union[common.srs.VideoContainers, common.srs.AudioContainers]
+CodecType = Union[
+    srs_spec.video.VideoCodecs, srs_spec.audio.AudioCodecs, StreamCopy
+]
+ContainerType = Union[
+    srs_spec.video.VideoContainers, srs_spec.audio.AudioContainers
+]
 
 
 @dataclasses.dataclass
@@ -85,7 +90,7 @@ class VideoTranscodingSpecificationBuilder(VideoSpecificationBuildStrategy):
                 (width, height),
                 (levels_group[level][2], levels_group[level][1])
             )
-        container = common.srs.VIDEO_CODEC_PREFERED_CONTAINER[
+        container = srs_spec.video.VIDEO_CODEC_PREFERED_CONTAINER[
             levels_group[level][0]
         ]
         output_file = output_file.with_stem(
@@ -116,8 +121,8 @@ class VideoDemuxSpecificationBuilder(VideoSpecificationBuildStrategy):
         crf
     ):
         input_codec = metadata.video_stream["codec_name"]
-        container = common.srs.VIDEO_CODEC_PREFERED_CONTAINER[
-            common.srs.codec_name_to_enum(input_codec)
+        container = srs_spec.video.VIDEO_CODEC_PREFERED_CONTAINER[
+            srs_spec.video.codec_name_to_enum(input_codec)
         ]
         output_file = output_file.with_stem(
             f"{output_file.stem}_cl{level}"
@@ -141,22 +146,22 @@ class AudioSpecificationBuilder():
         audio_stream,
         output_file
     ):
-        input_codec = common.srs.codec_name_to_enum(
+        input_codec = srs_spec.video.codec_name_to_enum(
             audio_stream["codec_name"]
         )
         track_index = audio_stream["index"]
         audio_channels = audio_stream["channels"]
-        if input_codec in common.srs.AUDIO_CODEC_LEVEL:
-            level = common.srs.AUDIO_CODEC_LEVEL[input_codec]
-            container = common.srs.AUDIO_CODEC_PREFERED_CONTAINER[
+        if input_codec in srs_spec.audio.AUDIO_CODEC_LEVEL:
+            level = srs_spec.audio.AUDIO_CODEC_LEVEL[input_codec]
+            container = srs_spec.audio.AUDIO_CODEC_PREFERED_CONTAINER[
                 input_codec
             ]
             output_codec = StreamCopy()
             audio_bitrate = None
         else:
-            output_codec = common.srs.AudioCodecs.Opus
+            output_codec = srs_spec.audio.AudioCodecs.Opus
             level = 3
-            container = common.srs.AUDIO_CODEC_PREFERED_CONTAINER[
+            container = srs_spec.audio.AUDIO_CODEC_PREFERED_CONTAINER[
                 output_codec
             ]
             audio_bitrate = 96_000
@@ -249,8 +254,8 @@ class BasicVideoTranscode(TranscodingStrategy):
         ):
             output_file = "/dev/null"
             rewrite = True
-            _format = common.srs.FFMPEG_VIDEO_CONTAINER_FORMAT[
-                common.srs.VIDEO_CODEC_PREFERED_CONTAINER[stream.codec][0]
+            _format = srs_spec.video.FFMPEG_VIDEO_CONTAINER_FORMAT[
+                srs_spec.video.VIDEO_CODEC_PREFERED_CONTAINER[stream.codec][0]
             ]
         commandline = ["ffmpeg"]
         if rewrite:
@@ -490,9 +495,9 @@ class SrsVideoEncoder(srs_base.SrsEncoderBase):
         source_compatibility_level = self.detect_compatibility_level(
             metadata.video_stream
         )
-        levels_group = common.srs.VIDEO_30FPS_LEVELS
+        levels_group = srs_spec.video.LEVELS_30FPS
         if input_fps > 30:
-            levels_group = common.srs.VIDEO_60FPS_LEVELS
+            levels_group = srs_spec.video.LEVELS_60FPS
         output_fps = None
         if input_fps > 60:
             output_fps = 60
@@ -571,12 +576,12 @@ class SrsVideoEncoder(srs_base.SrsEncoderBase):
         for video in specification.video_streams:
             if isinstance(video.codec, StreamCopy):
                 transcoder = StreamCopying()
-            elif isinstance(video.codec, common.srs.VideoCodecs):
-                if video.codec == common.srs.VideoCodecs.H264:
+            elif isinstance(video.codec, srs_spec.video.VideoCodecs):
+                if video.codec == srs_spec.video.VideoCodecs.H264:
                     transcoder = X264VideoTranscode()
-                elif video.codec == common.srs.VideoCodecs.VP9:
+                elif video.codec == srs_spec.video.VideoCodecs.VP9:
                     transcoder = VP9VideoTranscode()
-                elif video.codec == common.srs.VideoCodecs.AV1:
+                elif video.codec == srs_spec.video.VideoCodecs.AV1:
                     transcoder = SVTAV1VideoTranscode()
                 else:
                     raise NotImplementedError(

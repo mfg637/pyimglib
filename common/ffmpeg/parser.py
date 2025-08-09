@@ -1,5 +1,11 @@
 import enum
 import json
+from pyimglib.ACLMMP.specification.video import (
+    codec_name_to_enum,
+    LEVELS_30FPS,
+    LEVELS_60FPS,
+    PIXEL_FORMAT_TO_BITS_PER_CHANNEL
+)
 
 from ..utils import (
     run_subprocess,
@@ -7,13 +13,6 @@ from ..utils import (
     SourceType,
     check_is_fractions,
     to_fractions_or_float
-)
-
-from ..srs import (
-    VIDEO_30FPS_LEVELS,
-    VIDEO_60FPS_LEVELS,
-    codec_name_to_enum,
-    PIXEL_FORMAT_TO_BITS_PER_CHANNEL
 )
 
 
@@ -131,8 +130,8 @@ def get_video_size(video_stream) -> tuple[int, int, int, int]:
 
 def test_video_cl(compatibility_level: int, video_stream) -> bool:
     video = video_stream
-    fps60_level = VIDEO_60FPS_LEVELS[compatibility_level]
-    fps30_level = VIDEO_30FPS_LEVELS[compatibility_level]
+    fps60_level = LEVELS_60FPS[compatibility_level]
+    fps30_level = LEVELS_30FPS[compatibility_level]
     fps = get_fps(video)
     pixel_format = video["pix_fmt"]
     width, height, min_size, max_size = get_video_size(video_stream)

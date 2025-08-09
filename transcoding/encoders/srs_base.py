@@ -4,7 +4,8 @@ import pathlib
 from abc import ABC
 import PIL.Image
 
-from pyimglib import config, metadata
+from pyimglib import metadata
+from pyimglib.ACLMMP import specification as srs_spec
 from pyimglib.transcoding.encoders import encoder
 
 logger = logging.getLogger(__name__)
@@ -98,14 +99,14 @@ class BaseImageSrsEncoder(SrsEncoderBase):
             cl0_file_path.write_bytes(self.cl0_image_data)
         if cl1_file_name is not None:
             if (
-                img.width > config.srs_image_cl_size_limit[2]
-                or img.height > config.srs_image_cl_size_limit[2]
+                img.width > srs_spec.image.cl_size_limit[2]
+                or img.height > srs_spec.image.cl_size_limit[2]
                 or cl2_file_name is not None
             ):
                 srs_data["streams"]["image"]["levels"]["1"] = cl1_file_name
             elif (
-                img.width <= config.srs_image_cl_size_limit[2]
-                and img.height <= config.srs_image_cl_size_limit[2]
+                img.width <= srs_spec.image.cl_size_limit[2]
+                and img.height <= srs_spec.image.cl_size_limit[2]
                 and cl2_file_name is None
             ):
                 srs_data["streams"]["image"]["levels"]["2"] = cl1_file_name
@@ -134,16 +135,16 @@ class BaseImageSrsEncoder(SrsEncoderBase):
     @staticmethod
     def check_cl_size_limit(img, compatibility_level: int):
         return (
-            img.width > config.srs_image_cl_size_limit[compatibility_level]
-        ) | (img.height > config.srs_image_cl_size_limit[compatibility_level])
+            img.width > srs_spec.image.cl_size_limit[compatibility_level]
+        ) | (img.height > srs_spec.image.cl_size_limit[compatibility_level])
 
     @staticmethod
     def scale_img(img, compatibility_level):
         scaled_img = img.copy()
         scaled_img.thumbnail(
             (
-                config.srs_image_cl_size_limit[compatibility_level],
-                config.srs_image_cl_size_limit[compatibility_level],
+                srs_spec.image.cl_size_limit[compatibility_level],
+                srs_spec.image.cl_size_limit[compatibility_level],
             ),
             PIL.Image.Resampling.LANCZOS,
         )
