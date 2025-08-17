@@ -15,6 +15,7 @@ class EXIF_Data(Exception):
 
 EXIF_KEYWORD = "Raw profile type exif"
 IPTC_KEYWORD = "Raw profile type iptc"
+ICC_KEYWORD = "Raw profile type icc"
 
 
 class AbstractTextReading(abc.ABC):
@@ -44,6 +45,8 @@ class BaseTextReading(AbstractTextReading):
             raise EXIF_Data()
         elif keyword == IPTC_KEYWORD:
             return self.decode_iptc(raw_data)
+        elif keyword == ICC_KEYWORD:
+            raise EmptyContentError("ICC profile found")
         text_content = self.decode_content(raw_data)
         return keyword, text_content
 
@@ -108,6 +111,8 @@ class iTXt_Reading(AbstractTextReading):
             return keyword, text
         elif keyword == EXIF_KEYWORD:
             raise EXIF_Data()
+        elif keyword == ICC_KEYWORD:
+            raise EmptyContentError("ICC profile found")
 
         if not len(packed_data):
             raise EmptyContentError()
